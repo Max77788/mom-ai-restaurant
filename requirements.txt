@@ -7,7 +7,7 @@ requests
 web3
 binance
 paypalrestsdk
-hyperwallet
+hyperwallet-sdk
 flask-wtf
 wtforms
 celery
