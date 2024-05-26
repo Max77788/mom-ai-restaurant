@@ -6,6 +6,7 @@ flask-mail
 requests
 web3
 binance
+python-binance
 paypalrestsdk
 hyperwallet-sdk
 flask-wtf
