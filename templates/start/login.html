@@ -3,6 +3,13 @@
 {% block content %}
     <h1>Welcome to MOM AI Restaurant Assistant</h1>
     <p>Fill in the details below to get started.</p>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
     <form action="{{ url_for('login') }}" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <div>
