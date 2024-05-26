@@ -3,3 +3,8 @@
 .env
 random_menu.py
 rarara.py
+utils/hyperwallet.py
+utils/__pycache__
+utils/celery_not_money
+utils/legacy
+utils/withdraw

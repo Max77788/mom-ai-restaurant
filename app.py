@@ -8,7 +8,7 @@ from openai import OpenAI
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
 import base64
-from utils.hyperwallet import create_user, create_bank_account, make_payment
+#from utils.hyperwallet import create_user, create_bank_account, make_payment
 import ast
 from utils.withdraw.pp_payout import send_payout_pp
 from datetime import datetime
