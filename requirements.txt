@@ -15,3 +15,4 @@ celery
 gunicorn
 pandas
 openpyxl
+email-validator
