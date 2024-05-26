@@ -10,11 +10,11 @@ from utils.web3_functionality import create_web3_wallet, completion_on_binance_w
 import base64
 #from utils.hyperwallet import create_user, create_bank_account, make_payment
 import ast
-from utils.withdraw.pp_payout import send_payout_pp
+#from utils.withdraw.pp_payout import send_payout_pp
 from datetime import datetime
 from openai import OpenAI, AzureOpenAI
-from tools.stellar_payments.list_payments import list_received_payments
-from tools.stellar_payments.create_account import create_stellar_account
+#from tools.stellar_payments.list_payments import list_received_payments
+#from tools.stellar_payments.create_account import create_stellar_account
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
@@ -663,7 +663,7 @@ def post_withdrawal_request():
     return render_template("payment_routes/withdraw/withdrawal_posted.html", title="Withdrawal Requested", withdraw_amount=withdraw_amount, res_email=res_email)
 
 
-
+"""
 @app.route('/withdraw-funds-auto', methods=['POST', 'GET'])
 def pp_or_web3_withdraw_display():
     return render_template("payment_routes/withdraw/main_withdraw.html", title="Withdraw Funds")
@@ -674,7 +674,7 @@ def pp_withdraw_funds():
     amount_usd = session.get("current_balance")  # Specify the amount to send
     response = send_payout_pp(email, amount_usd)
     return response  # You might want to handle the response appropriately
-
+"""
 
 
 
