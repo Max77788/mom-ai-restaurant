@@ -1,0 +1,9 @@
+{% block content %}
+<div style="text-align: center;">
+<h1>Assistant Usage</h1>
+<p>Either open this chat on a tablet and put it at the counter in store or insert the following link at your site of sale: <br> <a href=" {{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name }}'s AI-Assistant</u></b></a></p>
+<p>Or you can paste the following link on your site: <i>mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i></p>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+  <h3>Congratulations on setting up {{ restaurant_name }}'s Assistant!</h3>
+  <p>Your test messages have been successfully sent out. It's time to set up payment processing for your business.</p>
+
+  <!-- Information and action button for setting up payments -->
+  <p>You can now easily set up payments for your business. Simply click the button below to configure your Web3 payment account:</p>
+
+  <!-- Form to trigger POST request to create_wallet route -->
+  <form action="/create_wallet" method="POST">
+    <!-- Form for inputting API keys -->
+    <!-- <p>Find test API Key <a href="https://dashboard.stripe.com/test/apikeys/" target="_blank">here</a></p>
+    <label for="circleSecretKey">Input your Stripe Secret Key Secret Key:</label>
+    <input type="text" id="stripeSecretKey" name="stripeSecretKey" placeholder="Enter Stripe Secret Key" required>
+    <br> -->
+    <input type="submit" id="setupButton" value="Setup Business web3 Account">
+  </form>
+{% endblock %}

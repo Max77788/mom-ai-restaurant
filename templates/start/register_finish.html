@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Registration Complete
+{% endblock %}
+
+{% block content %}
+<h1>Registration Complete</h1>
+<p>Congratulations! {{ restaurant_name }}'s account has been setup.</p>
+<div>
+    <h2>Account Details</h2>
+    <p><strong>Web3 Wallet Address:</strong> {{ web3_wallet_address }}</p>
+    <p><strong>Assistant:</strong> {{ restaurant_name }}'s Assistant</p>
+</div>
+
+<!-- <a href="/">Go back to Home</a> -->
+
+<!-- Countdown and Redirect -->
+<div id="countdown" style="text-align: center; margin-top: 20px;">
+    Redirecting to your dashboard in <span id="redirectTimer">20</span> seconds.
+</div>
+<script>
+    var timeLeft = 12; // seconds
+    var timerId = setInterval(countdown, 1000);
+
+    function countdown() {
+        if (timeLeft == 0) {
+            clearTimeout(timerId);
+            doRedirect();
+        } else {
+            document.getElementById('redirectTimer').innerHTML = timeLeft;
+            timeLeft--;
+        }
+    }
+
+    function doRedirect() {
+        window.location.href = '/dashboard';
+    }
+</script>
+<noscript>
+    <meta http-equiv="refresh" content="20;url=/dashboard">
+</noscript>
+{% endblock %}

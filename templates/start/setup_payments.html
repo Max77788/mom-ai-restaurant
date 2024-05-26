@@ -1,0 +1,19 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+  <h3>Thanks for testing {{ restaurant_name }}'s Assistant</h3>
+  <p>5 testing messages are out!</p>
+  <p>Now we <a href="https://demo-wallet.stellar.org/" target="_blank">get stellar payments api key here</a>! And setup payments for your business</p>
+
+  <!-- Form for inputting API keys -->
+  <form action="/create_account" method="post">
+    <p>Press 'generate keypair for new account (testnet only)' <a href="https://demo-wallet.stellar.org/" target="_blank">here</a> to find and</p>
+    <label for="circleSecretKey">Input your Stellar Secret Key:</label>
+    <input type="text" id="stellarSecretKey" name="stellarSecretKey" placeholder="Enter Circle Secret Key" required>
+    <br><br>
+    <label for="circlePublicKey">Input your Stellar Public Key:</label>
+    <input type="text" id="stellarPublicKey" name="stellarPublicKey" placeholder="Enter Circle Public Key" required>
+    <br><br>
+    <input type="submit" value="Submit">
+  </form>
+{% endblock %}

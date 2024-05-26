@@ -1,0 +1,22 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+    <div class="cancel-payment-message">
+        <h1>The payment was canceled</h1>
+        <p>You will be redirected in <span id="countdown">7</span> seconds.</p>
+    </div>
+    <script>
+        // Countdown and redirect script
+        let countdown = 7;
+        const countdownElement = document.getElementById('countdown');
+
+        const interval = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            if (countdown === 0) {
+                clearInterval(interval);
+                window.location.href = "{{ url_for('assistant_order_chat', unique_azz_id=res_unique_azz_id) }}";
+            }
+        }, 1000);
+    </script>
+{% endblock %}

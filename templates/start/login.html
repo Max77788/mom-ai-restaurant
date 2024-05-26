@@ -1,0 +1,22 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+    <h1>Welcome to MOM AI Restaurant Assistant</h1>
+    <p>Fill in the details below to get started.</p>
+    <form action="{{ url_for('login') }}" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div>
+            <label for="email">Email:</label>
+            {{ form.email(size=20) }}
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            {{ form.password(size=20) }}
+        </div>
+        <p> Fotgot password?? Then gimme all ur money!!!!</p>
+        <div>
+            {{ form.submit }}
+        </div>
+    </form>
+    <p>Not registered yet? <a href="{{ url_for('landing_page') }}"><b><u>Register Now</u></b></a>.</p>
+{% endblock %}

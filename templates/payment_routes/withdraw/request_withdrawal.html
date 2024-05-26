@@ -1,0 +1,32 @@
+{% extends "layout_no_land.html" %}
+{% block content %}
+<p>
+    {% if available_amount < 100 %}
+        You need to reach <b>100 dollars</b> balance and come back. Your Current Balance is <b>{{ available_amount }} dollars</b>.
+    {% else %}
+        <form id="withdrawal-form" action="/post-withdrawal-request" method="POST">
+            <label for="withdrawal-description">Describe where you want your withdrawal with the needed details(Card Number, IBAN, SWIFT, etc.):</label><br>
+            <textarea id="withdrawal-description" name="withdrawal_description" rows="2" cols="50"></textarea><br>
+            <span id="description-error" style="color: red; display: none; padding-bottom: 15px;">Withdrawal description must be between 50 and 500 characters.</span><br>
+            <button type="submit" id="leave-request" class="{% if available_amount < 400 %}disabled{% else %}enabled{% endif %}" {% if available_amount < 400 %}disabled{% endif %}>Leave Request</button>
+        </form><br>
+        You have {{ available_amount }} USD to withdraw. - <b>Only all funds withdrawal is available</b>
+    {% endif %}
+</p>
+
+<script>
+    document.getElementById('withdrawal-form').addEventListener('submit', function(event) {
+        var withdrawalDescription = document.getElementById('withdrawal-description').value.trim();
+        var errorSpan = document.getElementById('description-error');
+        
+        // Check if the description length is within the allowed range (10 to 500 characters)
+        if (withdrawalDescription.length < 50 || withdrawalDescription.length > 500) {
+            errorSpan.style.display = 'inline'; // Show error message
+            event.preventDefault(); // Prevent form submission
+        } else {
+            errorSpan.style.display = 'none'; // Hide error message
+        }
+    });
+</script>
+
+{% endblock %}

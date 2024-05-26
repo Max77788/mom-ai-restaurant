@@ -1,0 +1,140 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+<div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
+    
+    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
+        Chat Room for {{ restaurant_name }} Restaurant
+    </header>
+    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
+        <!-- Initial greeting message -->
+        <div id="greetingMessage" style="text-align: center; margin: 20px;">
+            <p>Click below to start chatting with MOM AI Restaurant assistant to order at <a href='{{ restaurant_website_url }}' target="_blank"><b>{{ restaurant_name }}</b></a>.</p>
+            <button onclick="startConversation()" style="padding: 10px 20px; font-size: 16px; background-color: #000000; color: white; border: none; border-radius: 5px;">Start New Chat</button>
+        </div>
+        <!-- Chat messages will appear here after starting the conversation -->
+    </div>
+    <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px;">
+        <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;" disabled>
+        <button onclick="sendMessage()" style="width: 15%; background: none; border: none; color: white; font-size: 16px;" disabled>Send</button>
+    </footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    // Inline check to see if marked is loaded
+    console.log("Is marked loaded?", typeof marked === 'function');
+
+    let currentThreadId = null;  // This will be set when the user starts a new conversation
+    let currentAssistantId = null;  // This will be set with the assistant's ID when starting a new conversation
+
+    function startConversation() {
+        fetch('/assistant_start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })  // Use assistant_id from the server
+        })
+        .then(response => response.json())
+        .then(data => {
+            currentThreadId = data.thread_id;
+            currentAssistantId = data.assistant_id;
+            document.getElementById('chatBox').innerHTML = '<p style="text-align:center;"><b>Type in your message now</b></p>';
+            
+            // Enable the message input and send button
+            document.getElementById('userMessage').disabled = false;
+            document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+        });
+    }
+
+    function sendMessage() {
+        const userMessage = document.getElementById('userMessage').value;
+        console.log("Send button clicked");
+        console.log("User message:", userMessage);
+        if (userMessage.trim() === '') {
+            console.log("Empty message, not sending.");
+            return; // Prevent sending empty messages
+        }
+
+        // Display the user's message immediately in the chat
+        appendMessage(userMessage, 'user');
+
+        fetch('/generate_response', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: userMessage, thread_id: currentThreadId, assistant_id: currentAssistantId})
+        })
+        .then(response => {
+            console.log("Response received:", response);
+            return response.json();
+        })
+        .then(data => {
+            console.log("Data received:", data);
+            if (data.order_formed) {
+                // Display the final response and instructions for checkout
+                appendMessage(data.response_llm, 'assistant');
+                appendMessage("Press here to proceed", 'system');
+                // Disable the message input and send button
+                document.getElementById('userMessage').disabled = true;
+                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+                document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
+            } else {
+                // Display the assistant's response when it is received
+                appendMessage(data.response_llm, 'assistant');
+            }
+            document.getElementById('userMessage').value = ''; // Clear input after sending
+        })
+        .catch(error => {
+            console.error("Error:", error);
+        });
+    }
+
+    function appendMessage(message, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
+        console.log("Opened appendMessage function");
+
+        // Convert markdown to HTML
+        try {
+            const htmlContent = marked.parse(message);  // Use marked.parse() function
+            console.log("Marked function called successfully");
+            messageDiv.innerHTML = htmlContent;
+        } catch (error) {
+            console.error("Marked conversion error:", error);
+            messageDiv.textContent = message;  // Fallback to plain text if marked fails
+        }
+
+        if (sender === 'user') {
+            messageDiv.style.backgroundColor = '#e5e5e5'; // Light grey for user messages
+            messageDiv.style.textAlign = 'left';
+        } else if (sender === 'assistant') {
+            messageDiv.style.backgroundColor = '#000000'; // Dark for assistant messages
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'right';
+        } else if (sender === 'system') {
+            messageDiv.style.backgroundColor = '#4CAF50'; // Green for system messages
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'center'; // Center system messages
+        }
+
+        document.getElementById('chatBox').appendChild(messageDiv);
+
+        // Disable the input and send button if the message contains "Press here to proceed"
+        if (message.includes("Press here to proceed")) {
+            document.getElementById('userMessage').disabled = true;
+            document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+        }
+
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+</script>
+{% endblock %}
+

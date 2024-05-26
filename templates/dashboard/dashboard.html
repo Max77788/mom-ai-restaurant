@@ -1,0 +1,63 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+<div class="dashboard"> 
+  <div class="dashboard-header">
+    <div class="total-earned">
+      <span><strong>Total Earned:</strong> {{ current_balance }}$</span>
+      <a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
+      {% if awaiting_withdrawal > 0 %}
+        <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
+      {% endif %}
+    </div>
+    <div class="wallet-address">
+      <h1>Welcome to your dashboard, {{ restaurant_name }}!</h1>
+      <!-- <span><strong>Wallet Address:</strong> {{ wallet_address }}</span> -->
+    </div>
+    <div class="restaurant-name">
+      <span><strong>Restaurant Name: </strong><a href="{{ res_website_url }}" target="_blank">{{ restaurant_name }}</a></span>
+    </div>
+  </div>
+</div>
+  <nav class="dashboard-nav">
+    <a href="/payments" class="tab">Payments</a>
+    <a href="/assistant_dash" class="tab">Assistant</a>
+    <!-- <a href="/settings" class="tab">Settings</a> -->
+    <a href="/view_orders" target="_blank">Orders Display</a>
+  </nav>
+  <section class="dynamic-content" id="dynamic-content">
+      <!-- Content will be dynamically loaded here based on the tab chosen -->
+  </section>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Get all tab elements
+  var tabs = document.querySelectorAll('.tab');
+
+  // Function to handle tab click events
+  function loadTabContent(event) {
+    event.preventDefault(); // Prevent the default action
+
+    var url = event.currentTarget.getAttribute('href'); // Get the href attribute of the clicked tab
+
+    // Fetch the content from the server
+    fetch(url)
+      .then(response => response.text())
+      .then(html => {
+        // Insert the content into the <section> element
+        document.getElementById('dynamic-content').innerHTML = html;
+      })
+      .catch(error => {
+        // Handle errors if any
+        document.getElementById('dynamic-content').innerHTML = '<p>Error loading content...</p>';
+      });
+  }
+
+  // Attach click event listeners to the tabs
+  tabs.forEach(function(tab) {
+    tab.addEventListener('click', loadTabContent);
+  });
+});
+</script>
+{% endblock %}

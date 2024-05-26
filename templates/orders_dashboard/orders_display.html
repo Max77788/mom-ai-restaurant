@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Orders</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #232f3e; /* Darker background */
+            color: #ddd; /* Light text */
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.5s ease;
+        }
+
+        footer {
+            background-color: #232f3e;
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            color: #FFD700; /* Gold color */
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+        }
+
+        h3 {
+            font-family: 'Montserrat', sans-serif;
+            color: #ff0000; /* Gold color */
+            text-align: center;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul > li {
+            background-color: #1e272e; /* Dark card background */
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        ul > li:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.2);
+        }
+        ul > li > ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+            color: #eee; /* Lighter text */
+        }
+        li:last-child {
+            margin-bottom: 0;
+        }
+        .order-number {
+            font-weight: bold;
+            color: #eccc68; /* Light gold color */
+            font-size: 1.2em;
+        }
+        .old-order {
+            color: red; /* Red text for old orders */
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        body, ul > li {
+            animation: fadeIn 1s;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{restaurant_name}} Orders</h1>
+    <h4 style="text-align: center;">*the page is being automatically updated every 20 seconds - you won't miss any orders!</h4>
+    <h3>Orders which are older than 30 minutes are in red color</h3>
+    <h2 id="no-orders-message" style="text-align: center;">No orders yet, as soon as MOM AI Assistant registers the order it will be displayed here</h2>
+    <ul id="orders-list">
+        <!-- Orders will be dynamically inserted here -->
+    </ul>
+    
+    <script>
+        function fetchOrders() {
+            fetch('/view_orders_ajax')
+                .then(response => response.json())
+                .then(data => {
+                    var ordersList = document.getElementById('orders-list');
+                    var noOrdersMessage = document.getElementById('no-orders-message');
+                    ordersList.innerHTML = '';
+                    
+                    if (data.orders.length === 0) {
+                        noOrdersMessage.style.display = 'block';
+                    } else {
+                        noOrdersMessage.style.display = 'none';
+                        data.orders.forEach(order => {
+                            if (order.published) {
+                                var orderItem = document.createElement('li');
+                                orderItem.className = 'order-item';
+                                orderItem.setAttribute('data-timestamp', order.timestamp);
+                                orderItem.innerHTML = `Order for <b>{{restaurant_name}}</b> taken by MOM AI Assistant<br><br>
+                                    Made at: ${order.timestamp} UTC<br><br>
+                                    <ul>`;
+                                
+                                order.foods.forEach(item => {
+                                    var foodItem = document.createElement('li');
+                                    foodItem.innerHTML = `<b>${item.name}</b> : <b>${item.quantity} serving(s)</b>`;
+                                    orderItem.querySelector('ul').appendChild(foodItem);
+                                });
+
+                                ordersList.appendChild(orderItem);
+                            }
+                        });
+                        colorOldOrders();
+                    }
+                })
+                .catch(error => console.error('Error fetching orders:', error));
+        }
+
+        function colorOldOrders() {
+            var now = new Date().getTime();
+            var orderElements = document.getElementsByClassName('order-item');
+            for (var i = 0; i < orderElements.length; i++) {
+                var orderTimestamp = orderElements[i].getAttribute('data-timestamp');
+                var currentYear = new Date().getFullYear();
+                var formattedTimestamp = `${orderTimestamp} ${currentYear}`;
+                var dateParts = formattedTimestamp.split(' ');
+                var date = dateParts[0].split('.');
+                var time = dateParts[1].split(':');
+                var orderTime = new Date(currentYear, date[1] - 1, date[0], time[0], time[1]).getTime();
+
+                if ((now - orderTime) > 1800000) {
+                    orderElements[i].classList.add('old-order');
+                }
+            }
+        }
+
+        // Fetch orders every 20 seconds
+        setInterval(fetchOrders, 20000);
+
+        // Initial fetch of orders
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchOrders();
+        });
+    </script>
+</body>
+
+<footer>
+    <p>© 2024 MOM AI. All rights reserved.</p>
+</footer>
+</html>
+

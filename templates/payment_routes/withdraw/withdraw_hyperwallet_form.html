@@ -1,0 +1,88 @@
+{% extends "layout_no_land.html" %}
+{% block content %}
+    <h1>Hyperwallet Payout</h1>
+    <p>You can withdraw your bloody funds: {{ funds_available }} USD on either bank account or crypto wallet.</p> 
+    <form id="payoutForm">
+        <label for="first_name">First Name:</label>
+        <input type="text" id="first_name" name="first_name" required><br><br>
+
+        <label for="last_name">Last Name:</label>
+        <input type="text" id="last_name" name="last_name" required><br><br>
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required><br><br>
+
+        <label for="amount">Amount (USD):</label>
+        <input type="number" id="amount" name="amount" required><br><br>
+
+        <label for="addressLine">Address Line:</label>
+        <input type="text" id="addressLine" name="addressLine" required><br><br>
+
+        <label for="city">City:</label>
+        <input type="text" id="city" name="city" required><br><br>
+
+        <label for="stateProvince">State/Province:</label>
+        <input type="text" id="stateProvince" name="stateProvince" required><br><br>
+
+        <label for="country">Country:</label>
+        <input type="text" id="country" name="country" required><br><br>
+
+        <label for="postalCode">Postal Code:</label>
+        <input type="text" id="postalCode" name="postalCode" required><br><br>
+
+        <label for="bank_account_number">Bank Account Number:</label>
+        <input type="text" id="bank_account_number" name="bank_account_number" required><br><br>
+
+        <label for="routing_number">Bank Routing Number:</label>
+        <input type="text" id="routing_number" name="routing_number" required><br><br>
+
+        <button type="submit">Send Payout</button>
+    </form>
+
+    <script>
+        document.getElementById('payoutForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const fundsAvailable = {{ funds_available }};
+            const amount = parseFloat(document.getElementById('amount').value);
+
+            if (amount > fundsAvailable) {
+                alert('Error: The amount exceeds the available funds.');
+                return;
+            }
+
+            const formData = {
+                first_name: document.getElementById('first_name').value,
+                last_name: document.getElementById('last_name').value,
+                email: document.getElementById('email').value,
+                amount: amount,
+                addressLine: document.getElementById('addressLine').value,
+                city: document.getElementById('city').value,
+                stateProvince: document.getElementById('stateProvince').value,
+                country: document.getElementById('country').value,
+                postalCode: document.getElementById('postalCode').value,
+                bank_account_number: document.getElementById('bank_account_number').value,
+                routing_number: document.getElementById('routing_number').value
+            };
+
+            fetch('/send-payout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Payout sent successfully!');
+                    // window.location.href = '/dashboard';
+                } else {
+                    alert('Error sending payout: ' + data.message);
+                    // window.location.href = '/dashboard';
+                }
+            });
+        });
+    </script>
+{% endblock %}
+

@@ -1,0 +1,129 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div id="upper-part" style="margin-bottom: 15px;">
+<h1>Welcome to MOM AI Restaurant Assistant <span style="font-size: 77%;"><a href="#instructions"><b><u>(Check the setup guide)</u></b></a></span></h1>
+    <p>Fill in the details below to get started.</p>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
+    <form action="/" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div>
+            <label for="restaurant_name">Restaurant Name:</label>
+            {{ form.restaurant_name }}
+        </div>
+        <div class="form-group">
+            <label for="restaurant_url">Restaurant Website:</label>
+            {{ form.restaurant_url }}
+        </div>
+        <div class="form-group">
+            <label for="menu">Upload Menu (only Excel File - <a href = '{{ url_for("serve_excel_guide") }}' target="_blank"><u>Guide on how to form it</u></a>)</label>
+            {{ form.menu }}
+        </div>
+        <!-- Not needed for now
+        <div class="form-group">
+            <label for="script">Upload Script (TXT):</label>
+            {{ form.script }}
+        </div>
+        <div class="form-group">
+            <label for="script">Input additional instructions for the assistant manually (Optional):</label>
+            {{ form.other_instructions }}
+        </div>
+        -->
+        <div>
+            <label for="email">Input Valid Email (You Will Receive code on it):</label>
+            {{ form.email }}
+        </div>
+        <div class="form-group">
+            <label for="password">Password:</label>
+            {{ form.password }}
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">Confirm Password:</label>
+            {{ form.confirm_password }}
+        </div>
+        <div class="form-group">
+            {{ form.submit }}
+        </div>
+    </form>
+    <p>Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
+</div>
+    <div id="instructions" style="border-top: 1px solid black;">
+    <h2 style="text-align: center; margin-top: 10px;">How to Get Started with MOM AI Restaurant Assistant</h2>
+    <p style="text-align: center;">Follow these simple steps to set up your restaurant assistant:</p>
+    
+    <ol>
+        <li><strong>Sign Up for an Account</strong>
+            <ol>
+                <li>Visit the MOM AI website and click on the "Sign Up" button.</li>
+                <li>Fill out the registration form with your restaurant's details and your contact information.</li>
+                <li>Verify your email address by clicking the link sent to your inbox.</li>
+            </ol>
+        </li>
+        <li><strong>Upload Your Restaurant Menu</strong>
+            <ol>
+                <li>Log in to your account on the MOM AI platform.</li>
+                <li>Navigate to the "Menu Management" section.</li>
+                <li>Upload your restaurant's menu by either:
+                    <ul>
+                        <li>Dragging and dropping a file (PDF, DOC, etc.).</li>
+                        <li>Manually entering menu items using the provided template.</li>
+                    </ul>
+                </li>
+                <li>Review and save your menu.</li>
+            </ol>
+        </li>
+        <li><strong>Customize Your Order Script</strong>
+            <ol>
+                <li>Go to the "Order Script" section.</li>
+                <li>Create and customize the script that the AI assistant will use to interact with your customers. Include:
+                    <ul>
+                        <li>Greeting messages.</li>
+                        <li>Order confirmation prompts.</li>
+                        <li>Payment instructions.</li>
+                    </ul>
+                </li>
+                <li>Use the preview feature to see how the script will look in action.</li>
+                <li>Save your script once you are satisfied with the customization.</li>
+            </ol>
+        </li>
+        <li><strong>Configure Payment Settings</strong>
+            <ol>
+                <li>Navigate to the "Payment Settings" section.</li>
+                <li>Link your preferred payment gateway (e.g., Stripe, PayPal).</li>
+                <li>Set up payment notifications to ensure you are alerted when transactions are processed.</li>
+                <li>Save your payment settings.</li>
+            </ol>
+        </li>
+        <li><strong>Activate Your AI Assistant</strong>
+            <ol>
+                <li>Go to the "AI Assistant" section.</li>
+                <li>Activate the assistant by toggling the activation switch.</li>
+                <li>Test the assistant using the built-in simulator to ensure everything works smoothly.</li>
+            </ol>
+        </li>
+        <li><strong>Monitor and Manage Orders</strong>
+            <ol>
+                <li>Access the "Order Dashboard" to view incoming orders.</li>
+                <li>The AI assistant will notify you of new orders via email or SMS after successful payment.</li>
+                <li>Track order statuses and manage your restaurant operations efficiently.</li>
+            </ol>
+        </li>
+    </ol>
+    
+    <p><strong>Pricing Overview</strong></p>
+    <ul>
+        <li>Message Fee: $0.05 per message sent by the AI assistant.</li>
+        <li>Order Fee: 1% of the total price of each formed order.</li>
+        <li>Estimated Cost per Order: Approximately $0.20 based on average message volume.</li>
+    </ul>
+    
+    <p>No upfront payments required! Pay as you go based on the usage of the AI assistant. Scalable solution to handle high volumes during peak times. Real-time notifications to keep you updated on new orders.</p>  
+    </div>
+{% endblock %}
+

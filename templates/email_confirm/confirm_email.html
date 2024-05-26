@@ -1,0 +1,19 @@
+{% extends 'layout_no_land.html' %}
+
+{% block title %}
+Email Confirmation
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: auto; padding-top: 50px; text-align: center;">
+    <h1>Email Confirmation Successful!</h1>
+    <p>Your email has been successfully verified. You will be redirected shortly.</p>
+    
+    <!-- Redirection Script -->
+    <script>
+        setTimeout(function() {
+            window.location.href = '{{ url_for("assistant_demo_chat") }}';
+        }, 4000);  // 7000 milliseconds = 7 seconds
+    </script>
+</div>
+{% endblock %}

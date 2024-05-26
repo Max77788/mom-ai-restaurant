@@ -1,0 +1,29 @@
+{% block content %}
+<style>
+    .payment-box {
+        border: 1px solid #ccc; /* Light grey border */
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 8px; /* Rounded corners */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Soft shadow for depth */
+        background-color: #f9f9f9; /* Light grey background */
+    }
+    .payment-box p {
+        margin: 5px 0; /* Adds a little space between paragraphs */
+        font-size: 16px; /* Slightly larger text for readability */
+        color: #333; /* Dark grey text for contrast */
+    }
+</style>
+<div style="text-align: center;">
+    <h1>Payments History</h1>
+</div>
+<div>
+    {% for payment in payments %}
+    <div class="payment-box">  
+        <p>Amount: {{ payment.total_paid }}$</p>
+        <p>Time: {{ payment.timestamp }} UTC</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

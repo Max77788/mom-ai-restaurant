@@ -1,0 +1,51 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+<div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
+    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
+        Chat Room for {{ restaurant_name }} Restaurant
+    </header>
+    <div id="message-container" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
+        {% for message in messages %}
+            {% if message.sender == 'assistant' %}
+                <div style="margin: 10px; padding: 10px; background-color: #000000; color: white; text-align: right; border-radius: 10px;">
+                    {{ message.content }}
+                </div>
+            {% else %}
+                <div style="margin: 10px; padding: 10px; background-color: #e5e5e5; text-align: left; border-radius: 10px;">
+                    {{ message.content }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    <footer style="background-color: #000000; color: white; padding: 10px;">
+        <form action="{{ url_for('assistant_demo_chat') }}" method="post">
+            <input type="text" name="user_message" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;">
+            <button type="submit" style="width: 15%; background: none; border: none; color: white; font-size: 16px;">Send</button>
+        </form>
+        <div id="countdown" style="color: white; text-align: center;"></div>
+    </footer>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const messages = {{ messages | length }};
+        console.log(`Messages length: ${messages}`)
+        const countdownElement = document.getElementById('countdown');
+
+        if (messages >= 3) {
+            let timeLeft = 7;
+            countdownElement.textContent = 'Redirecting in ' + timeLeft + ' seconds...';
+
+            const interval = setInterval(function() {
+                timeLeft--;
+                countdownElement.textContent = 'Redirecting in ' + timeLeft + ' seconds...';
+                
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    window.location.href = "{{ url_for('dashboard_display') }}";
+                }
+            }, 1000);
+        }
+    });
+</script>
+{% endblock %}

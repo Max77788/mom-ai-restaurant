@@ -1,0 +1,22 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+
+    <div class="payment-buffer-message">
+        <h1>Order Confirmation</h1>
+        <p>You are ready to proceed with the payment for</p>
+        <ul>
+            {% for item in items %}
+                <li>
+                <b>{{ item['name'] }}</b> : <b>{{ item['quantity'] }} serving(s)</b><br>
+                <b>{{ item['price']}} USD <u>per 1 item</u></b>
+                </li>
+            {% endfor %}
+        </ul>
+        
+        <p style="margin-bottom: 10px;"><b>Total: {{ total_to_pay }} USD</b></p>
+        <a href='{{ checkout_link }}'><button style="margin-right: 25px;">Proceed</button></a>
+        <a href='{{ url_for("assistant_order_chat", unique_azz_id=session["unique_azz_id"]) }}'><button>Come Back</button></a>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,155 @@
+/* Resetting some basic elements */
+body, h1, h2, h3, p, form {
+    margin: 0;
+    padding: 0;
+}
+
+/* General Body Styles */
+body {
+    font-family: 'Arial', sans-serif;
+    color: #333;
+    background-color: #fff;
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+}
+
+/* Header and Footer Styles */
+header, footer {
+    background-color: #000;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Styles for header */
+header {
+    text-align: center;
+    padding: 20px;
+    background-color: #f8f8f8;
+    box-shadow: 0 4px 2px -2px rgba(0, 0, 0, 0.5); /* Adds a shaded bottom line */
+}
+
+header .logo {
+    max-width: 200px;
+    height: auto;
+}
+
+header .slogan {
+    margin-top: 0px;
+    font-size: 1.7em;
+    color: #000;
+}
+
+
+/* Main Content Area Styles */
+main {
+    padding: 20px;
+}
+
+/* Form and Input Styles */
+input[type="text"], textarea, select {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+input[type="submit"], button {
+    background-color: #000;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+input[type="submit"]:hover, button:hover {
+    background-color: #333;
+}
+
+/* Links */
+a {
+    color: #000;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}
+
+/* Dashboard Styles */
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px; /* Space between header and tabs */
+}
+
+.total-earned, .restaurant-name {
+    font-size: 1.2esm;
+    padding: 10px;
+    background-color: #f2f2f2; /* Light grey background */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+button a {
+    color:#ffffff
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #333;
+}
+
+.dashboard-nav {
+    display: flex;
+    justify-content: center;
+    list-style: none;
+    padding: 0;
+}
+
+.dashboard-nav a {
+    display: block;
+    padding: 10px 15px;
+    background-color: #000; /* Blue background */
+    color: white;
+    margin-right: 10px; /* Space between tabs */
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Shadow for depth */
+    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+}
+
+.dashboard-nav a:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    text-decoration: none; /* No underline on hover */
+}
+
+.dynamic-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Consistent shadow like the header */
+    margin-top: 20px; /* Space between tabs and content */
+}
+
+tab {
+    background-color: #000;
+}
+
+.flash-message {
+    padding: 10px 20px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    background-color: #f0f0f0;
+  }

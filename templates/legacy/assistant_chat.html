@@ -1,0 +1,79 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+<div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
+    <header style="background-color: #000; color: white; padding: 10px; text-align: center;">
+        Chat Room for {{ restaurant_name }} Restaurant
+    </header>
+    <div id="message-container" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
+        {% for message in messages %}
+            <div style="{{ 'background-color: #000; color: white; text-align: right; border-radius: 10px;' if message.sender == 'assistant' else 'background-color: #e5e5e5; text-align: left; border-radius: 10px;' }} margin: 10px; padding: 10px;">
+                {{ message.content }}
+            </div>
+        {% endfor %}
+    </div>
+    <footer style="background-color: #000; color: white; padding: 10px;">
+        <form action="{{ url_for('assistant_display') }}" method="post">
+            <input type="text" name="user_message" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;">
+            <button type="submit" style="width: 15%; background: none; border: none; color: white; font-size: 16px;">Send</button>
+        </form>
+    </footer>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var tabs = document.querySelectorAll('.tab');
+    
+        function loadTabContent(event) {
+            event.preventDefault();
+            var url = event.currentTarget.getAttribute('href');
+            fetch(url)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('dynamic-content').innerHTML = html;
+                    console.log('Content loaded, initializing chat...');
+                    initializeChat(); // Initialize chat listeners
+                })
+                .catch(error => {
+                    document.getElementById('dynamic-content').innerHTML = '<p>Error loading content...</p>';
+                });
+        }
+    
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', loadTabContent);
+        });
+    
+        function initializeChat() {
+            var form = document.querySelector('footer form');
+            if (form) {
+                console.log('Form found, setting up submission handler...');
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    var message = form.querySelector('input[name="user_message"]').value;
+                    console.log('Sending message:', message);
+                    fetch('{{ url_for("assistant_display") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'user_message=' + encodeURIComponent(message)
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('message-container').innerHTML = html;
+                        form.querySelector('input[name="user_message"]').value = '';  // Clear the input after sending
+                    })
+                    .catch(error => {
+                        console.log('Error:', error);
+                    });
+                });
+            } else {
+                console.log('Form not found, cannot set up submission handler.');
+            }
+        }
+    });
+    </script>
+    
+
+{% endblock %}
+

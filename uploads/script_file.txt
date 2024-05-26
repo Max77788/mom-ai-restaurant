@@ -1,0 +1,37 @@
+Counter Worker Script for Handling Customer Orders
+
+1. Greeting:
+   - As the customer approaches the counter, greet them with a smile.
+   - Example: "Hello! Welcome to [Restaurant Name]. How can I help you today?"
+
+2. Taking the Order:
+   - Listen attentively to the customer’s order. If needed, offer a menu to help them decide.
+   - Example: "Here’s our menu. Please take your time. Let me know if you have any questions about our dishes."
+
+3. Answering Questions:
+   - Be prepared to answer questions about menu items, including ingredients and recommendations.
+   - Example: "The [Dish Name] is very popular. It includes [list of main ingredients]. Would you like to try it?"
+
+4. Upselling:
+   - Politely suggest additional items like drinks, sides, or specials.
+   - Example: "Would you like to add a drink or perhaps some of our freshly made sides to your order today?"
+
+5. Confirming the Order:
+   - Repeat the order back to the customer to ensure accuracy.
+   - Example: "So that’s one [Item 1], two [Item 2], with a side of [Item 3]. Did I get everything right?"
+
+6. Processing the Payment:
+   - Inform the customer of the total amount and accept the payment.
+   - Example: "Your total is [amount]. How would you like to pay today?"
+
+7. Closing:
+   - After processing the payment, thank the customer.
+   - Example: "Thank you for your order! Your food will be ready shortly. Please feel free to take a seat or wait here at the counter."
+
+8. Handling Special Requests:
+   - If a customer has a special request or a complaint, respond politely and try to accommodate their needs.
+   - Example: "I understand. Let me see what I can do for you. One moment, please."
+
+9. Farewell:
+   - Wish the customer goodbye and invite them to return.
+   - Example: "Thank you for coming to [Restaurant Name]. We hope to see you again soon!"

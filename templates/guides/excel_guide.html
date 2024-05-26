@@ -1,0 +1,52 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Excel File Format Guide</h1>
+    <h2>MOM AI Restaurant Assistant</h2>
+    <p>Welcome to the MOM AI Restaurant Assistant. To ensure a smooth upload and processing of your restaurant's menu, please follow the guidelines below for formatting your Excel file.</p>
+    
+    <h3>Excel File Format Requirements</h3>
+    <p>Your Excel file must be structured with the following columns:</p>
+    <ul>
+        <li><strong>Column A:</strong> Item Name</li>
+        <li><strong>Column B:</strong> Item Ingredients</li>
+        <li><strong>Column C:</strong> Item Price in USD</li>
+    </ul>
+
+    <h3>Example</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Item Name (Column A)</th>
+                <th>Item Ingredients (Column B)</th>
+                <th>Item Price in USD (Column C)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Margherita Pizza</td>
+                <td>Tomato, Mozzarella, Basil</td>
+                <td>10.00</td>
+            </tr>
+            <tr>
+                <td>Caesar Salad</td>
+                <td>Romaine Lettuce, Croutons, Parmesan, Caesar Dressing</td>
+                <td>8.50</td>
+            </tr>
+            <tr>
+                <td>Grilled Chicken Sandwich</td>
+                <td>Chicken Breast, Lettuce, Tomato, Mayo, Bun</td>
+                <td>7.75</td>
+            </tr>
+        </tbody>
+    </table>
+    <img src="{{ url_for('static', filename='images/excel_example.png') }}" alt="Excel File Example" class="example-image">
+
+    <h3>Uploading Your File</h3>
+    <p>Once your Excel file is formatted correctly, you can proceed to upload it through the MOM AI Restaurant Assistant interface. The system will process your menu items and ingredients to provide valuable insights and assistance for your restaurant.</p>
+
+    <h3>Need Help?</h3>
+    <p>If you have any questions or need further assistance, please contact our support team at <a href="mailto:support@momaiassistant.com">support@momaiassistant.com</a>.</p>
+</div>
+{% endblock %}

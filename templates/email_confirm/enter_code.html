@@ -1,0 +1,29 @@
+{% extends 'layout_no_land.html' %}
+
+{% block title %}
+Enter Confirmation Code
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: auto; padding-top: 50px; text-align: center;">
+    <h1>Enter Your Confirmation Code</h1>
+    <p>Please enter the confirmation code we sent on <b>{{ res_email }}</b></p>
+    {% if get_flashed_messages() %}
+    <ul>
+        {% for message in get_flashed_messages() %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <form action="{{ url_for('enter_code') }}" method="post">
+        {{ form.hidden_tag() }}
+        <div>
+            <label for="confirmation_code">Confirmation Code:</label>
+            {{ form.confirmation_code(size=24) }}
+        </div>
+        <div>
+            {{ form.submit(value="Verify Code") }}
+        </div>
+    </form>
+</div>
+{% endblock %}

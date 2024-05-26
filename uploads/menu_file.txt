@@ -1,0 +1,20 @@
+Item Name: Ostborgari - Item Ingredients: 140gr. burger, lettuce, cucumber, tomatoes, cheese, special sauce - Item Price in US dollars: 1830$
+Item Name: BBQ borgari - Item Ingredients: 140gr. burger, lettuce, tomatoes, cucumber, BBQ sauce, cheese, special sauce - Item Price in US dollars: 1830$
+Item Name: Beikon borgari - Item Ingredients: 140gr. burger, lettuce, cucumber, tomatoes, cheese, bacon, special sauce - Item Price in US dollars: 1950$
+Item Name: Beikon Egg borgari - Item Ingredients: 140gr. burger, bacon, lettuce, cucumber, tomatoes, cheese, and egg - Item Price in US dollars: 2050$
+Item Name: Olsen borgari - Item Ingredients: 140gr. burger with lettuce, tomatoes, cucumber, bacon, ham, double cheese, and special sauce - Item Price in US dollars: 2050$
+Item Name: Olsen Spes borgari - Item Ingredients: 140gr. burger, lettuce, cucumber, tomatoes, Olsen sauce, bacon, butter-fried mushrooms, pepperoni, and double cheese - Item Price in US dollars: 2095$
+Item Name: Kjúklingaborgari - Item Ingredients: Icelandic chicken burger in a crispy coating, lettuce, cucumber, tomatoes, and Olsen sauce - Item Price in US dollars: 1885$
+Item Name: Kjúklingaborgari Southern Fried - Item Ingredients: Chicken thigh in a crispy coating topped with Olsen buffalo sauce. Lettuce, cucumber, tomatoes, and Olsen sauce - Item Price in US dollars: 2050$
+Item Name: Vegan borgari - Item Ingredients: Vegan meat, BBQ sauce, deep-fried onion rings, and fresh salad - Item Price in US dollars: 1850$
+Item Name: Jumpin Jack - Item Ingredients: 175gr. burger with plenty of bacon, double cheese, vegetables, Olsen sauce, and fries - Item Price in US dollars: 3360$
+Item Name: Sticky Fingers - Item Ingredients: 175gr. burger, butter-fried mushrooms, bacon, double portion of cheese, rustic fries, lettuce, tomatoes, cucumber, and homemade bearnaise sauce - Item Price in US dollars: 3760$
+Item Name: Route 66 - Item Ingredients: 175gr. burger with plenty of finely chopped onion and bell pepper, banana pepper, double cheese, lettuce, cucumber, tomatoes, French mustard, ketchup, and French fries - Item Price in US dollars: 3360$
+Item Name: Country Honk - Item Ingredients: Double burger, twice 140gr. with blue cheese, butter-fried mushrooms, bacon, double cheese, red onion jam, lettuce, tomatoes, and cucumber, Olsen sauce, and fries of your choice - Item Price in US dollars: 3860$
+Item Name: Rock Off - Item Ingredients: 175gr. cheeseburger with bacon jam, double cheese, vegetables, Olsen sauce, homemade chili mayo, and fries - Item Price in US dollars: 3650$
+Item Name: Olsen Olsen - Item Ingredients: Grilled sausage, baked beans, and bacon - Item Price in US dollars: 1795$
+Item Name: Heilsu Olsen - Item Ingredients: Sautéed onions with mushrooms, bell pepper, and corn, lettuce, cucumber, and tomatoes with melted cheese - Item Price in US dollars: 1585$
+Item Name: Snati Olsen - Item Ingredients: Chili minced beef with sausage and bacon - Item Price in US dollars: 1795$
+Item Name: Philadephia Olsen - Item Ingredients: Thinly sliced beef, sautéed onions, melted cheese, pickles, fried onions, and special sauce - Item Price in US dollars: 1795$
+Item Name: Sjávarrétta Olsen - Item Ingredients: Deep-fried cod, sautéed onions with red bell pepper and tomatoes, lettuce, and special sauce - Item Price in US dollars: 1895$
+Item Name: Rifja Olsen - Item Ingredients: Soft pork slices with red cabbage, pickles, fried onions, and special sauce - Item Price in US dollars: 1795$

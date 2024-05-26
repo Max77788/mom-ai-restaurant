@@ -1,0 +1,15 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+
+<p>The request was successfully submitted. Email confirmation was sent on {{ res_email }}.</p>
+<p>You will be redirected to the dashboard in 5 seconds.</p>
+
+<script>
+    // JavaScript code to redirect to the dashboard route after 5 seconds
+    setTimeout(function() {
+        window.location.href = '/dashboard'; // Replace '/dashboard' with your actual dashboard route
+    }, 5000); // 5000 milliseconds = 5 seconds
+</script>
+
+{% endblock %}
