@@ -18,12 +18,16 @@
     <h1>Payments History</h1>
 </div>
 <div>
-    {% for payment in payments %}
-    <div class="payment-box">  
-        <p>Amount: {{ payment.total_paid }}$</p>
-        <p>Time: {{ payment.timestamp }} UTC</p>
-    </div>
-    {% endfor %}
+    {% if payments %}
+        {% for payment in payments %}
+        <div class="payment-box">  
+            <p>Amount: {{ payment.total_paid }}$</p>
+            <p>Time: {{ payment.timestamp }} UTC</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p>No payments have been made yet.</p>
+    {% endif %}
 </div>
 {% endblock %}
 

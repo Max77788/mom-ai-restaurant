@@ -10,10 +10,47 @@ from utils.pp_payment import SetExpressCheckout
 import json
 from time import sleep
 from pymongo import MongoClient
+
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
 MOM_AI_JSON_LORD_ID = os.environ.get("MOM_AI_JSON_LORD_ID", "asst_YccYd0v0CbhweBvNMh0dJyJH")
+
+# Define the scopes
+SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+def authenticate_gmail():
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=53828)
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+    return creds
+
+def send_email(subject, body, to):
+    creds = authenticate_gmail()
+    service = build('gmail', 'v1', credentials=creds)
+
+    message = MIMEMultipart()
+    message['to'] = to
+    message['subject'] = subject
+    message.attach(MIMEText(body, 'plain'))
+
+    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    send_message = {'raw': raw_message}
+
+    message = service.users().messages().send(userId="me", body=send_message).execute()
+    print(f'Message Id: {message["id"]}. Message successfully sent to {to}!')
+    return message
+
+
 
 def check_credentials(email, password, collection, for_login_redirect=False):
     """
@@ -59,7 +96,7 @@ def insert_document(collection, name, email, password, website_url, assistant_id
             "menu_vector_id": menu_vector_id,
             "web3_wallet_address": wallet_public_key_address,
             "web3_private_key": wallet_private_key,
-            "balance": 0
+            "balance": 3
             # "stripe_secret_test_key": stripe_secret_test_key
         }
 
@@ -71,11 +108,8 @@ def insert_document(collection, name, email, password, website_url, assistant_id
         print(f"An error occurred: {e}")
 
 
-def create_assistant(restaurant_name, menu_path, client):
-    with open(str(menu_path), "rb") as menu:    
-        menu_file = client.files.create(file=menu,
-            purpose='assistants')
-    menu_file_id = menu_file.id   
+def create_assistant(restaurant_name, menu_path, client, menu_path_is_bool=True):
+        
 
     #order_structure = """{"items":[{'name': 'Item Name', 'quantity': 2, 'amount':price of single item(e.g. 12.99, pull this info from attached menu file)}, 
     #{'name': 'Cake with Ice Cream', 'quantity': 3, 'amount':price of single item(e.g. 7.99, pull this info from attached menu file)}]}
@@ -160,24 +194,32 @@ NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
   }
 }}])
 
-    # Create a vector store caled "Financial Statements"
-    vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
-    
-    # Ready the files for upload to OpenAI
-    file_paths = [menu_path]
-    file_streams = [open(path, "rb") for path in file_paths]
-    
-    # Use the upload and poll SDK helper to upload the files, add them to the vector store,
-    # and poll the status of the file batch for completion.
-    file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
-    vector_store_id=vector_store.id, files=file_streams
-    )
+    if menu_path_is_bool:
+        with open(str(menu_path), "rb") as menu:    
+            menu_file = client.files.create(file=menu,
+                purpose='assistants')
+        menu_file_id = menu_file.id   
+        
+        # Create a vector store caled "Financial Statements"
+        vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
+        
+        # Ready the files for upload to OpenAI
+        file_paths = [menu_path]
+        file_streams = [open(path, "rb") for path in file_paths]
+        
+        # Use the upload and poll SDK helper to upload the files, add them to the vector store,
+        # and poll the status of the file batch for completion.
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+        vector_store_id=vector_store.id, files=file_streams
+        )
 
-    assistant = client.beta.assistants.update(
-    assistant_id=assistant.id,
-    tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
-    )
-    return assistant, vector_store.id, menu_file_id
+        assistant = client.beta.assistants.update(
+        assistant_id=assistant.id,
+        tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+        )
+        return assistant, vector_store.id, menu_file_id
+    else:
+        return assistant, "vector_is_not_yet", "menu_file_is_not_yet"
 
 
 
@@ -326,9 +368,23 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
 
     client = client_openai
 
+    user_message_enhanced = f"""
+    Role: You are the best restaurant assistant who serves customers and register orders in the system
+    
+    Context: The customer asks you the question or writes the statement - your goal is to provide the response appropriately
+    facilitating order taking. To your knowledge base is attached the file menu_file.txt - recommend, suggest and anyhow use only and only the items specified
+    in this file. Do not mention other dishes whatsoever!
+    
+    Task: Here is the current user's message, respond to it:
+    {user_message}      
+    
+"""
+    
+    print(user_message_enhanced)
+
     response = client.beta.threads.messages.create(thread_id=thread_id,
                                         role="user",
-                                        content=user_message,
+                                        content=user_message_enhanced,
                                         attachments=[{
                                             "file_id":menu_file_id,
                                             "tools":[{"type":"file_search"}]
@@ -662,12 +718,25 @@ def convert_xlsx_to_txt_and_menu_items(input_file_path, output_file_path):
     return output_file_path #menu_items_list
 
 def generate_confirmation_code():
-    return str(uuid.uuid4())
+    return str(uuid.uuid4())[:7]
 
 # Function to send the confirmation email
 def send_confirmation_email(mail, email, confirmation_code, from_email):
     msg = Message('MOM AI Restaurant Email Confirmation', recipients=[email], sender=from_email)
-    msg.body = f'Please confirm your email by inserting the following code:\n\n{confirmation_code}'
+    # HTML content with bold and centered confirmation code
+    msg.html = f'''
+    <html>
+    <body>
+        <p>You have requested account registration on MOM AI Restaturant Assistant.</p>
+        <p>Please confirm your email by inserting the following code:</p>
+        <div style="text-align: center; font-size: 20px">
+            <strong>{confirmation_code}</strong>
+        </div>
+        <p>Kind Regards,<br>MOM AI Team</p>
+        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 520px; height: 200px;">
+    </body>
+    </html>
+    '''
     mail.send(msg)
 
 def send_confirmation_email_request_withdrawal(mail, email, restaurant_name, withdraw_amount, withdrawal_description, from_email):
@@ -679,6 +748,27 @@ def send_confirmation_email_request_withdrawal(mail, email, restaurant_name, wit
     mail.send(msg_for_mom_ai)
 
     msg.body = f'Hi, {restaurant_name}\'s restaurant representative!\n\nThe request on withdrawal of {withdraw_amount} USD has been successfully submitted and is being processed.\n\nIn case we need any additional information, we will contact you.\n\nThank you for using MOM AI!'
+    mail.send(msg)
+
+
+def send_waitlist_email(mail, email, restaurant_name, from_email):
+    msg = Message(f'{restaurant_name} is on MOM AI Waitlist!', recipients=[email], sender=from_email)
+    msg_for_mom_ai =  Message('MOM AI Waitlist New Person', recipients=["contact@mom-ai-agency.site"], sender=from_email)
+    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been added to the waitlist. Awesome!\n\nI love ya!'
+
+    mail.send(msg_for_mom_ai)
+
+    msg.html = f'''
+    <html>
+    <body>
+        <p>Hi, {restaurant_name}\'s restaurant representative.
+        <p>Your account has been successfully registered!</p>
+        <p>Expect to hear from us in the middle of June to start innovating your customers\' ordering experience and increasing your profit margins!</p><br>
+        <p>Kind Regards,<br>MOM AI Team</p>
+        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 520px; height: 200px;">
+    </body>
+    </html>
+    '''
     mail.send(msg)
 
 

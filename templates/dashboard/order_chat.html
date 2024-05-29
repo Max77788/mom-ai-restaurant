@@ -4,12 +4,12 @@
 <div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
     
     <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
-        Chat Room for {{ restaurant_name }} Restaurant
+        Chat Room for {{ restaurant_name.replace("_"," ") }} Restaurant
     </header>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
         <!-- Initial greeting message -->
         <div id="greetingMessage" style="text-align: center; margin: 20px;">
-            <p>Click below to start chatting with MOM AI Restaurant assistant to order at <a href='{{ restaurant_website_url }}' target="_blank"><b>{{ restaurant_name }}</b></a>.</p>
+            <p>Click below to start chatting with MOM AI Restaurant assistant to order at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.</p>
             <button onclick="startConversation()" style="padding: 10px 20px; font-size: 16px; background-color: #000000; color: white; border: none; border-radius: 5px;">Start New Chat</button>
         </div>
         <!-- Chat messages will appear here after starting the conversation -->

@@ -1,8 +1,8 @@
-from flask import Flask, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response
+from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response
 from werkzeug.utils import secure_filename
 import os
 from utils.forms import RestaurantForm, ConfirmationForm, LoginForm 
-from utils.functions import convert_xlsx_to_txt_and_menu_items, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_confirmation_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal 
+from utils.functions import convert_xlsx_to_txt_and_menu_items, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_confirmation_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email 
 from pymongo import MongoClient
 from openai import OpenAI
 from flask_mail import Mail, Message
@@ -57,8 +57,39 @@ collection = db[os.environ.get("DB_VERSION")]
 
 print("Everything Initialized!")
 
+"""
+@app.route('/redirect', methods=['GET', 'POST'])
+def handle_redirect():
+    print(f"Request on /redirect {request}")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return redirect('/waitlist')
+    else:
+        abort(403)  # Forbidden
+"""
 
 
+@app.errorhandler(403)
+def forbidden(error):
+    return make_response(jsonify({'error': 'Forbidden', 'message': error.description}), 403)
+
+
+@app.route('/waitlist')
+def notify_waitlist():
+    if session.get("res_email"):
+        session["access_granted_waitlist_page"] = True
+    
+    # Check if the session variable is set
+    if not session.get("access_granted_waitlist_page"):
+        abort(403, description="You cannot access this page the other time. Await for the opening of the access in the middle of June.")  # Forbidden
+    
+    # Clear the session variable after access
+    session.pop("access_granted_waitlist_page", None)
+    
+    restaurant_email = session.get("verified_res_email")
+    restaurant_name = session.get("restaurant_name")
+    
+    return render_template('wait_for_full_access/success.html', restaurant_email=restaurant_email, restaurant_name=restaurant_name, title="Waitlist Added")
+    
 
 
 
@@ -70,8 +101,8 @@ def landing_page():
     #print("Session cleared")
 
     #if session.get("res_email"):
-        #return redirect(url_for("dashboard_display"))
-    
+        #return redirect(url_for("notify_waitlist"))
+
     form = RestaurantForm()
     print("Form Created")
 
@@ -88,8 +119,11 @@ def landing_page():
         restaurant_name = form.restaurant_name.data
         print(f"Restaurant name: {restaurant_name}")
 
-        restaurant_url = form.restaurant_url.data
-        print(f"Restaurant website URL: {restaurant_url}")
+        if form.restaurant_url.data:
+            restaurant_url = form.restaurant_url.data
+            print(f"Restaurant website URL: {restaurant_url}")
+        else:
+            restaurant_url = "No URL provided"
 
         #other_instructions = form.other_instructions.data
         #print(f"Other instructions: {other_instructions}")
@@ -97,57 +131,99 @@ def landing_page():
         password = form.password.data
         print(f"Restaurant password: {password}")
 
-        menu = request.files['menu']
-        #script = request.files['script']
+        if request.files['menu']:
+            menu = request.files['menu']
+            #script = request.files['script']
 
-        # Extract the original file extensions
-        menu_extension = os.path.splitext(menu.filename)[1]
-        #script_extension = os.path.splitext(script.filename)[1]
+            # Extract the original file extensions
+            menu_extension = os.path.splitext(menu.filename)[1]
+            #script_extension = os.path.splitext(script.filename)[1]
 
-        menu_filename = secure_filename(f"menu_file{menu_extension}")
-        #script_filename = secure_filename(f"script_file{script_extension}")
+            menu_filename = secure_filename(f"menu_file{menu_extension}")
+            #script_filename = secure_filename(f"script_file{script_extension}")
 
-        print(f"Menu filename: {menu_filename}")
-        #print(f"Script filename: {script_filename}")
+            print(f"Menu filename: {menu_filename}")
+            #print(f"Script filename: {script_filename}")
+
+            menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
+            #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
+            print(f"Menu xlsx path: {menu_xlsx_path}")
+            #print(f"Script path: {script_path}")
+
+            # Save the files
+            menu.save(menu_xlsx_path)
+            #script.save(script_path)
+            print("Files saved")
+
+            menu_save_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
+            menu_txt_path = convert_xlsx_to_txt_and_menu_items(menu_xlsx_path, menu_save_path)
+            print(f"Generated menu txt file: {menu_txt_path}")
+
+            session["restaurant_name"] = restaurant_name
+            session["res_website_url"] = restaurant_url        
+
+            with open(menu_txt_path, 'rb') as menu_file:
+                menu_encoded = base64.b64encode(menu_file.read())
+                #script_encoded = base64.b64encode(script_file.read())
+        
+            #session["menu_encoded"] = menu_encoded
+            #session["script_encoded"] = script_encoded
+
+            print(f"\nMenu encoded: {menu_encoded}\n")
+            #print(f"\nScript encoded: {script_encoded}\n")
+            print("Files encoded")
+            
+            print(f"Menu TXT path passed {menu_txt_path}")
+
+            assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, menu_txt_path, client=CLIENT_OPENAI)
+
+            session['assistant_id'] = assistant.id
+            session['menu_file_id'] = menu_file_id
+            session['menu_vector_id'] = menu_vector_id
+
+            messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
+            session['messages'] = messages
+            
+            users_email = form.email.data
+
+            session['res_email'] = users_email
+
+            # Assume code generation and email sending are handled here
+            generated_confirmation_code = generate_confirmation_code()  # You need to implement this
+
+            #print(mail)
+            #print(users_email)
+            #print(generated_confirmation_code)
+            #print(FROM_EMAIL)
+
+            send_confirmation_email(mail, users_email, generated_confirmation_code, FROM_EMAIL)  # Implement this
+            session['expected_code'] = generated_confirmation_code  # Store in session for simplicity
+            
+            session["access_granted_email_enter_code"] = True
+
+            # Save other form data as needed, then redirect to enter the code
+            return redirect(url_for('enter_code'))
+
+
+        
+        session["password"] = password
+
 
         session["restaurant_name"] = restaurant_name
         session["res_website_url"] = restaurant_url        
 
-        menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
-        #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
-        print(f"Menu xlsx path: {menu_xlsx_path}")
-        #print(f"Script path: {script_path}")
-
-        # Save the files
-        menu.save(menu_xlsx_path)
-        #script.save(script_path)
-        print("Files saved")
-
-        menu_save_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
-        menu_txt_path = convert_xlsx_to_txt_and_menu_items(menu_xlsx_path, menu_save_path)
-        print(f"Generated menu txt file: {menu_txt_path}")
-
+        
         session["password"] = password
 
         #print(f"Files saved at {menu_txt_path} and {script_path}")
-
-        with open(menu_txt_path, 'rb') as menu_file:
-            menu_encoded = base64.b64encode(menu_file.read())
-            #script_encoded = base64.b64encode(script_file.read())
         
         #session["menu_encoded"] = menu_encoded
         #session["script_encoded"] = script_encoded
 
-        print(f"\nMenu encoded: {menu_encoded}\n")
-        #print(f"\nScript encoded: {script_encoded}\n")
-        print("Files encoded")
-         
-        print(f"Menu TXT path passed {menu_txt_path}")
-
-        assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, menu_txt_path, client=CLIENT_OPENAI)
+        assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
         session['assistant_id'] = assistant.id
-        session['menu_file_id'] = menu_file_id
         session['menu_vector_id'] = menu_vector_id
+        session['menu_file_id'] = menu_file_id
 
         # Optionally, you can insert these details into a database here
         # insert_document(collection, restaurant_name, menu_encoded, script_encoded, assistant.id)
@@ -178,6 +254,8 @@ def landing_page():
 
         send_confirmation_email(mail, users_email, generated_confirmation_code, FROM_EMAIL)  # Implement this
         session['expected_code'] = generated_confirmation_code  # Store in session for simplicity
+        
+        session["access_granted_email_enter_code"] = True
 
         # Save other form data as needed, then redirect to enter the code
         return redirect(url_for('enter_code'))
@@ -198,6 +276,9 @@ def landing_page():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+
+    if os.environ.get("ALLOW_LOGIN", "False") != "True":
+        abort(403)    
     form = LoginForm()
     if form.validate_on_submit():
         # Assuming a function `check_credentials` to validate user login
@@ -227,6 +308,10 @@ def login():
 
 @app.route('/enter_code', methods=['GET', 'POST'])
 def enter_code():
+    # Check if the session variable is set
+    if not session.get('access_granted_email_enter_code'):
+        abort(403)  # Forbidden
+    
     print("Entered enter_code")
     res_email = session.get('res_email')
     form = ConfirmationForm()  # Assume you have a simple form for this
@@ -234,6 +319,9 @@ def enter_code():
         user_code = form.confirmation_code.data
         if session.get('expected_code'):
             if user_code == session.get('expected_code'):
+                # Clear the session variable after access
+                session.pop('access_granted_email_enter_code', None)
+                session["access_granted_email_confirm_page"] = True
                 return redirect(url_for('confirm_email'))
         else:
             flash('Invalid confirmation code. Please try again.', 'error')
@@ -243,8 +331,17 @@ def enter_code():
 
 @app.route('/confirm_email')
 def confirm_email():
+    # Check if the session variable is set
+    if not session.get('access_granted_email_confirm_page'):
+        abort(403)  # Forbidden
+    
+    # Clear the session variable after access
+    session.pop('access_granted_email_confirm_page', None)
+    
     session["verified_res_email"] = session.get("res_email", "placeholder_email")
     # Example: mark user as 'email_verified' in your database
+    session["access_granted_assistant_demo_chat"] = True
+
     return render_template('email_confirm/confirm_email.html', title="Email Confirmed")  # Confirmation success page
 
 
@@ -311,9 +408,14 @@ def create_web_wallet():
 
 @app.route('/assistant_demo_chat', methods=['POST', 'GET'])
 def assistant_demo_chat():
+    
+    # Check if the session variable is set
+    if not session.get('access_granted_assistant_demo_chat'):
+        abort(403)  # Forbidden
+    
     print(request.form)
     data = request.form
-    user_message = 'Customer\'s message here'
+    user_message = 'Customer\'s message example'
     
     #ai_assist_response = get_assistants_response(user_message)
 
@@ -329,7 +431,7 @@ def assistant_demo_chat():
     if user_message:
         messages.append({'sender': 'user', 'content': user_message})
         # Simulate the assistant's response
-        messages.append({'sender': 'assistant', 'content': "I do not know yet what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen."})
+        messages.append({'sender': 'assistant', 'content': "I do not know yet what to say as I am not an AI yet. But in 10 seconds you will be redirected and magic will happen."})
     
     session['messages'] = messages
     print(messages)
@@ -353,12 +455,20 @@ def assistant_demo_chat():
 
     verified_res_email = session.get("verified_res_email", "email_placeholder")
 
+    restaurant_name = session.get("restaurant_name")
+    
     website_url = session.get("res_website_url", "Restaurant URL placeholder")
 
     menu_file_id = session.get("menu_file_id")
     menu_vector_id = session.get("menu_vector_id")
 
     insert_document(collection, res_name, verified_res_email, res_password, website_url, assistant_id, menu_file_id, menu_vector_id, wallet_public_key_address="None", wallet_private_key="None")
+    send_waitlist_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
+
+    # Clear the session variable after access
+    session.pop('access_granted_assistant_demo_chat', None)
+      
+    session["access_granted_waitlist_page"] = True
     
     return render_template("start/demo.html", title="Demo Chat", messages=messages)
 

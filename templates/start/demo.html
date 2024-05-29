@@ -3,7 +3,7 @@
 {% block content %}
 <div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
     <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
-        Chat Room for {{ restaurant_name }} Restaurant
+        Example of Chat Room for {{ restaurant_name }} Restaurant
     </header>
     <div id="message-container" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
         {% for message in messages %}
@@ -21,7 +21,7 @@
     <footer style="background-color: #000000; color: white; padding: 10px;">
         <form action="{{ url_for('assistant_demo_chat') }}" method="post">
             <input type="text" name="user_message" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;">
-            <button type="submit" style="width: 15%; background: none; border: none; color: white; font-size: 16px;">Send</button>
+            <button type="submit" style="width: 15%; background: none; border: none; color: white; font-size: 16px;" disabled>Send</button>
         </form>
         <div id="countdown" style="color: white; text-align: center;"></div>
     </footer>
@@ -33,7 +33,7 @@
         const countdownElement = document.getElementById('countdown');
 
         if (messages >= 3) {
-            let timeLeft = 7;
+            let timeLeft = 10;
             countdownElement.textContent = 'Redirecting in ' + timeLeft + ' seconds...';
 
             const interval = setInterval(function() {
@@ -42,7 +42,7 @@
                 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
-                    window.location.href = "{{ url_for('dashboard_display') }}";
+                    window.location.href = "/waitlist";
                 }
             }, 1000);
         }
