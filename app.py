@@ -470,7 +470,7 @@ def assistant_demo_chat():
       
     session["access_granted_waitlist_page"] = True
     
-    return render_template("start/demo.html", title="Demo Chat", messages=messages)
+    return render_template("start/demo.html", title="Demo Chat", messages=messages, restaurant_name=restaurant_name)
 
 #################### Demo Chat Part End ####################
 
