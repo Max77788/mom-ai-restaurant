@@ -920,10 +920,10 @@ def send_waitlist_email(mail, email, restaurant_name, from_email):
     '''
     mail.send(msg)
 
-def send_confirmation_email(mail, email, restaurant_name, from_email):
+def send_confirmation_email_registered(mail, email, restaurant_name, from_email):
     msg = Message(f'{restaurant_name} is on MOM AI Waitlist!', recipients=[email], sender=from_email)
     msg_for_mom_ai =  Message('MOM AI Waitlist New Person', recipients=["contact@mom-ai-agency.site"], sender=from_email)
-    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been added to the waitlist. Awesome!\n\nI love ya!'
+    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been registered. Awesome!\n\nI love ya!'
 
     mail.send(msg_for_mom_ai)
 
