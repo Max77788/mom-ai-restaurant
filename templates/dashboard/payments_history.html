@@ -17,11 +17,15 @@
 <div style="text-align: center;">
     <h1>Payments History</h1>
 </div>
+<!--
+<p>Setup your own paypal business app and provide the client ID and secret, so the funds will go directly to your acc</p>
+<p>Otherwise, leave everything as it is and you will be able to request funds withdrawal later on following the link in the ;eft upper corner of this page</p>
+-->
 <div>
     {% if payments %}
         {% for payment in payments %}
         <div class="payment-box">  
-            <p>Amount: {{ payment.total_paid }}$</p>
+            <p>Amount: {{ payment.total_paid }} {{ restaurant.res_currency }}</p>
             <p>Time: {{ payment.timestamp }} UTC</p>
         </div>
         {% endfor %}

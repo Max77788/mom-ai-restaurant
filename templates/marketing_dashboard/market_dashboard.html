@@ -1,0 +1,38 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+<div id="instructions" style="border-top: 1px solid black; font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
+    <h2 style="text-align: center; margin-top: 20px; color: #2c3e50;">The List of AI-Empowered Restaurants</h2>
+    <p style="text-align: center; color: #7f8c8d;">Learn more and click on 'Talk to Assistant' to make the order with AI:</p>
+
+    <div class="grid-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px;">
+        {% for restaurant in restaurants %}
+        <div class="grid-item" style="border: 1px solid #ccc; padding: 10px; border-radius: 5px; align-items: center; text-align: center;">
+            <h3>{{ restaurant.name.replace("_", " ") }}</h3>
+            <!-- Logo display -->
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;">
+                <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" style="height: 137px; width: auto; max-width: 200px; max-height: 200px;">
+            </div>
+            {% if restaurant.website_url != 'No URL provided' %}
+               <p><a href="{{ restaurant.website_url }}" style="color: #0000ff;"target="_blank">Visit the website of {{ restaurant.name.replace("_", " ") }}</a></p>
+            {% endif %}
+            <p><b>Contact the restaurant:</b></p>
+            <p style="margin-bottom: 10px">{{ restaurant.email }}</p>
+            
+            <p><a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button>Talk to Assistant</button></a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="pagination" style="text-align: center; margin-top: 20px;">
+        {% if page > 1 %}
+        <a href="{{ url_for('market_dashboard', page=page-1) }}" style="margin-right: 10px;">Previous</a>
+        {% endif %}
+        <span>Page {{ page }} of {{ (total // per_page) + 1 }}</span>
+        {% if (page * per_page) < total %}
+        <a href="{{ url_for('market_dashboard', page=page+1) }}" style="margin-left: 10px;">Next</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

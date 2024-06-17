@@ -1,0 +1,93 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+
+<style>
+    .subscription-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+    }
+
+    .subscription-details {
+        max-width: 600px;
+        margin-bottom: 20px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+
+    #paypal-button-container-P-9XY42284R53033649MZSIV4Y {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .highlight {
+        font-weight: bold;
+        color: #2c3e50;
+    }
+</style>
+
+<div class="subscription-container">
+    <div class="subscription-details">
+        <h2 style="margin-bottom: 10px;">Subscribe to MOM AI Restaurant Assistant</h2>
+        <p>Enjoy a <span class="highlight">3-day free trial</span> and get <span class="highlight">$3</span> credit to place new orders and cover the cost of assistance from earned money.</p>
+        <hr>
+        <p>If you find our service helpful, do nothing and your subscription will automatically continue at <span class="highlight">$79/month</span> starting from the 3rd day.</p>
+        <hr>
+        <p>You can cancel your subscription anytime before the trial ends to avoid any charges. After the trial period, you can still cancel anytime, but no refunds will be provided for the current billing cycle.</p>
+        <hr>
+        <p>We are committed to providing excellent service and support. If you have any questions or need assistance, please don't hesitate to contact us.</p>
+        <p style="font-size: 19px;"><a href="mailto:contact@mom-ai-agency.site">contact@mom-ai-agency.site</a></p>
+        <hr>
+        <p style="font-size: 19px;">PRESS THE BUTTON BELOW AND SUBSCRIBE <br>TO START USING YOUR ASSISTANT</p>
+    </div>
+
+    <div id="paypal-button-container-P-9XY42284R53033649MZSIV4Y"></div>
+</div>
+
+<script src="https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&vault=true&intent=subscription" data-sdk-integration-source="button-factory"></script>
+<script>
+  paypal.Buttons({
+      style: {
+          shape: 'pill',
+          color: 'silver',
+          layout: 'vertical',
+          label: 'subscribe'
+      },
+      createSubscription: function(data, actions) {
+        return actions.subscription.create({
+          /* Creates the subscription */
+          plan_id: 'P-9XY42284R53033649MZSIV4Y'
+        });
+      },
+      onApprove: function(data, actions) {
+        // Send subscription ID to the server
+        fetch('/subscription-setup', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            subscriptionID: data.subscriptionID
+          })
+        })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Subscription activated:', data);
+          window.location.href = "/dashboard"
+        })
+        .catch(error => {
+          console.error('Error activating subscription:', error);
+          alert('Error activating subscription:', error)
+        });
+      }
+  }).render('#paypal-button-container-P-9XY42284R53033649MZSIV4Y'); // Renders the PayPal button
+</script>
+
+{% endblock %}

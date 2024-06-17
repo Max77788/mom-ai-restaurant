@@ -4,60 +4,229 @@
 <div class="dashboard"> 
   <div class="dashboard-header">
     <div class="total-earned">
-      <span><strong>Total Earned:</strong> {{ current_balance }}$</span>
-      <a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
+      <span><strong>Available Funds:</strong> {{ current_balance }} {{ res_currency }}*</span>
+      <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}*</span>
+      <br><a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
       {% if awaiting_withdrawal > 0 %}
         <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
       {% endif %}
     </div>
+    <!-- <i style="font-size: 11px;">*the balance is automatically topped-up and subtracted<br>based on assistant usage and orders registered</i> -->
     <div class="wallet-address">
       <h1>Welcome to your dashboard, {{ restaurant_name.replace("_"," ") }}!</h1>
       <!-- <span><strong>Wallet Address:</strong> {{ wallet_address }}</span> -->
     </div>
     <div class="restaurant-name">
-      <span><strong>Restaurant Name: </strong><a href="{{ res_website_url }}" target="_blank">{{ restaurant_name.replace("_"," ") }}</a></span>
+      <span><strong>Your Email: </strong>{{ restaurant_email }}</span>
+    
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
+        {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
+        <span id="assistantStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">   
+            {% if assistant_turned_on %} 
+                Assistant is ON
+            {% else %}
+                Assistant is OFF
+            {% endif %}
+        </span>
+        <label class="switch">
+            <input type="checkbox" id="assistantToggle" {% if assistant_turned_on %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
+        {% else %}
+        <span id="assistantStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
+          Please, visit <b>Menu</b> tab to upload menu<br>and start using AI-assistant
+        </span>
+        {% endif %}
+      </div>
+      
+      <!--
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
+        <span id="paymentGatewayStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">   
+            {% if payment_gateway_turned_on %} 
+                Payment Gateway is ON
+            {% else %}
+                Payment Gateway is OFF
+            {% endif %}
+        </span>
+        <label class="switch">
+            <input type="checkbox" id="paymentGatewayToggle" {% if payment_gateway_turned_on %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
+      </div>
+      <i id="paymentGatewayInfo" style="font-size: 11px;">
+        {% if payment_gateway_turned_on %}
+          currently the orders are being registered when the customer paid
+        {% else %}
+          currently customer DOES NOT pay right after taking the order,<br><b>recommended to switch the payment gateway on</b>
+        {% endif %}
+      </i>
+    -->
+
+    <hr>
+    
+    <div class="logout-section" style="text-align: right; margin-top: 10px;">
+        <form action="/logout" method="post">
+            <button type="submit">Logout</button>
+        </form>
+    </div>
     </div>
   </div>
 </div>
   <nav class="dashboard-nav">
-    <a href="/payments" class="tab">Payments</a>
-    <a href="/assistant_dash" class="tab">Assistant</a>
-    <!-- <a href="/settings" class="tab">Settings</a> -->
-    <a href="/view_orders" target="_blank">Orders Display</a>
+    <a href="/payments" class="no-right-click-tab">Payments</a>
+    <!-- <a href="/settings" class="no-right-click-tab">Settings</a> -->
+    <a href="/menu" class="no-right-click-tab">Menu</a>
+    <a href="/assistant_dash" class="no-right-click-tab">Assistant</a>
+    <a href="/profile" class="no-right-click-tab">Profile</a>
+    <a href="/view_orders" class="tab" target="_blank">Orders Display</a>
+
   </nav>
   <section class="dynamic-content" id="dynamic-content">
       <!-- Content will be dynamically loaded here based on the tab chosen -->
   </section>
 </div>
+{% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Get all tab elements
-  var tabs = document.querySelectorAll('.tab');
-
-  // Function to handle tab click events
-  function loadTabContent(event) {
-    event.preventDefault(); // Prevent the default action
-
-    var url = event.currentTarget.getAttribute('href'); // Get the href attribute of the clicked tab
-
-    // Fetch the content from the server
-    fetch(url)
-      .then(response => response.text())
-      .then(html => {
-        // Insert the content into the <section> element
-        document.getElementById('dynamic-content').innerHTML = html;
-      })
-      .catch(error => {
-        // Handle errors if any
-        document.getElementById('dynamic-content').innerHTML = '<p>Error loading content...</p>';
+  document.addEventListener('DOMContentLoaded', function() {
+    // Get all tab elements
+    var tabs = document.querySelectorAll('.no-right-click-tab'); // Updated class name
+  
+    // Function to handle tab click events
+    function loadTabContent(event) {
+      event.preventDefault(); // Prevent the default action
+  
+      var url = event.currentTarget.getAttribute('href'); // Get the href attribute of the clicked tab
+  
+      // Fetch the content from the server
+      fetch(url)
+        .then(response => response.text())
+        .then(html => {
+          // Insert the content into the <section> element
+          document.getElementById('dynamic-content').innerHTML = html;
+        })
+        .catch(error => {
+          // Handle errors if any
+          document.getElementById('dynamic-content').innerHTML = '<p>Error loading content...</p>';
+        });
+    }
+  
+    // Add event listeners to all tabs
+    tabs.forEach(tab => {
+      tab.addEventListener('click', loadTabContent);
+      tab.addEventListener('contextmenu', function (e) {
+          e.preventDefault(); // Disable right-click context menu
       });
-  }
-
-  // Attach click event listeners to the tabs
-  tabs.forEach(function(tab) {
-    tab.addEventListener('click', loadTabContent);
+    });
   });
-});
+  </script>
+      
+
+<script>
+  // Hide flash messages after 5 seconds
+  var flashMessages = document.querySelector('.flash-messages');
+  if (flashMessages) {
+    setTimeout(function() {
+      flashMessages.style.display = 'none';
+    }, 10000);
+  }
 </script>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', (event) => {
+      const toggle = document.getElementById('assistantToggle');
+      const statusLabel = document.getElementById('assistantStatus');
+
+      if (toggle) {
+          toggle.addEventListener('change', function() {
+              var assistantTurnedOn = this.checked;
+              console.log('Toggle changed:', assistantTurnedOn); // Debugging: Check if the toggle is detected
+
+              // Update the status label
+              if (assistantTurnedOn) {
+                  statusLabel.textContent = 'Assistant is ON';
+              } else {
+                  statusLabel.textContent = 'Assistant is OFF';
+              }
+
+              // Send the assistantTurnedOn state to the server using AJAX
+              var xhr = new XMLHttpRequest();
+              xhr.open('POST', '/assistant_toggler', true);
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.onreadystatechange = function() {
+                  if (xhr.readyState === 4) {
+                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
+                      if (xhr.status === 200) {
+                          console.log('Assistant state updated successfully.');
+                      } else {
+                          console.error('Error updating assistant state.');
+                      }
+                  }
+              };
+              xhr.send(JSON.stringify({ assistant_turned_on: assistantTurnedOn }));
+          });
+      }
+
+      /*
+      const paymentGatewayToggle = document.getElementById('paymentGatewayToggle');
+      const paymentGatewayStatus = document.getElementById('paymentGatewayStatus');
+      const paymentGatewayInfo = document.getElementById('paymentGatewayInfo');
+
+      if (paymentGatewayToggle) {
+          paymentGatewayToggle.addEventListener('change', function() {
+              var paymentGatewayTurnedOn = this.checked;
+              console.log('Payment Gateway Toggle changed:', paymentGatewayTurnedOn); // Debugging: Check if the toggle is detected
+
+              // Update the status label
+              if (paymentGatewayTurnedOn) {
+                  paymentGatewayStatus.textContent = 'Payment Gateway is ON';
+                  paymentGatewayInfo.textContent = 'currently the orders are being registered when the customer paid';
+              } else {
+                  paymentGatewayStatus.textContent = 'Payment Gateway is OFF';
+                  paymentGatewayInfo.textContent = 'currently customer DOES NOT pay right after taking the order, recommended to switch the payment gateway on';
+              }
+
+              // Send the paymentGatewayTurnedOn state to the server using AJAX
+              var xhr = new XMLHttpRequest();
+              xhr.open('POST', '/payment_gateway_toggler', true);
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.onreadystatechange = function() {
+                  if (xhr.readyState === 4) {
+                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
+                      if (xhr.status === 200) {
+                          console.log('Payment Gateway state updated successfully.');
+                      } else {
+                          console.error('Error updating Payment Gateway state.');
+                      }
+                  }
+              };
+              xhr.send(JSON.stringify({ payment_gateway_turned_on: paymentGatewayTurnedOn }));
+          });
+      }
+      */    
+  });
+
+  function openTab(tabName) {
+        var i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].classList.remove("active");
+        }
+        tablinks = document.getElementsByClassName("tab");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].classList.remove("active");
+        }
+        document.getElementById(tabName).classList.add("active");
+        document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
+    }
+</script>
+
 {% endblock %}
+

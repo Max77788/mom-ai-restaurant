@@ -1,18 +1,24 @@
-from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response
+from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
 from werkzeug.utils import secure_filename
 import os
-from utils.forms import RestaurantForm, ConfirmationForm, LoginForm 
-from utils.functions import convert_xlsx_to_txt_and_menu_items, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_confirmation_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email 
+import gridfs
+from bs4 import BeautifulSoup
+#from pyrogram import filters
+#from utils.telegram import app_tg
+from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
+from utils.functions import InvalidMenuFormatError, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_confirmation_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email 
 from pymongo import MongoClient
-from openai import OpenAI
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
 import base64
 #from utils.hyperwallet import create_user, create_bank_account, make_payment
 import ast
+from utils.pp_payment import createPayment, executePayment, get_subscription_status, createOrder, captureOrder
 #from utils.withdraw.pp_payout import send_payout_pp
 from datetime import datetime
 from openai import OpenAI, AzureOpenAI
+from bson import ObjectId  # Import ObjectId from bson
+import io
 #from tools.stellar_payments.list_payments import list_received_payments
 #from tools.stellar_payments.create_account import create_stellar_account
 from dotenv import load_dotenv, find_dotenv
@@ -21,6 +27,9 @@ load_dotenv(find_dotenv())
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
+
+CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
+SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
 
 # Initialize Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.privateemail.com'
@@ -42,6 +51,9 @@ client_db = MongoClient(mongodb_connection_string)
 # Specify the database name
 db = client_db['MOM_AI_Restaurants']
 
+# Specify the collection name
+collection = db[os.environ.get("DB_VERSION")]
+
 db_order_dashboard = client_db["Dashboard_Orders"]
 
 CLIENT_OPENAI = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -52,8 +64,9 @@ CLIENT_OPENAI = AzureOpenAI(
     azure_endpoint=os.environ.get("AZURE_OPENAI_ENDPOINT")
 )
 """
-# Specify the collection name
-collection = db[os.environ.get("DB_VERSION")]
+
+
+fs = gridfs.GridFS(db)
 
 print("Everything Initialized!")
 
@@ -73,6 +86,13 @@ def forbidden(error):
     return make_response(jsonify({'error': 'Forbidden', 'message': error.description}), 403)
 
 
+# Middleware to modify headers
+@app.after_request
+def add_header(response):
+    response.headers['X-Frame-Options'] = 'ALLOWALL'  # Allow all domains to embed
+    return response
+
+"""
 @app.route('/waitlist')
 def notify_waitlist():
     if session.get("res_email"):
@@ -90,7 +110,7 @@ def notify_waitlist():
     
     return render_template('wait_for_full_access/success.html', restaurant_email=restaurant_email, restaurant_name=restaurant_name, title="Waitlist Added")
     
-
+"""
 
 
 #################### Registration/Login Part Start ####################
@@ -131,6 +151,21 @@ def landing_page():
         password = form.password.data
         print(f"Restaurant password: {password}")
 
+        currency = form.currency.data
+        print(f"Currency of the restaurant: {currency}")
+
+        session["currency"] = currency
+
+        # Save the image to GridFS
+        image = form.image.data
+        print(f'Image Received:{image}')
+        if image:
+            filename = secure_filename(image.filename)
+            file_id = fs.put(image, filename=filename)
+            print(f'Raw file id {file_id} and string file id {str(file_id)}')
+            session["logo_id"] = str(file_id)
+        
+
         if request.files['menu']:
             menu = request.files['menu']
             #script = request.files['script']
@@ -156,11 +191,18 @@ def landing_page():
             print("Files saved")
 
             menu_save_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
-            menu_txt_path = convert_xlsx_to_txt_and_menu_items(menu_xlsx_path, menu_save_path)
+            
+            menu_txt_path, html_menu = convert_xlsx_to_txt_and_menu_html(menu_xlsx_path, menu_save_path, currency)
+            
+            if not isinstance(menu_txt_path, str):
+               print("Entered Invalid Menu Error.")
+               flash(str(menu_txt_path))
+               return redirect("/")
             print(f"Generated menu txt file: {menu_txt_path}")
 
             session["restaurant_name"] = restaurant_name
-            session["res_website_url"] = restaurant_url        
+            session["res_website_url"] = restaurant_url
+            session["html_menu"] = html_menu       
 
             with open(menu_txt_path, 'rb') as menu_file:
                 menu_encoded = base64.b64encode(menu_file.read())
@@ -175,7 +217,7 @@ def landing_page():
             
             print(f"Menu TXT path passed {menu_txt_path}")
 
-            assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, menu_txt_path, client=CLIENT_OPENAI)
+            assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_txt_path, client=CLIENT_OPENAI)
 
             session['assistant_id'] = assistant.id
             session['menu_file_id'] = menu_file_id
@@ -220,7 +262,7 @@ def landing_page():
         #session["menu_encoded"] = menu_encoded
         #session["script_encoded"] = script_encoded
 
-        assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
+        assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
         session['assistant_id'] = assistant.id
         session['menu_vector_id'] = menu_vector_id
         session['menu_file_id'] = menu_file_id
@@ -295,11 +337,25 @@ def login():
             return redirect(url_for('login'))
     return render_template('start/login.html', form=form, title="Login")
 
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()  # Clear the session
+    flash('You logged out successfully')  # Add a flash message
+    return redirect(url_for('login'))  # Redirect to dashboard
+
 #################### Registration/Login Part End ####################
 
 
 
-
+@app.route('/image/<file_id>')
+def serve_image(file_id):
+    try:
+        file_id = ObjectId(file_id)  # Convert string file_id back to ObjectId
+        grid_out = fs.get(file_id)
+        return send_file(io.BytesIO(grid_out.read()), download_name=grid_out.filename, mimetype='image/jpeg')
+    except Exception as e:
+        print(e)
+        abort(404)
 
 
 
@@ -355,11 +411,13 @@ def confirm_email():
 
 #################### Payment Setup Part Start ####################
 
-
+"""
 @app.route('/payments_setup', methods=['GET', 'POST'])
 def setup_web_payments():
     session["verified_res_email"] = session.get("res_email", "placeholder_email")
     return render_template("create_web3_wallet.html", restaurant_name=session.get("restaurant_name", "Matronins placeholder"))
+
+
 
 
 @app.route('/create_wallet', methods=['POST', 'GET'])
@@ -397,7 +455,7 @@ def create_web_wallet():
     return render_template("register_finish.html", restaurant_name = res_name, web3_wallet_address = web3_wallet_address, title="Registration Complete")
 
 #################### Payment Setup Part End ####################
-
+"""
 
 
 
@@ -462,7 +520,12 @@ def assistant_demo_chat():
     menu_file_id = session.get("menu_file_id")
     menu_vector_id = session.get("menu_vector_id")
 
-    insert_document(collection, res_name, verified_res_email, res_password, website_url, assistant_id, menu_file_id, menu_vector_id, wallet_public_key_address="None", wallet_private_key="None")
+    currency = session.get("currency")
+    html_menu = session.get("html_menu")
+
+    file_id = session.get("logo_id", "666af654dee400a1d635eb08")
+
+    insert_document(collection, res_name, verified_res_email, res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", logo_id=file_id)
     send_waitlist_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
 
     # Clear the session variable after access
@@ -479,6 +542,21 @@ def assistant_demo_chat():
 
 
 #################### Dashboard Part Main App ####################
+'''
+@app.route('/market_dashboard')
+def market_dashboard():
+    page = request.args.get('page', 1, type=int)
+    per_page = 12  # 2 columns * 6 rows
+    restaurants, total = get_restaurants(page, per_page)  # Function to fetch paginated restaurant data
+    return render_template('marketing_dashboard/market_dashboard.html', restaurants=restaurants, page=page, per_page=per_page, total=total, title="AI Restaurants Market")
+
+def get_restaurants(page, per_page):
+    skip = (page - 1) * per_page
+    cursor = collection.find().skip(skip).limit(per_page)
+    total = collection.count_documents({})
+    restaurants = list(cursor)
+    return restaurants, total
+'''
 
 @app.route('/dashboard', methods=['POST', 'GET'])
 def dashboard_display():
@@ -500,68 +578,329 @@ def dashboard_display():
         current_balance = restaurant_instance.get("balance")
         res_unique_azz_id = restaurant_instance.get("unique_azz_id")
         awaiting_withdrawal = restaurant_instance.get("await_withdrawal")
+        res_currency = restaurant_instance.get("res_currency")
+        html_menu = restaurant_instance.get("html_menu")
+        assistant_spent = restaurant_instance.get("assistant_fund")
+        logo_id = restaurant_instance.get("res_logo", "666af654dee400a1d635eb08")
+        #subscription_number = restaurant_instance.get("subscription_number")
+
+        #subscription_activated = True if get_subscription_status(subscription_number) == "ACTIVE" else False
+        #print(f"Subscription Activated {subscription_activated}")
+        #if not subscription_activated:
+            #collection.update_one({"unique_azz_id":res_unique_azz_id}, {"$set":{"assistant_turned_on": False}})
+        assistant_turned_on = restaurant_instance.get("assistant_turned_on")
+        print(f"assistant turned on dashboard upload:{assistant_turned_on}")
         if not awaiting_withdrawal:
             awaiting_withdrawal = 0
-
+         
+        #session["subscription_activated"] = subscription_activated
         session["assistant_id"] = assistant_id
         session["restaurant_name"] = restaurant_name
         session["restaurant_email"] = restaurant_email
         session["current_balance"] = current_balance
         session["unique_azz_id"] = res_unique_azz_id
+        session["res_currency"] = res_currency
+        session["html_menu"] = html_menu
 
         print(f"Assistant ID added in session: {assistant_id}")
         print(f"Restaurant name added in session: {restaurant_name}")
         
-        # Continue with the rest of the code
-        # ...
+        logo_url = url_for('serve_image', file_id=logo_id)
+
     else:
         # Handle the case when the instance is not found
         flash("Restaurant not found.")
         return redirect(url_for("landing_page"))
     return render_template("dashboard/dashboard.html", title=f"{restaurant_name}\'s Dashboard", 
                            restaurant_name=restaurant_name, 
-                           current_balance=round(current_balance,2), 
+                           current_balance=f"{round(float(current_balance),2):.2f}", 
                            wallet_address=web3_wallet_address, 
                            email=restaurant_email, 
                            assistant_id=assistant_id,
+                           restaurant_email=restaurant_email,
                            res_website_url = restaurant_website_url,
                            res_unique_azz_id=res_unique_azz_id,
-                           awaiting_withdrawal=awaiting_withdrawal)
+                           awaiting_withdrawal=awaiting_withdrawal,
+                           assistant_spent=f"{round(float(assistant_spent),2):.2f}",
+                           res_currency=res_currency,
+                           assistant_turned_on=assistant_turned_on,
+                           logo_url=logo_url,
+                           restaurant=restaurant_instance)
 
 ###################################### Dashboard Buttons ######################################
 
 @app.route('/payments', methods=['POST', 'GET'])
 def payments_display():
     
-    restaurant_name = session.get("restaurant_name")
-    restaurant_email = session.get("restaurant_email")
+    #restaurant_name = session.get("restaurant_name")
+    #restaurant_email = session.get("restaurant_email")
+    unique_azz_id = session.get("unique_azz_id")
+
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+    print(restaurant)
     
-    order_dashboard_id = restaurant_name+"_"+restaurant_email
+    order_dashboard_id = unique_azz_id
 
     orders = db_order_dashboard[order_dashboard_id].find()
 
     payments = [{"timestamp":order.get("timestamp"), "total_paid":round(order.get("total_paid"),2)} for order in orders]
 
-    return render_template("dashboard/payments_history.html", payments=payments)
+    return render_template("dashboard/payments_history.html", payments=payments, restaurant=restaurant)
+
+@app.route('/profile')
+def show_restaurant_profile():
+    # Retrieve restaurant profile by unique_azz_id
+    unique_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({'unique_azz_id': unique_azz_id})
+    restaurant_balance = round(restaurant.get("balance"), 2)
+    connected_chats_len = len(restaurant.get("notif_destin", []))
+    if restaurant:
+        return render_template('dashboard/profile.html', restaurant=restaurant, restaurant_balance=restaurant_balance, connected_chats=connected_chats_len)
+    else:
+        return "Restaurant not found", 404
+
+@app.route('/assistant_toggler', methods=['POST'])
+def toggle_assistant():
+    data = request.get_json()
+    assistant_turned_on = data.get('assistant_turned_on')
+    print(f"Assistant turned on: {assistant_turned_on}")
+
+    unique_azz_id = session.get("unique_azz_id")
+    print(unique_azz_id)
+    collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"assistant_turned_on":assistant_turned_on}})
+    
+    # Respond with the new state
+    return jsonify({'assistant_turned_on': assistant_turned_on})
+
+'''
+@app.route('/payment_gateway_toggler', methods=['POST'])
+def toggle_payment_gateway():
+    data = request.get_json()
+    assistant_turned_on = data.get('assistant_turned_on')
+    print(f"Assistant turned on: {assistant_turned_on}")
+
+    unique_azz_id = session.get("unique_azz_id")
+    print(unique_azz_id)
+    collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"assistant_turned_on":assistant_turned_on}})
+    
+    # Respond with the new state
+    return jsonify({'assistant_turned_on': assistant_turned_on})
+'''
+    
+@app.route('/profile_update/<attribute>', methods=['GET','POST'])
+def update_profile(attribute):
+    form = RestaurantFormUpdate()
+    print(request.form)
+    print(f"Request files: {request.files}")
+    current_uni_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({'unique_azz_id': current_uni_azz_id})
+    #print(restaurant.get(attribute, "nope"))
+    if form.validate_on_submit():
+        new_value = request.form.get(attribute) or request.files.get(attribute)
+        if not new_value:
+            flash("No value provided - please, provide the data and submit again", 'danger')
+            return redirect(url_for('update_profile', attribute=attribute))
+        if attribute == 'name' and new_value:
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'name': new_value}})
+        elif attribute == 'website_url' and new_value:
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'website_url': new_value}})
+        elif attribute == 'notif_destin' and new_value:
+            collection.update_one({'unique_azz_id': current_uni_azz_id},{'$push': {'notif_destin': new_value}})
+            NEW_CHAT_MESSAGE = f"🔝You are the best\n\nYou have successfully setup notifications!\n\nMOM AI bot will notify you upon upcoming of new orders in this chat."
+            send_telegram_notification(new_value, message=NEW_CHAT_MESSAGE)
+        elif attribute == 'pp_account' and new_value:
+            if restaurant.get('pp_account', "nope") == "nope":
+               collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'earned_on_own_paypal':0}})
+            pp_client_id = new_value.split("___")[0]
+            pp_client_secret = new_value.split("___")[1]
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'pp_client_id': pp_client_id, 'pp_client_secret':pp_client_secret}})
+        # Image upload handling
+        elif attribute == 'image' and form.image.data:
+            image = form.image.data
+            filename = secure_filename(image.filename)
+            file_id = fs.put(image, filename=filename)
+            print(f'Raw file id {file_id} and string file id {str(file_id)}')
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'res_logo': file_id}})   
+        
+        print('Profile updated successfully!')
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('dashboard_display'))
+    else:
+        print('Error in form submission!')
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash(f"Error in the {getattr(form, field).label.text} field - {error}", 'danger')
+                print(f"Error in the {getattr(form, field).label.text} field - {error}")
+    return render_template('settings/profile_update.html', form=form, attribute=attribute, restaurant=restaurant, title="Update Profile")
 
 
 @app.route('/settings', methods=['POST', 'GET'])
 def settings_display():
     return render_template("dashboard/settings.html")
+'''
+@app.route('/add_number_nots', methods=['POST', 'GET'])
+def add_number_nots():
+    if request.method == 'POST':
+        number = request.form['number']
+        
+        unique_azz_id = session.get("unique_azz_id")
 
-@app.route('/payment_buffer', methods=['POST', 'GET'])
-def payment_buffer():
-    items = session.get('items_ordered', [{'name':'item1', 'quantity':1}, {'name':'item2', 'quantity':2}])
-    checkout_link = session.get("paypal_link")
-    total_to_pay = session.get("total")
+        # Find the user and update the 'notif_destin' attribute
+        collection.update_one(
+            {'unique_azz_id': unique_azz_id},
+            {'$push': {'notif_destin': number}}
+        )
+        return jsonify({"response":"success"})
+'''
+
+@app.route('/menu', methods=['POST', 'GET'])
+def show_menu():
+    form = UpdateMenuForm()
+    html_menu = session.get("html_menu")
+    return render_template("dashboard/menu_display.html", html_menu=html_menu, form=form)
+
+@app.route('/update_menu', methods=['POST'])
+def update_menu():
+    print(request)
+    menu = request.files['menu_update']
+    #script = request.files['script']
+
+    # Extract the original file extensions
+    menu_extension = os.path.splitext(menu.filename)[1]
+    #script_extension = os.path.splitext(script.filename)[1]
+
+    menu_filename = secure_filename(f"menu_file{menu_extension}")
+    #script_filename = secure_filename(f"script_file{script_extension}")
+
+    print(f"Menu filename: {menu_filename}")
+    #print(f"Script filename: {script_filename}")
+
+    menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
+    #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
+    print(f"Menu xlsx path: {menu_xlsx_path}")
+    #print(f"Script path: {script_path}")
+
+    # Save the files
+    menu.save(menu_xlsx_path)
+    #script.save(script_path)
+    print("Files saved")
+
+    menu_save_txt_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
+  
+    currency = session.get("res_currency")
+    restaurant_name = session.get("restaurant_name")
+    unique_azz_id = session.get("unique_azz_id")
+    assistant_id = session.get("assistant_id")
+
+    upload_response = upload_new_menu(menu_xlsx_path, menu_save_txt_path, currency, restaurant_name, collection, unique_azz_id, assistant_id)
+    print(upload_response)
     
-    return render_template("payment_routes/payment_buffer.html", items=items, checkout_link=checkout_link, total_to_pay=total_to_pay, title="Payment Buffer")
+    if upload_response["success"]:
+        flash("Menu updated successfully!", category="success")
+    else:
+        flash("Error updating menu. Please check the file for validity.", category="danger")
+
+    return redirect(url_for("dashboard_display"))
+
+
+"""
+@app.route("/subscription", methods=['POST', 'GET'])
+def subscription_manifesto():
+    return render_template("payment_routes/subscription.html", title="Subscription", CLIENT_ID=CLIENT_ID)
+
+@app.route("/subscription-setup", methods=['POST'])
+def activate_subscription():
+    data = request.get_json()
+    sub_id = data["subscriptionID"]
+    print(f"Subscription ID passed: {sub_id}")
+    
+    unique_azz_id = session.get("unique_azz_id")
+
+    collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"subscription_number":sub_id}})
+
+    flash("Congratulations! You have successfully subscribed!")
+
+    return jsonify({"success":True})
+"""
+
+
+@app.route('/payment_buffer/<unique_azz_id>', methods=['POST', 'GET'])
+def payment_buffer(unique_azz_id):
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+    items = session.get('items_ordered', [{"name":"Item1", "quantity":1, "amount":0.02}])
+    print(f"Items on payment buffer: {items}")
+    CURRENCY = session.get("res_currency", "USD")
+    #checkout_link = session.get("paypal_link")
+    total_to_pay = session.get("total", 0.07)
+    total_to_pay = str(round(float(total_to_pay), 2))
+    
+    return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, title="Payment Buffer")
+
+
+@app.route("/create_payment", methods=['POST','GET'])
+def create_payment():
+   items = session.get('items_ordered')
+   #items = {"items":[{'name':'item1', 'quantity':1, "amount":0.01}, {'name':'item2', 'quantity':2, "amount":0.01}]}
+
+   payment = createPayment(items)
+   
+   # Check if the payment was successfully created
+   if payment['state'] == 'created':
+      print(jsonify({'id': payment['id']}))
+      return jsonify({'id': payment['id']})
+   else:
+      return jsonify({'error': 'Payment creation failed'}), 500
+   
+
+@app.route("/execute_payment", methods=['POST','GET'])
+def execute_payment():
+    payment_id = request.args.get('paymentID')
+    payer_id = request.args.get('payerID')
+    print(f"Payment ID retrieved: {payment_id}")
+    print(f"Payer ID retrieved: {payer_id}")
+    
+    if not payment_id or not payer_id:
+        return jsonify({'error': 'Missing paymentID or payerID'}), 400
+
+    exec_success = executePayment(payment_id, payer_id)
+
+    if exec_success:
+        return redirect(url_for("success_payment"))
+    else:
+        return redirect(url_for("cancel_payment"))
+
+@app.route("/create_order", methods=['POST','GET'])
+def create_order():
+    order = createOrder()
+    if order.status_code in [201,200]:  # Check if the request was successful
+        order_data = order.json()  # Parse the JSON response
+        print(f"Order on create_order: {order_data}")
+        order_id = order_data['id']
+        print(f"Order ID on create_order: {order_id}")
+        return jsonify({"id": order_id})
+    else:
+        print(f"Error creating order: {order.text}")
+        return jsonify({"error": "Failed to create order"}), order.status_code
+
+@app.route('/capture_order/<orderID>', methods=['POST'])
+def capture_order(orderID):
+    # Now you can use the orderID variable in your function
+    print(f"Received orderID: {orderID}")
+    captured_order = captureOrder(orderID).json()
+    print(captured_order)
+
+    if captured_order["status"] == "COMPLETED":
+        return captured_order
+    else:
+        return jsonify({"error":True})
+
 
 @app.route('/assistant_dash', methods=['POST', 'GET'])
 def assistant_dashboard_route():
+    sub_activated = session.get("subscription_activated")
     unique_azz_id = session.get("unique_azz_id")
     restaurant_name = session.get("restaurant_name")
-    return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name) 
+    return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, sub_activated=sub_activated) 
 
 #######################################################################################################
 
@@ -570,10 +909,10 @@ def assistant_dashboard_route():
 ######################### Chat Flow ############################
 
 # Start conversation thread
-@app.route('/assistant_start', methods=['GET', 'POST'])
-def start_conversation():
+@app.route('/assistant_start/<assistant_id>', methods=['GET', 'POST'])
+def start_conversation(assistant_id):
 
-    assistant_id = session.get('assistant_id', 'default_assistant_id')  # Default if not provided
+    #assistant_id = session.get('assistant_id', 'default_assistant_id')  # Default if not provided
     vector_store_id = session.get("menu_vector_id", "vs_HviwnvaEoSsVCltwgc17456Y")
     print(f"Vector store ID on /assistant_start: {vector_store_id}")
 
@@ -597,6 +936,8 @@ def start_conversation():
 def assistant_order_chat(unique_azz_id):
     # Retrieve the full assistant_id from the session
     
+    iframe = True if request.args.get("iframe") else False
+
     res_instance = collection.find_one({"unique_azz_id":unique_azz_id})
 
     full_assistant_id = res_instance.get("assistant_id")
@@ -604,31 +945,51 @@ def assistant_order_chat(unique_azz_id):
     restaurant_website_url = res_instance.get("website_url")
     menu_file_id = res_instance.get("menu_file_id")
     menu_vector_id = res_instance.get("menu_vector_id")
+    res_currency = res_instance.get("res_currency")
+    assistant_turned_on = res_instance.get("assistant_turned_on")
+    print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
 
     session["unique_azz_id"] = unique_azz_id
     session["full_assistant_id"] = full_assistant_id
     session["menu_file_id"] = menu_file_id
     session["menu_vector_id"] = menu_vector_id
-
+    session["res_currency"] = res_currency
+    session["restaurant_name"] = restaurant_name
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant")
+    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant", assistant_turned_on=assistant_turned_on, restaurant=res_instance, iframe=iframe)
 
 # Generate response
-@app.route('/generate_response', methods=['POST', 'GET'])
-def generate_response():
+@app.route('/generate_response/<unique_azz_id>', methods=['POST', 'GET'])
+def generate_response(unique_azz_id):
     data = request.json
     thread_id = data.get('thread_id')
     assistant_id = data.get('assistant_id')
     user_input = data.get('message', '')
-    menu_file_id = session.get("menu_file_id")
+    restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    res_currency = restaurant_instance.get("res_currency")
     print(f"Menu file ID on /generate_response: {menu_file_id}")
 
     print(f"User input: {user_input}")
     print(f"Thread ID: {thread_id}")
     print(f"Assistant ID: {assistant_id}")
 
-    response_llm, tokens_used = get_assistants_response(user_input, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI)
+    html_menu  = restaurant_instance.get('html_menu')
 
+    soup = BeautifulSoup(html_menu, 'html.parser')
+    rows = soup.find_all('tr')[1:]  # Skip the header row
+
+    list_of_all_items = []
+    for row in rows:
+        columns = row.find_all('td')
+        item = columns[0].text
+        price = columns[2].text
+        tuple_we_deserved = (item, f"{price} {res_currency}")
+        list_of_all_items.append(tuple_we_deserved)
+
+    print(f"\n\nList of all items formed: {list_of_all_items}\n\n") # debugging line
+
+    response_llm, tokens_used = get_assistants_response(user_input, thread_id, assistant_id, res_currency, menu_file_id, CLIENT_OPENAI, list_of_all_items=list_of_all_items, unique_azz_id=unique_azz_id)
     PRICE_PER_1_TOKEN = 0.000007
 
     charge_for_message = PRICE_PER_1_TOKEN*tokens_used
@@ -637,11 +998,10 @@ def generate_response():
 
     unique_azz_id = session.get("unique_azz_id")
 
-    result_charge_for_message = collection.update_one({"unique_azz_id":unique_azz_id}, {"$inc": {"balance": -charge_for_message}})
-    
+    result_charge_for_message = collection.update_one({"unique_azz_id":unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
     # Check if the update was successful
     if result_charge_for_message.matched_count > 0:
-        print("Balance decreased successfully.")
+        print("Balances were successfully.")
     else:
         print("No matching document found.")
 
@@ -658,12 +1018,12 @@ def generate_response():
 
     return jsonify({"response_llm":response_llm})
 
-
+'''
 @app.route('/setup_payments', methods=['POST', 'GET'])
 def setup_payments():
     restaurant_name = session.get("restaurant_name", "restaurant")
     return render_template("setup_payments.html", title="Payment Setup", restaurant_name=restaurant_name)
-
+'''
 
 
 
@@ -702,7 +1062,7 @@ def success_payment():
                         "assistant_used": assistant_used,
                         "published":True}
     
-    order_dashboard_id = restaurant_name+"_"+res_email
+    order_dashboard_id = assistant_used
 
     db_order_dashboard[order_dashboard_id].insert_one(order_to_pass)
 
@@ -711,7 +1071,11 @@ def success_payment():
 
     result = collection.update_one({'email': res_email}, {"$inc": {"balance": total_received}})
     
-    send_telegram_notification(chat_id=1120629069)
+    all_ids_for_acc = current_restaurant_instance.get('notif_destin')
+    
+    if all_ids_for_acc is not None:
+        for chatId in all_ids_for_acc:
+            send_telegram_notification(chat_id=chatId)
     
     # Check if the update was successful
     if result.matched_count > 0:
@@ -726,6 +1090,8 @@ def success_payment():
     print(f"Total paid: {total_received} on success payment route")
 
     res_unique_azz_id = session.get("unique_azz_id")
+
+    flash("Your Order was Successfully Placed!")
 
     # This route can be used for further processing if needed
     return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=res_unique_azz_id)
@@ -808,10 +1174,11 @@ def view_orders():
 
 @app.route('/view_orders_ajax', methods=['GET'])
 def view_orders_ajax():
-    restaurant_name = session.get("restaurant_name")
-    res_email = session.get("res_email")
-
-    order_dashboard_id = restaurant_name + "_" + res_email
+    #restaurant_name = session.get("restaurant_name")
+    #restaurant_email = session.get("restaurant_email")
+    unique_azz_id = session.get("unique_azz_id")
+    
+    order_dashboard_id = unique_azz_id
 
     order_collection = db_order_dashboard[order_dashboard_id]
 

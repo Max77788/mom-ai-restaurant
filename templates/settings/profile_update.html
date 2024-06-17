@@ -1,0 +1,57 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+<h2 style="text-align: center; font-family: Arial, sans-serif; color: #000; margin-bottom: 10px;">Update Profile</h2>
+{% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
+<form method="POST" action="{{ url_for('update_profile', attribute=attribute) }}" enctype="multipart/form-data">
+    {{ form.hidden_tag() }}
+    <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background-color: #000; color: #fff;">
+                <th style="text-align: left; padding: 12px; border: 1px solid #000;">Attribute</th>
+                <th style="text-align: left; padding: 12px; border: 1px solid #000;">Current Value</th>
+                <th style="text-align: left; padding: 12px; border: 1px solid #000;">Set New Value</th>
+                <th style="text-align: left; padding: 12px; border: 1px solid #000;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr style="background-color: #f9f9f9; color: #000;">
+                <td style="padding: 12px; border: 1px solid #ddd;">{{ form[attribute].label.text }}</td>
+                <td style="padding: 12px; border: 1px solid #ddd;">{% if attribute == "image" %}
+                    <img src="{{ url_for('serve_image', file_id=restaurant.res_logo) }}" style="height:50px; width:auto">
+                {% endif %}
+                {% if restaurant[attribute] is iterable and restaurant[attribute] is not string %}
+                    {{ ", ".join(restaurant[attribute]) }}
+                {% elif restaurant[attribute] == None %}
+                    <p>No value is set</p>
+                {% else %}
+                    {{ restaurant[attribute] }}
+                {% endif %}</td>
+                <td style="padding: 12px; border: 1px solid #ddd;">
+                    <!-- {{ form[attribute].label }}<br> -->
+                    {{ form[attribute] }}
+                </td>
+                <td style="padding: 12px; border: 1px solid #ddd;">
+                    {{ form.submit }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</form>
+
+<script>
+    // Hide flash messages after 5 seconds
+    var flashMessages = document.querySelector('.flash-messages');
+    if (flashMessages) {
+      setTimeout(function() {
+        flashMessages.style.display = 'none';
+      }, 10000);
+    }
+  </script>
+{% endblock %}

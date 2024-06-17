@@ -1,6 +1,19 @@
+{% if iframe %}
+{% extends 'layout_iframe.html' %}
+{% else %}
 {% extends 'layout_no_land.html' %}
+{% endif %}
 
 {% block content %}
+
+{% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
+
 <div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
     
     <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
@@ -8,15 +21,34 @@
     </header>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
         <!-- Initial greeting message -->
-        <div id="greetingMessage" style="text-align: center; margin: 20px;">
-            <p>Click below to start chatting with MOM AI Restaurant assistant to order at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.</p>
+        <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
+            <!-- Logo display -->
+            {% if restaurant.res_logo %}
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;">
+                <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
+            </div>
+            {% else %}
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;">
+                <img src="/static/images/Black Bold Initial AI Business Logo.png" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
+            </div>  
+            {% endif %}
+            {% if restaurant_website_url != "No URL provided" %}
+                <p>Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
+                
+            {% else %}
+                <p>Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
+            {% endif %}
+            {% if assistant_turned_on %}
             <button onclick="startConversation()" style="padding: 10px 20px; font-size: 16px; background-color: #000000; color: white; border: none; border-radius: 5px;">Start New Chat</button>
+            {% else %}
+            <p><b>We are currently off. You will be able to take the order later.</b></p>
+            {% endif %}
         </div>
         <!-- Chat messages will appear here after starting the conversation -->
     </div>
     <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px;">
         <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;" disabled>
-        <button onclick="sendMessage()" style="width: 15%; background: none; border: none; color: white; font-size: 16px;" disabled>Send</button>
+        <button onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center; margin-top: 7px;" disabled>Send</button>
     </footer>
 </div>
 
@@ -29,7 +61,8 @@
     let currentAssistantId = null;  // This will be set with the assistant's ID when starting a new conversation
 
     function startConversation() {
-        fetch('/assistant_start', {
+        const assistantId = "{{ assistant_id }}";
+            fetch(`/assistant_start/${assistantId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -60,7 +93,9 @@
         // Display the user's message immediately in the chat
         appendMessage(userMessage, 'user');
 
-        fetch('/generate_response', {
+        const unique_azz_id = "{{ unique_azz_id }}"
+
+        fetch(`/generate_response/${unique_azz_id}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -136,5 +171,15 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 </script>
+
+<script>
+    // Hide flash messages after 5 seconds
+    var flashMessages = document.querySelector('.flash-messages');
+    if (flashMessages) {
+      setTimeout(function() {
+        flashMessages.style.display = 'none';
+      }, 5000);
+    }
+  </script>
 {% endblock %}
 

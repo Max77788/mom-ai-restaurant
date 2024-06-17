@@ -1,6 +1,15 @@
 {% block content %}
 <h1>Settings</h1>
 <p>Change your website url</p>
+<h1>Add Number to Notifications</h1>
+<form action="{{ url_for('add_number_nots') }}" method="POST">
+    <label for="number">Enter Number:</label>
+    <input type="text" id="number" name="number" required>
+    <button type="submit">Add Number</button>
+</form>
+{% if response %}
+    <p>{{ response }}</p>
+{% endif %}
 
 
 {% endblock %}

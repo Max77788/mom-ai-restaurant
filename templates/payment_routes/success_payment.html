@@ -3,7 +3,8 @@
 {% block content %}
     <div class="success-payment-message">
         <h1>The payment was successful</h1>
-        <h4>Congratulaions, your order was successfully taken. {{ restaurant_name }} is already cooking it - visit the restaurant to pick up your food shortly.</h4>
+        <h3>Congratulaions, your order was successfully taken.</h3>
+        <h4>{{ restaurant_name.replace("_", " ") }} is already cooking it - visit the restaurant to pick up your food shortly.</h4>
         <p>You will be redirected in <span id="countdown">7</span> seconds.</p>
     </div>
     <script>

@@ -8,3 +8,9 @@ utils/__pycache__
 utils/celery_not_money
 utils/legacy
 utils/withdraw
+.vercel
+test_iframe.html
+test_parser.py
+test_pp.py
+exec_pp_payment.py
+get_sub_id.py

@@ -1,9 +1,77 @@
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style></style>
+<title>Assistant Usage</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<style>
+    .tab {
+        display: inline-block;
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #f1f1f1;
+        border: 1px solid #ccc;
+        margin-right: -1px;
+    }
+    .tab.active {
+        background-color: #d4c2c2;
+        border-bottom: none;
+    }
+    .tab-content {
+        display: none;
+        padding: 20px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+    }
+    .tab-content.active {
+        display: block;
+    }
+
+    .image-container {
+        width: 37%; /* The width of the parent container */
+        margin: auto; /* Center the container */
+        margin-top: 10px;
+    }
+    .image-container img {
+        width: 100%; /* The image will take 100% of the container's width */
+        height: auto; /* Maintain the aspect ratio */
+    }
+</style>
+</head>
+<body>
+
 <div style="text-align: center;">
-<h1>Assistant Usage</h1>
-<p>Either open this chat on a tablet and put it at the counter in store or insert the following link at your site of sale: <br> <a href=" {{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name }}'s AI-Assistant</u></b></a></p>
-<p>Or you can paste the following link on your site: <i>mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i></p>
+    <h1 style="margin-bottom: 10px;">Assistant Usage</h1>
+    <div>
+        <div class="tab active" data-tab="open-directly" onclick="openTab('open-directly')">Open Directly</div>
+        <div class="tab" data-tab="get-link" onclick="openTab('get-link')">Get the Link</div>
+        <div class="tab" data-tab="get-code" onclick="openTab('get-code')">Get the Code</div>
+    </div>
+
+    <div id="open-directly" class="tab-content active">
+        <p>Open this chat on a tablet and put it at the counter in the restaurant: <br>
+        <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name.replace("_"," ") }}'s AI-Assistant</u></b></a></p>
+        <div class="image-container">
+            <img src="/static/images/tablet_at_the_counter.jpg" alt="AI-Assistant tablet at restaurant counter">
+        </div>
+    </div>
+
+    <div id="get-link" class="tab-content">
+        <p>Paste the following link on your site: <i>https://mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i></p>
+        <p>After clicking the link the customer will be redirected to the MOM AI Restaurant Assistant and will make the order in {{ restaurant_name.replace("_"," ") }}</p>
+    </div>
+
+    <div id="get-code" class="tab-content">
+        <p>To integrate the assistant window onto your website, use the following code:</p>
+        <pre>
+            <code>
+                &lt;iframe src="https://mom-ai-restaurant.pro/assistant_order_chat/{{ unique_azz_id }}?iframe=yes" width="600" height="700" style="border:none;"&gt;&lt;/iframe&gt;
+            </code>
+        </pre>
+    </div>
 </div>
 
-
-{% endblock %}
+</body>
+</html>

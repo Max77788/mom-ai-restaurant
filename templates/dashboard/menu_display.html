@@ -1,0 +1,39 @@
+{% block content %}
+<body>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
+    <form action="/update_menu" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div>
+            <label for="menu_update">Upload New Menu</label>
+            {{ form.menu_update }}
+        </div>
+        <div style="margin-top: 7px;">
+            {{ form.submit }}
+        </div>
+    </form>
+    <div class="container mt-5">
+        <h1 class="mb-4" style="text-align: center;">That's the menu the assistant refers to now</h1>
+            <div class="mt-4">
+                {{ html_menu|safe }}
+            </div>
+            <hr>
+    </div>
+</body>
+<script>
+ document.addEventListener('DOMContentLoaded', function() {
+ // Hide flash messages after 5 seconds
+ var flashMessages = document.querySelector('.flash-messages');
+  if (flashMessages) {
+    setTimeout(function() {
+      flashMessages.style.display = 'none';
+    }, 5000);
+  }
+});
+</script>   
+{% endblock %}

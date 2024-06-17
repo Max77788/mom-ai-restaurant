@@ -80,7 +80,7 @@
     </style>
 </head>
 <body>
-    <h1>{{restaurant_name}} Orders</h1>
+    <h1>{{ restaurant_name.replace("_", " ") }} Orders</h1>
     <h4 style="text-align: center;">*the page is being automatically updated every 20 seconds - you won't miss any orders!</h4>
     <h3>Orders which are older than 30 minutes are in red color</h3>
     <h2 id="no-orders-message" style="text-align: center;">No orders yet, as soon as MOM AI Assistant registers the order it will be displayed here</h2>

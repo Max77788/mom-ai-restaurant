@@ -1,23 +1,39 @@
-from flask import jsonify, session, request, url_for
+from flask import jsonify, session, request, url_for, flash, redirect
 import pandas as pd
 import openpyxl
 import requests
+from bs4 import BeautifulSoup
 import ast
+import re
 import os
 from flask_mail import Message
 import uuid
 from utils.pp_payment import SetExpressCheckout
 import json
+from openai import OpenAI
 from time import sleep
 from pymongo import MongoClient
 
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
+mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
+
+# Connect to MongoDB
+client_db = MongoClient(mongodb_connection_string)
+
+# Specify the database name
+db = client_db['MOM_AI_Restaurants']
+
+# Specify the collection name
+collection = db[os.environ.get("DB_VERSION")]
+
 MOM_AI_JSON_LORD_ID = os.environ.get("MOM_AI_JSON_LORD_ID", "asst_YccYd0v0CbhweBvNMh0dJyJH")
 
 # Define the scopes
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+CLIENT_OPENAI = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def authenticate_gmail():
     creds = None
@@ -76,7 +92,7 @@ def check_credentials(email, password, collection, for_login_redirect=False):
             return True
     return False
 
-def insert_document(collection, name, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, wallet_public_key_address, wallet_private_key):
+def insert_document(collection, name, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address, wallet_private_key, logo_id=None):
     """Insert a document into MongoDB that includes a name and two files."""
     # Replace spaces with underscores
     name = name.replace(" ", "_")
@@ -92,8 +108,12 @@ def insert_document(collection, name, email, password, website_url, assistant_id
             # "file_menu": file_menu_encoded,  # Decode to string to store in MongoDB
             # "file_script": file_script_encoded,
             "assistant_id": assistant_id,
+            "assistant_fund":0,
             "menu_file_id":menu_file_id,
             "menu_vector_id": menu_vector_id,
+            "res_currency":currency,
+            "res_logo":logo_id,
+            "html_menu":html_menu,
             "web3_wallet_address": wallet_public_key_address,
             "web3_private_key": wallet_private_key,
             "balance": 3
@@ -108,7 +128,7 @@ def insert_document(collection, name, email, password, website_url, assistant_id
         print(f"An error occurred: {e}")
 
 
-def create_assistant(restaurant_name, menu_path, client, menu_path_is_bool=True):
+def create_assistant(restaurant_name, currency, menu_path, client, menu_path_is_bool=True):
         
 
     #order_structure = """{"items":[{'name': 'Item Name', 'quantity': 2, 'amount':price of single item(e.g. 12.99, pull this info from attached menu file)}, 
@@ -116,68 +136,73 @@ def create_assistant(restaurant_name, menu_path, client, menu_path_is_bool=True)
     #"""
     
     assistant = client.beta.assistants.create(name=f"{restaurant_name} AI assistant", instructions=f"""
-I am a specialized GPT designed to assist customers in selecting dishes from {restaurant_name}'s cuisine menu. My primary role is to help streamline the ordering process and provide a smooth and personalized dining experience.
+This GPT is designed to assist customers in selecting dishes from {restaurant_name}'s cuisine menu. Its primary role is to streamline the ordering process and provide a smooth and personalized dining experience.
 
-The menu of {restaurant_name} is attached to your knowledge base. Please refer to the menu for accurate item names, prices, and descriptions.
+The menu of {restaurant_name} is attached to its knowledge base. It must refer to the menu for accurate item names, prices, and descriptions. The restaurant uses {currency} as its currency.
 
-Initial Interaction:
+**Initial Interaction:**
 
-Observe the language used by the customer in their initial message and continue the conversation in that language to ensure effective communication.
-Assist with the order immediately if the customer skips any preliminary greetings and proceeds directly to place an order.
-Assistant Role Explanation (if asked):
+- It observes the language used by the customer in their initial message and continues the conversation in that language to ensure effective communication.
+- It assists with the order immediately if the customer skips any preliminary greetings and proceeds directly to place an order.
 
-Clearly describe your function as assisting customers in navigating {restaurant_name}'s menu, with the capability to automatically adapt and communicate in the customer's language.
-Order Facilitation:
+**Assistant Role Explanation (if asked):**
 
-Offer personalized dish recommendations based on the customer’s preferences or suggest dishes based on your culinary expertise.
-Present menu options and verify if the customer is ready to order or needs additional information.
-Order Confirmation:
+- It clearly describes its function as assisting customers in navigating {restaurant_name}'s menu, with the capability to automatically adapt and communicate in the customer's language.
 
-Recap the selected items before finalizing the order, ensuring the names (as listed in the menu), quantities, and prices are clear.
-Checkout Process:
+**Order Facilitation:**
 
-Confirm all order details with the customer before proceeding to the final confirmation.
-Final Confirmation and Checkout:
+- It offers personalized dish recommendations based on the customer’s preferences or suggests dishes based on its culinary expertise.
+- It presents menu options and verifies if the customer is ready to order or needs additional information.
 
-Summarize the order in a clear and structured manner using the exact names from the menu file:
-Example Order Summary:
+**Order Confirmation:**
 
-Item Name - 12.99$, 1 item
-Item Name - 8.99$, 3 items
-Item Name - 9.99$, 2 items
-Item Name - 8.99$, 1 item
-Obtain the customer's confirmation on the order summary to ensure accuracy and satisfaction.
+- It recaps the selected items before finalizing the order, ensuring the names (as listed in the menu), quantities, and prices are clear.
 
-Once confirmed, trigger the function send_summary_to_json_azz which processes the details for the final checkout.
+**Checkout Process:**
 
-Completion:
+- It confirms all order details with the customer before proceeding to the final confirmation.
 
-Upon successful order confirmation, thank the customer and inform them with, "Congratulations, the order was taken!"
-Additional Instructions:
+**Final Confirmation and Checkout:**
 
-Always use the items provided in the attached menu.txt file for preparing the order summary.
-Ensure all items are accurately represented as listed in the menu and confirmed by the customer before proceeding to checkout.
-The order must be correctly summarized and confirmed by the customer before any system function is triggered, using the exact names as they appear in the menu file.
-System Integration:
+- It summarizes the order in a clear and structured manner using the exact names from the menu file:
+  - Example Order Summary:
+    - Item Name - 12.99 {currency}, 1 item
+    - Item Name - 8.99 {currency}, 3 items
+    - Item Name - 9.99 {currency}, 2 items
+    - Item Name - 8.99 {currency}, 1 item
+- It obtains the customer's confirmation on the order summary to ensure accuracy and satisfaction.
 
-Adapt to and use the customer's language for all communications without explicitly asking for their preference.
-Consistently use the menu items from the attached file to ensure accuracy and consistency in order handling.
-NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
-Before calling the function ALWAYS output the order summary like this:
+**Completion:**
+
+- Upon successful order confirmation, the action send_summary_to_json_azz is triggered.
+
+**Additional Instructions:**
+
+- It always uses the items provided in the attached menu.txt file for preparing the order summary.
+- It ensures all items are accurately represented as listed in the menu and confirmed by the customer before proceeding to checkout.
+- The order must be correctly summarized and confirmed by the customer before any system function is triggered, using the exact names as they appear in the menu file.
+- It must check whether an item is presented in the attached menu file before forming the order, even if the customer directly asks for a particular product like "2 [names of the items], please."
+
+**System Integration:**
+
+- It adapts to and uses the customer's language for all communications without explicitly asking for their preference.
+- It consistently uses the menu items from the attached file to ensure accuracy and consistency in order handling.
+- NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
+
+**Order Summary Example Before Function Trigger:**
 
 Perfectly! Here is your order:
 
-Item Name - $9.99, 2 servings
-Item Name - $8.99, 1 serving
-Item Name - $12.99, 2 servings
+- Item Name - 9.99 {currency}, 2 servings
+- Item Name - 8.99 {currency}, 1 serving
+- Item Name - 12.99 {currency}, 2 servings
 
 Please confirm that everything is correct before I complete your order.
 
-And only after the user's confirmation do you trigger the function.
+And only after the user's confirmation does it trigger the function send_summary_to_json_azz.
 
-Always evaluate the order summary against the items in the menu file and always include only those which are in the menu list attached to your knowledge base.
-
-NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
+- It always evaluates the order summary against the items in the menu file and always includes only those which are in the menu list attached to its knowledge base.
+- NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
                                               """, 
                                                model="gpt-4o",
                                                tools=[{
@@ -200,7 +225,7 @@ NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
                 purpose='assistants')
         menu_file_id = menu_file.id   
         
-        # Create a vector store caled "Financial Statements"
+        # Create a vector store called "Financial Statements"
         vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
         
         # Ready the files for upload to OpenAI
@@ -221,6 +246,41 @@ NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
     else:
         return assistant, "vector_is_not_yet", "menu_file_is_not_yet"
 
+
+def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_name, mongo_restaurants, unique_azz_id, assistant_id, client=CLIENT_OPENAI):
+    new_menu_txt_path, new_html = convert_xlsx_to_txt_and_menu_html(input_xlsx_path, output_menu_txt_path, currency)
+    print(new_menu_txt_path, new_html)
+    
+    if not new_html:
+        flash(new_menu_txt_path)
+        return redirect(url_for("dashboard_display"))
+
+    with open(str(new_menu_txt_path), "rb") as menu:    
+        menu_file = client.files.create(file=menu,
+                purpose='assistants')
+        menu_file_id = menu_file.id   
+        
+        # Create a vector store called "Financial Statements"
+        vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
+        
+        # Ready the files for upload to OpenAI
+        file_paths = [new_menu_txt_path]
+        file_streams = [open(path, "rb") for path in file_paths]
+        
+        # Use the upload and poll SDK helper to upload the files, add them to the vector store,
+        # and poll the status of the file batch for completion.
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+        vector_store_id=vector_store.id, files=file_streams
+        )
+
+        assistant = client.beta.assistants.update(
+        assistant_id=assistant_id,
+        tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+        )
+
+        mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu":new_html}})
+        
+        return {"success":True}
 
 
 
@@ -363,7 +423,7 @@ amount: The price of a single item.
 
 
 
-def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id, client_openai):
+def get_assistants_response(user_message, thread_id, assistant_id, currency, menu_file_id, client_openai, list_of_all_items, unique_azz_id):
 # Add the user's message to the thread
 
     client = client_openai
@@ -371,16 +431,31 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
     user_message_enhanced = f"""
     Role: You are the best restaurant assistant who serves customers and register orders in the system
     
-    Context: The customer asks you the question or writes the statement - your goal is to provide the response appropriately
-    facilitating order taking. To your knowledge base is attached the file menu_file.txt - recommend, suggest and anyhow use only and only the items specified
-    in this file. Do not mention other dishes whatsoever!
+    Context: Identify users language. The customer asks you the question or writes the statement - your goal is to provide the response appropriately in the detected language
+    facilitating order taking. To your knowledge base is attached the file menu_file.txt. The currency in which prices of the items are specified is {currency}.
+    Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
+    If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
+    Make sure that the item you suggest are from this list(also, included in the menu file attached to you):
+    {list_of_all_items}
+    Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items.
     
     Task: Here is the current user's message, respond to it:
     {user_message}      
+    (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
+    """
     
+    user_message_is = f"""
+    Hlutverk: Þú ert besti veitingastaðaþjónninn sem þjónar viðskiptavinum og skráir pantanir í kerfið.
+
+    Samantekt: Viðskiptavinurinn spyr þig spurningu eða skrifar yfirlýsingu - markmið þitt er að svara viðeigandi til að auðvelda pöntunarferlið. Í þekkingargrunn þínum er skráin menu_file.txt. Gjaldmiðillinn sem verðið á réttunum er gefið upp í er {currency}. Mæltu með, stingdu upp á og notaðu einungis rétti sem eru tilgreindir í þessari skrá. Ekki nefna aðra rétti! Ekki innihalda uppruna í lokaupplýsingunum. Ef notandinn staðfestir pöntunina, settu stöðu skilaboðanna sem 'þarf aðgerðir'.
+
+    Verkefni: Hér eru núverandi skilaboð notandans, svaraðu þeim:
+    {user_message}
+    (í samhengi við áframhaldandi pöntunarferli og meðfylgjandi skrá sem er menu_file)
 """
     
-    print(user_message_enhanced)
+    #print(user_message_enhanced)
+    #print(user_message_is)
 
     response = client.beta.threads.messages.create(thread_id=thread_id,
                                         role="user",
@@ -432,26 +507,55 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
             
             # Retrieve and return the latest message from the Restaurant assistant
             messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
+
+            print(f"Messages retrieved in action step {messages_gpt}") # debugging line
+
+
+            #all_assistants_messages = []
+            #all_users_messages = []
+
+            #all_messages = []
+
+            joined_messages_of_assistant = ""
+
+            messages_gpt_list = list(messages_gpt)
+            messages_gpt_list.reverse()
             
-            all_assistants_messages = []
+            pattern = r"Task: Here is the current user's message, respond to it:\n\s*(.*?)\s*\(in the context of"
 
-            for message in list(messages_gpt):   
-                print(f"\n{message}\n")
+            for message in messages_gpt_list:   
                 if message.role == 'assistant':
-                    all_assistants_messages.append(message.content[0].text.value)
+                    joined_messages_of_assistant += f"\nAssistant:\n{message.content[0].text.value}\n"
+                if message.role == 'user':
+                    match = re.search(pattern, message.content[0].text.value, re.DOTALL)
+                    if match:
+                        user_message = match.group(1).strip()
+                        joined_messages_of_assistant += f"\nCustomer:\n{user_message}\n"
+                    else:
+                        joined_messages_of_assistant += f"\nCustomer:\n{message.content[0].text.value}\n"
 
-            all_assistants_messages.reverse()
+
+            #all_messages.reverse()
+            #all_users_messages.reverse()
+
 
             # Join the messages with two tabs
-            joined_messages_of_assistant = "\n\n".join(all_assistants_messages)
+            # joined_messages_of_assistant = "\n\n".join(all_assistants_messages)
 
-            print(f"\nRetrieved Assistants messages with Summary from convo: {joined_messages_of_assistant}\n")
+            # print(f"\nRetrieved Assistants messages with Summary from convo: {joined_messages_of_assistant}\n")
+            print(f"\nRetrieved all messages with Summary from convo: {joined_messages_of_assistant}\n")
+
+            
 
             summary_to_convert = f"""
             These are are all messages of the assistant from the chat with client. 
-            From the following messages find the last one which summarizes agreed upon order and retrieve items stated in the final confirmed summary, (name items in english):
+            From the following messages find the last one which summarizes agreed upon order and retrieve items stated in the final confirmed summary:
             {joined_messages_of_assistant}
+            Ensure that the found items are part of this list:
+            {list_of_all_items}
             """
+
+            print(f"Summary to convert sent to MOM AI JSON: {summary_to_convert}") # debugging line
 
             thread_id_json = client.beta.threads.create().id
             print(f"JSON assistant thread {thread_id_json}")
@@ -490,11 +594,18 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
                     print(f"Keys of parsed response: {list(parsed_formatted_json_order.keys())}")
 
                     # Generate checkput link
-                    output = SetExpressCheckout(parsed_formatted_json_order["items"], sandbox=True)
+                    #output = SetExpressCheckout(parsed_formatted_json_order["items"])
 
-                    session['paypal_link'] = output
+                    session["items_ordered"] = parsed_formatted_json_order["items"]
+                    print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
+
+                    total = str(sum(float(float(item['amount'])*item['quantity']) for item in parsed_formatted_json_order["items"]))
+                    session["total"] = total
+                    print(f"Setup the total in session!")
+
                     
-                    link_to_payment_buffer = url_for("payment_buffer")
+
+                    link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id)
                     print(link_to_payment_buffer)
 
                     # Wrap the output link in a clickable HTML element
@@ -663,7 +774,7 @@ Instructions for Use:
             print(link_to_payment_buffer)
 
             # Wrap the output link in a clickable HTML element
-            clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;">Press here to proceed</a>'
+            clickable_link = f'<a href={link_to_payment_buffer} style="color: #e9e3e3;">Press here to proceed</a>'
             response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
 
             return response_cart, total_tokens_used
@@ -679,10 +790,9 @@ Instructions for Use:
 
 
 
-def send_telegram_notification(chat_id):
-    bot_token = os.environ.get('TELEGRAM_TOKEN')  # Replace with your actual bot token
+def send_telegram_notification(chat_id, message=f"New order has been published! 🚀🚀🚀"):
+    bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')  # Replace with your actual bot token
     chat_id = str(chat_id)      # Replace with your actual chat ID
-    message = f"New order has been published! 🚀🚀🚀"
     url = f'https://api.telegram.org/bot{bot_token}/sendMessage'
     payload = {
         'chat_id': chat_id,
@@ -693,29 +803,68 @@ def send_telegram_notification(chat_id):
     print(response.json())
 
 
+class InvalidMenuFormatError(Exception):
+    """Custom exception for invalid menu format."""
+    pass
 
 
-def convert_xlsx_to_txt_and_menu_items(input_file_path, output_file_path):
+
+def validate_menu_dataframe(df):
+    """Validate the structure and content of the menu DataFrame."""
+    # Check if the DataFrame has exactly three columns
+    if df.shape[1] != 3:
+        raise InvalidMenuFormatError("Error in the menu - The input file must contain exactly three columns.")
+    
+    # Check if the third column is of float or integer type for all rows except the first row
+    if not (pd.api.types.is_float_dtype(df.iloc[1:, 2]) or pd.api.types.is_integer_dtype(df.iloc[1:, 2])):
+        print(f"First row being checked {df.iloc[1:, 2]}")
+        try:
+            df.iloc[1:, 2] = df.iloc[1:, 2].astype(float).round(2)
+            df.iloc[1:, 2] = df.iloc[1:, 2].astype(object)
+            print("Successfully typecasted the third column to float with two decimal places.")
+        except ValueError as e:
+            actual_dtype = df.iloc[1:, 2].dtype
+            print(f"Error: The third column must be a number representing the price for all rows except the first. Actual type: {actual_dtype}")
+            raise InvalidMenuFormatError("Error in the menu - The third column must be a number representing the price for all rows except the first.")
+    df.iloc[1:, 2] = df.iloc[1:, 2].astype(float).round(2)
+    df.iloc[1:, 2] = df.iloc[1:, 2].astype(object)
+
+    # Ensure the first row can be of any type (specifically allowing string)
+    if not isinstance(df.iloc[0, 2], (int, float, str)):
+        actual_dtype_first_row = type(df.iloc[0, 2])
+        raise InvalidMenuFormatError(f"Error in the menu - The first row of the third column can be a string, integer, or float. Actual type: {actual_dtype_first_row}")
+
+
+
+
+def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currency):
     # Load the XLSX file
     df = pd.read_excel(input_file_path, engine='openpyxl')
-    
-    # Retrieve the first column (assuming the first column has no header or has a header)
-    #menu_items_list = df.iloc[:, 0].tolist()
 
-    # Check if the DataFrame has at least two columns
-    if df.shape[1] < 2:
-        print("Error: The input file does not contain enough columns.")
-        return
+    df = df.fillna('No value provided')
+
+    # Format the third column to two decimal places
+    if df.shape[1] >= 3:  # Check if the DataFrame has at least three columns
+        df.iloc[:, 2] = df.iloc[:, 2].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
+
+    html_menu = df.to_html(classes='table table-striped', index=False)
+    
+    # Validate the DataFrame
+    try:
+        validate_menu_dataframe(df)
+    except InvalidMenuFormatError as e:
+        print(f"Error: {e}")
+        return e, None
     
     # Open the output TXT file
     with open(output_file_path, 'w') as file:
         # Iterate through each row in the DataFrame
         for index, row in df.iterrows():
             # Write the first and second column values to the file
-            file.write(f"Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in US dollars: {row[2]}$\n")
+            file.write(f"Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in currency {currency}: {row[2]}\n")
 
     print(f"File successfully converted and saved as {output_file_path}")
-    return output_file_path #menu_items_list
+    return output_file_path, html_menu
 
 def generate_confirmation_code():
     return str(uuid.uuid4())[:7]
@@ -733,7 +882,7 @@ def send_confirmation_email(mail, email, confirmation_code, from_email):
             <strong>{confirmation_code}</strong>
         </div>
         <p>Kind Regards,<br>MOM AI Team</p>
-        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 520px; height: 200px;">
+        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
     </body>
     </html>
     '''
@@ -765,11 +914,47 @@ def send_waitlist_email(mail, email, restaurant_name, from_email):
         <p>Your account has been successfully registered!</p>
         <p>Expect to hear from us in the middle of June to start innovating your customers\' ordering experience and increasing your profit margins!</p><br>
         <p>Kind Regards,<br>MOM AI Team</p>
-        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 520px; height: 200px;">
+        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
     </body>
     </html>
     '''
     mail.send(msg)
 
+
+def upload_image_to_imgbb(image_path, expiration=600):
+    """
+    Upload an image to imgbb.
+
+    Parameters:
+    api_key (str): Your imgbb API key.
+    image_path (str): The file path to the image to be uploaded.
+    expiration (int): The expiration time in seconds (default is 600 seconds).
+
+    Returns:
+    dict: The JSON response from the imgbb API.
+    """
+
+    api_key = os.environ.get("IMG_BB_API_KEY")
+    # Define the URL
+    url = "https://api.imgbb.com/1/upload"
+
+    # Define the parameters
+    params = {
+        'expiration': expiration,
+        'key': api_key
+    }
+
+    # Read the image file
+    with open(image_path, "rb") as image_file:
+        files = {
+            'image': image_file
+        }
+
+        # Send the POST request
+        response = requests.post(url, params=params, files=files)
+    
+    url = response["data"]["url"]
+
+    return url
 
 ### Payments Section ###

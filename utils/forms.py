@@ -1,4 +1,5 @@
 from flask_wtf import FlaskForm
+from flask_wtf.file import FileField, FileAllowed, FileRequired
 from wtforms import StringField, FileField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField, RadioField
 from wtforms.validators import Email, DataRequired, URL, EqualTo, Length, Optional
 
@@ -11,7 +12,7 @@ def OptionalURL(message=None):
 
 class RestaurantForm(FlaskForm):
     restaurant_name = StringField('Restaurant Name', validators=[DataRequired()])
-    restaurant_url = StringField('Restaurant Website', validators=[
+    restaurant_url = StringField('Restaurant Website', validators=[Optional(),
         URL()])
     #restaurant_url = StringField('Restaurant Website', validators=[
         #DataRequired(), URL(require_tld=True, message="Invalid URL. Please enter a valid URL.")])
@@ -22,19 +23,36 @@ class RestaurantForm(FlaskForm):
     #other_instructions = StringField('Other Instructions (Optional)')
     
     password = PasswordField('Password', validators=[DataRequired(), Length(min=8, max=20)])
+    
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(), EqualTo('password', message='Passwords must match.')])
+    
+    # Add the field for image upload
+    image = FileField('Upload Image', validators=[
+        FileAllowed(['jpg', 'png'], 'Images only!')  # Restricting the file types to images only
+    ])
     submit = SubmitField('Register')
 
 def validate_seven_digit_number(form, field):
     if len(str(field.data)) < 7:
         raise ValidationError('The number must be at least 7 digits long.')
 
+def validate_paypal_string(form, field):
+    value = field.data
+    # Check if the string is long and contains exactly three underscores in the middle
+    if not value or len(value) < 10 or '___' not in value or value.find('___') not in range(1, len(value) - 3):
+        raise ValidationError('Invalid PayPal secret and ID. It must be a long string with exactly three underscores in the middle.')
+
 class RestaurantFormUpdate(FlaskForm):
     name = StringField('Restaurant Name', validators=[Optional()])
     website_url = StringField('Restaurant Website', validators=[Optional(),
         URL()])
-    Add_MOM_AI_bot_chat = IntegerField('MOM AI Bot ID', validators=[Optional(), validate_seven_digit_number])
+    notif_destin = IntegerField('MOM AI Bot ID', validators=[Optional(), validate_seven_digit_number])
+    image = FileField('Upload Image', validators=[
+        Optional(), FileAllowed(['jpg', 'png'], 'Images only!')  # Restricting the file types to images only
+    ])
+    submit = SubmitField('Update')
+    # pp_account = StringField('PayPal secret and ID', validators=[Optional(), validate_paypal_string])
 
 class UpdateMenuForm(FlaskForm):   
     menu_update = FileField('Upload New Menu', validators=[DataRequired()])
