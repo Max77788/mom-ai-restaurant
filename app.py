@@ -1069,7 +1069,7 @@ def success_payment(unique_azz_id):
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
 
-    result = collection.update_one({'email': res_email}, {"$inc": {"balance": total_received}})
+    result = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": total_received}})
     
     all_ids_for_acc = current_restaurant_instance.get('notif_destin')
     
@@ -1089,12 +1089,11 @@ def success_payment(unique_azz_id):
     print(f"Items: {items} on success payment route")
     print(f"Total paid: {total_received} on success payment route")
 
-    res_unique_azz_id = session.get("unique_azz_id")
 
     flash("Your Order was Successfully Placed!")
 
     # This route can be used for further processing if needed
-    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=res_unique_azz_id)
+    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=unique_azz_id)
 
 @app.route('/cancel_payment')
 def cancel_payment():
