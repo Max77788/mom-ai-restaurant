@@ -16,3 +16,4 @@ gunicorn
 pandas
 openpyxl
 email-validator
+bs4
