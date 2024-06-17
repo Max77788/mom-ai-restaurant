@@ -920,6 +920,26 @@ def send_waitlist_email(mail, email, restaurant_name, from_email):
     '''
     mail.send(msg)
 
+def send_confirmation_email(mail, email, restaurant_name, from_email):
+    msg = Message(f'{restaurant_name} is on MOM AI Waitlist!', recipients=[email], sender=from_email)
+    msg_for_mom_ai =  Message('MOM AI Waitlist New Person', recipients=["contact@mom-ai-agency.site"], sender=from_email)
+    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been added to the waitlist. Awesome!\n\nI love ya!'
+
+    mail.send(msg_for_mom_ai)
+
+    msg.html = f'''
+    <html>
+    <body>
+        <p>Hi, {restaurant_name}\'s restaurant representative.
+        <p>Your account has been successfully registered!</p>
+        <p>Go to <a href="https://mom-ai-restaurant.pro/login" target="_blank">mom-ai-restaurant.pro</a></p>and start earning with AI.<br>
+        <p>Kind Regards,<br>MOM AI Team</p>
+        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+    </body>
+    </html>
+    '''
+    mail.send(msg)
+
 
 def upload_image_to_imgbb(image_path, expiration=600):
     """

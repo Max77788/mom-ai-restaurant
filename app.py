@@ -526,7 +526,8 @@ def assistant_demo_chat():
     file_id = session.get("logo_id", "666af654dee400a1d635eb08")
 
     insert_document(collection, res_name, verified_res_email, res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", logo_id=file_id)
-    send_waitlist_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
+    send_confirmation_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
+    #send_waitlist_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
 
     # Clear the session variable after access
     session.pop('access_granted_assistant_demo_chat', None)
