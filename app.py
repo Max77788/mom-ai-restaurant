@@ -835,7 +835,7 @@ def payment_buffer(unique_azz_id):
     total_to_pay = session.get("total", 0.07)
     total_to_pay = str(round(float(total_to_pay), 2))
     
-    return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, title="Payment Buffer")
+    return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, title="Payment Buffer")
 
 
 @app.route("/create_payment", methods=['POST','GET'])
@@ -853,8 +853,8 @@ def create_payment():
       return jsonify({'error': 'Payment creation failed'}), 500
    
 
-@app.route("/execute_payment", methods=['POST','GET'])
-def execute_payment():
+@app.route("/execute_payment/<unique_azz_id>", methods=['POST','GET'])
+def execute_payment(unique_azz_id):
     payment_id = request.args.get('paymentID')
     payer_id = request.args.get('payerID')
     print(f"Payment ID retrieved: {payment_id}")
@@ -866,7 +866,7 @@ def execute_payment():
     exec_success = executePayment(payment_id, payer_id)
 
     if exec_success:
-        return redirect(url_for("success_payment"))
+        return redirect(url_for("success_payment", unique_azz_id=unique_azz_id))
     else:
         return redirect(url_for("cancel_payment"))
 
@@ -885,6 +885,7 @@ def create_order():
 
 @app.route('/capture_order/<orderID>', methods=['POST'])
 def capture_order(orderID):
+    unique_azz_id = request.args.get("unique_azz_id")
     # Now you can use the orderID variable in your function
     print(f"Received orderID: {orderID}")
     captured_order = captureOrder(orderID).json()
@@ -1031,23 +1032,21 @@ def setup_payments():
 ################## Payment routes/Order Posting ###################
 
 
-@app.route('/success_payment', methods=["GET", "POST"])
-def success_payment():
+@app.route('/success_payment/<unique_azz_id>', methods=["GET", "POST"])
+def success_payment(unique_azz_id):
     
     restaurant_name = session.get("restaurant_name", "restaurant_placeholder")
     
     items = session.get('items_ordered', [{'name':'item1', 'quantity':1}, {'name':'item2', 'quantity':2}])
-    total_paid = session.get('total', 9.95)
+    total_paid = session.get('total')
     total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
 
     print(f"That's how much customer paid: {total_paid}")
     print(f"That's how much restaurant received: {total_received}")
-    
-    res_email = session.get("res_email")
 
     # Find the instance in MongoDB
-    current_restaurant_instance = collection.find_one({"email": res_email})
-    print(f"Restaurant with {res_email} found: {current_restaurant_instance}")
+    current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
 
     # Get current UTC time and format it as dd.mm hh:mm
     timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')

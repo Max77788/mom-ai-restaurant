@@ -67,7 +67,7 @@ paypal.Button.render({
 <!-- Set up a container element for the button -->
 <div id="paypal-button-container" style="margin-top: 10px; margin-bottom: 20px"></div>
 
-<a href='{{ url_for("assistant_order_chat", unique_azz_id=session["unique_azz_id"]) }}'><button>Come Back</button></a>
+<a href='{{ url_for("assistant_order_chat", unique_azz_id=unique_azz_id) }}'><button>Come Back</button></a>
 
 <!-- Include the PayPal JavaScript SDK -->
 <script src="https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency={{ CURRENCY }}"></script>
@@ -75,6 +75,7 @@ paypal.Button.render({
 <script>
     // console.log("https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency={{ CURRENCY }}")
     // Render the PayPal button into #paypal-button-container
+    const unique_azz_id = "{{unique_azz_id}}";
     paypal.Buttons({
         
         style: {
@@ -102,6 +103,8 @@ paypal.Button.render({
         })
         },
         // Call your server to finalize the transaction
+        
+        
         onApprove: function(data, actions) {
             return fetch(`/capture_order/${data.orderID}`, {
                 method: 'post'
@@ -132,7 +135,8 @@ paypal.Button.render({
                 // Successful capture! For demo purposes:
                 console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
                 var transaction = orderData.purchase_units[0].payments.captures[0];
-                window.location.href = "/success_payment";
+                const unique_azz_id = "{{ unique_azz_id }}";
+                window.location.href = `/success_payment${unique_azz_id}`;
                 alert('Transaction '+ transaction.status + ': ' + transaction.id + '\n\nSee console for all available details');
 
                 // Replace the above to show a success message within this page, e.g.
