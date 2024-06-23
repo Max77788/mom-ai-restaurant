@@ -18,7 +18,7 @@ class RestaurantForm(FlaskForm):
         #DataRequired(), URL(require_tld=True, message="Invalid URL. Please enter a valid URL.")])
     email = StringField('Email', validators=[DataRequired(), Email()])
     menu = FileField('Upload Menu')#, validators=[DataRequired()])
-    currency = RadioField('Currency of your restaurant', choices=[('USD', 'US Dollar'), ('EUR', 'Euro')], validators=[DataRequired()])
+    currency = RadioField('Currency of your restaurant', choices=[('USD','USD'), ('EUR','EUR')], validators=[DataRequired()])
     #script = FileField('Upload Script', validators=[DataRequired()])
     #other_instructions = StringField('Other Instructions (Optional)')
     

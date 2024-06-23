@@ -90,7 +90,7 @@ a:hover {
 .total-earned, .restaurant-name {
     font-size: 1.2esm;
     padding: 10px;
-    background-color: #f2f2f2; /* Light grey background */
+    background-color: #ffffff; /* Light grey background */
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Soft shadow for depth */
 }
@@ -239,4 +239,284 @@ input:checked + .slider:before {
 
 .logout-section button {
     text-align: center;
+}
+
+.case-study {
+    font-family: 'Arial, sans-serif';
+    padding: 20px;
+    background-color: #f7f7f7;
+    border-radius: 10px;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.case-study-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.case-study-header img {
+    width: 150px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.case-study-header h3 {
+    font-size: 24px;
+    color: #333;
+}
+
+.case-study-before, .case-study-now, .case-study-transition {
+    margin-bottom: 20px;
+}
+
+.case-study-before h4, .case-study-now h4 {
+    font-size: 20px;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.highlight {
+    color: #ff6347;
+    font-weight: bold;
+}
+
+.highlight-link {
+    color: #1e90ff;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.highlight-link:hover {
+    text-decoration: underline;
+}
+
+.benefits-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.benefits-list li {
+    background-color: #fff;
+    margin: 10px 0;
+    padding: 10px;
+    border-left: 5px solid #ff6347;
+    border-radius: 5px;
+    font-size: 18px;
+    color: #333;
+}
+
+.drawbacks-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.drawbacks-list li {
+    background-color: #222;
+    margin: 10px 0;
+    padding: 10px;
+    border-left: 5px solid #ff6347;
+    border-radius: 5px;
+    font-size: 18px;
+    color: #333;
+}
+
+h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+p {
+    font-size: 1.2em;
+}
+form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.form-group {
+    margin-bottom: 15px;
+}
+label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+}
+input, select {
+    width: 100%;
+    padding: 10px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+
+
+
+
+
+
+.carousel {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        padding: 10px;
+        overflow: hidden;
+        flex-wrap: nowrap; /* Ensures logos stay in one line */
+    }
+
+    .carousel img {
+        height: auto;
+        transition: transform 0.3s ease;
+        flex: 1 0 auto; /* Allow images to grow and shrink */
+        min-width: 100px; /* Ensures logos have a minimum size */
+        max-width: 150px; /* Ensures logos have a maximum size */
+    }
+
+    @media (max-width: 1200px) {
+        .carousel img {
+            max-width: 180px;
+        }
+    }
+
+    @media (max-width: 992px) {
+        .carousel img {
+            max-width: 160px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .carousel img {
+            max-width: 140px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .carousel img {
+            max-width: 120px;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .carousel img {
+            max-width: 100px;
+        }
+    }
+
+
+
+
+
+
+
+
+
+
+.radio-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.radio-group input {
+    margin-right: 10px;
+}
+.radio-group label {
+    font-weight: normal;
+    margin-right: 15px;
+}
+.case-study {
+    font-family: 'Arial, sans-serif';
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.case-study-header {
+    background-color: #000;
+    color: #fff;
+    text-align: center;
+    padding: 20px;
+}
+
+.case-study-header img {
+    width: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.case-study-header h3 {
+    font-size: 24px;
+}
+
+.case-study-before, .case-study-transition, .case-study-now {
+    padding: 20px;
+}
+
+.case-study-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.case-study-text {
+    width: 55%;
+}
+
+.case-study-text ul li {
+    color:#ffffff;
+    font-size: larger;
+}
+
+.left-img, .right-img {
+    width: 40%;
+    border-radius: 10px;
+}
+
+.left-img {
+    order: -1;
+}
+
+.case-study-before.black-bg, .case-study-now.black-bg {
+    background-color: #000;
+    color: #fff;
+}
+
+.case-study-transition.white-bg {
+    background-color: #fff;
+    color: #000;
+}
+
+.highlight-white {
+    color: #fff;
+    font-weight: bold;
+}
+
+.highlight {
+    color: #00ff00;
+    font-weight: bold;
+}
+
+.highlight-link {
+    color: #f0f0f0;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.highlight-link:hover {
+    text-decoration: underline;
+}
+
+.benefits-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+.benefits-list li {
+    background-color: #222;
+    margin: 10px 0;
+    padding: 10px;
+    border-left: 5px solid #00ff00;
+    border-radius: 5px;
+    font-size: 18px;
 }

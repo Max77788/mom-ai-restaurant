@@ -1,41 +1,5 @@
-Item Name: Kjúklingavængir - Item Ingredients: Hot, BBQ, Bourbon, Celery, Carrot - Item Price in currency EUR: 15.73
-Item Name: Nachos - Item Ingredients: Chicken, Cheese Mix, Jalapeño, Salsa Sauce, Guacamole - Item Price in currency EUR: 15.33
-Item Name: Bakaður Camembert - Item Ingredients: Mango Chutney, Toasted Sourdough Bread - Item Price in currency EUR: 16.66
-Item Name: Dúó Brauð - Item Ingredients: Pizza Halves, Pizza Sauce, Parmesan, Garlic Sauce - Item Price in currency EUR: 15.73
-Item Name: Super Avocado - Item Ingredients: Chicken, Avocado, Tomato, Spinach, Pesto - Item Price in currency EUR: 16.66
-Item Name: Bombay Kjúklingur - Item Ingredients: Chicken, Spinach, Paprika, Pesto - Item Price in currency EUR: 17.33
-Item Name: Persian Kjúklingur - Item Ingredients: Chicken, Paprika, Spinach, Pesto - Item Price in currency EUR: 17.33
-Item Name: Tuna Deluxe - Item Ingredients: Tuna, Paprika, Jalapeño, Tabasco Sauce, Spinach, Pesto - Item Price in currency EUR: 15.99
-Item Name: Vegan - Item Ingredients: Vegan Chicken, Tomato, Avocado, Spinach, Pesto - Item Price in currency EUR: 18.67
-Item Name: Caesar Salad - Item Ingredients: Chicken, Romaine, Croutons, Parmesan Cheese, Caesar Dressing - Item Price in currency EUR: 19.34
-Item Name: Public Deli Salad - Item Ingredients: Chicken, Romaine, Avocado, Red Onion, Tomato, Paprika, Spinach, Dressing - Item Price in currency EUR: 19.34
-Item Name: Vegan Grænmetis Salat - Item Ingredients: Grilled Vegetables, Romaine, Pineapple, Dates, Sweet Potato, Cashew Nut, Grapes, Sun-Dried Dressing - Item Price in currency EUR: 20.01
-Item Name: Bearnaise Borgari - Item Ingredients: Beef, Gouda Cheese, Kale, Bearnaise Sauce, Public Deli Sauce, Fries - Item Price in currency EUR: 20.01
-Item Name: Beikon Borgari - Item Ingredients: Beef, Caramelized Onions, BBQ - Item Price in currency EUR: 20.01
-Item Name: Ostborgari - Item Ingredients: Beef, Cheese, Kale, Public Deli Sauce, Fries - Item Price in currency EUR: 18.67
-Item Name: Kjúklinga Borgari - Item Ingredients: Grilled Chicken Breast, Fresh Salad, Chili Mayo, Pickled Cucumber, Fries - Item Price in currency EUR: 19.34
-Item Name: Vegan Borgari - Item Ingredients: Vegetable Patty, Caramelized Onions, BBQ Sauce, Sun-Dried Dressing, Fries - Item Price in currency EUR: 19.34
-Item Name: Public Deli Samloka með Kjúkling - Item Ingredients: Sourdough Bread, Chicken Breast, Bacon, Fresh Mozzarella, Salad, Tomato, Chili Mayo, Fries - Item Price in currency EUR: 23.36
-Item Name: Public Deli Samloka með Nautakjöt - Item Ingredients: Sourdough Bread, Beef, Salad, Onions, Fries - Item Price in currency EUR: 26.7
-Item Name: Nautasteik 200gr - Item Ingredients: Fresh Salad, Fries, Bearnaise Sauce / Pepper Sauce - Item Price in currency EUR: 33.39
-Item Name: BBQ Gljáð Grísarif - Item Ingredients: BBQ Sauce, Fresh Salad, Fries - Item Price in currency EUR: 28.71
-Item Name: Lambakótilettur - Item Ingredients: Fresh Salad, Roasted Potatoes, Garlic, Bacon, Bearnaise Sauce, Fries - Item Price in currency EUR: 33.39
-Item Name: Grillað Kjúklingabringa - Item Ingredients: With Spicy Lemon, Fresh Salad, Fries - Item Price in currency EUR: 26.7
-Item Name: Fiskur & Fransk - Item Ingredients: Deep Fried Fish, Fresh Salad, Fries, Cocktail Sauce - Item Price in currency EUR: 20.01
-Item Name: Grillbður Björk Kjúklingur - Item Ingredients: With Spicy Lemon Pepper, Fresh Salad, Fries, Cocktail Sauce - Item Price in currency EUR: 23.36
-Item Name: Belgísk Vaffla - Item Ingredients: Vanilla / Strawberry / Chocolate Sauce - Item Price in currency EUR: 11.98
-Item Name: Súkkulaðikaka - Item Ingredients: Vanilla / Chocolate Sauce - Item Price in currency EUR: 11.98
-Item Name: Margarita Pizza - Item Ingredients: Pizza Sauce, Mozzarella - Item Price in currency EUR: 15.33
-Item Name: Funghi Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Mushrooms - Item Price in currency EUR: 18.0
-Item Name: Vesuvio Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Ham - Item Price in currency EUR: 18.67
-Item Name: Capricciosa Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Ham, Mushrooms - Item Price in currency EUR: 19.34
-Item Name: Pepperoni Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Pepperoni - Item Price in currency EUR: 18.67
-Item Name: Rækju Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Shrimps, Lettuce Salad, Tomato, Parmesan, Garlic Sauce - Item Price in currency EUR: 24.69
-Item Name: Hráskinku Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Lettuce Salad, Parma Ham, Parmesan, Balsamic Glaze - Item Price in currency EUR: 24.69
-Item Name: Hawaii Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Ham, Pineapple - Item Price in currency EUR: 21.35
-Item Name: Public Deli Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Pepperoni, Cheese, Dates - Item Price in currency EUR: 24.69
-Item Name: Fajita Pizza - Item Ingredients: BBQ Sauce, Mozzarella, Chicken, Onion, Pepper, Jalapeño, Cream Cheese - Item Price in currency EUR: 24.69
-Item Name: Quatro Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Blue Cheese, Brie, Camembert, Jam - Item Price in currency EUR: 28.71
-Item Name: Kjöveisla Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Beef, Ham, Pepperoni, Bacon, Cheese, Onion - Item Price in currency EUR: 31.39
-Item Name: Grænmetis Pizza - Item Ingredients: Pizza Sauce, Mozzarella, Grilled Vegetables, Mushrooms, Garlic Sauce, Vegan Cheese - Item Price in currency EUR: 24.69
-Item Name: Hvítlauksbrauð - Item Ingredients: Mozzarella, Salt Flakes, Garlic Sauce - Item Price in currency EUR: 15.33
+Item Name: MAGNUM CHICKEN ROLL - Item Ingredients: tortilla bread, lettuce , French fries , chicken, garlic sauce , spicy sauce. - Item Price in currency EUR: 14.67
+Item Name: MAGNUM LAMB ROLL - Item Ingredients: tortilla bread, lettuce ,red onion , tomato , French fries , lamb, garlic sauce , spicy sauce. - Item Price in currency EUR: 14.67
+Item Name: MAGNUM FISH ROLL - Item Ingredients: tortilla bread, lettuce , French fries , fish, yogurt sauce , spicy sauce. - Item Price in currency EUR: 14.67
+Item Name: MAGNUM MIX ROLL - Item Ingredients: tortilla bread, lettuce , French fries, lamb, chicken, garlic sauce , spicy sauce - Item Price in currency EUR: 15.34
+Item Name: BIRYANI MIX ROLL - Item Ingredients: tortilla bread, lettuce ,biryani rice , chicken, lamb , garlic sauce , spicy sauce. - Item Price in currency EUR: 15.34

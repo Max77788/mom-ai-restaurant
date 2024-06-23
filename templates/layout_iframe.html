@@ -16,7 +16,9 @@
     <title>{{ title }} - MOM AI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
@@ -27,7 +29,43 @@
     </main>
 
     <footer>
-        <p>© 2024 MOM AI. All rights reserved.</p>
+        <div class="footer-content">
+            <p>© 2024 MOM AI. All rights reserved.<br>Contact us on <a href="mailto:contact@mom-ai-agency.site" style="color: grey"><u>contact@mom-ai-agency.site</u></a></p>
+            <div class="social-icons">
+                <a href="https://www.instagram.com/mom.ai_restaurants/" target="_blank"><i class="fab fa-instagram"></i></a>
+                <a href="https://www.linkedin.com/company/100465123/" target="_blank"><i class="fab fa-linkedin"></i></a>
+                <a href="https://www.youtube.com/@momaiagency" target="_blank"><i class="fab fa-youtube"></i></a>
+            </div>
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logos/LogoInvertedColors_noSlogan.png') }}" alt="MOM AI Logo">
+            </div>
+        </div>
     </footer>
+
+    <style>
+        footer {
+            padding: 20px;
+        }
+        .footer-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .social-icons {
+            margin-top: 10px;
+        }
+        .social-icons a {
+            margin: 0 10px;
+            color: #fff;
+            font-size: 24px;
+            transition: color 0.3s;
+        }
+        .social-icons a:hover {
+            color: #3498db;
+        }
+        .logo img {
+            height: 50px; /* Adjust the size as needed */
+        }
+    </style>
 </body>
 </html>

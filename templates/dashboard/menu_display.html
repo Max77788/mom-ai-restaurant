@@ -9,6 +9,8 @@
     {% endwith %}
     <form action="/update_menu" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+        <h3>How to form the menu file correctly - <a href="{{ url_for('serve_excel_guide') }}" target="_blank">Press Here to Find Out</a></h3>
+        <h3><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;">Talk to MOM AI GPT and have your menu file formed!</a></h3>
         <div>
             <label for="menu_update">Upload New Menu</label>
             {{ form.menu_update }}

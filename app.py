@@ -468,8 +468,8 @@ def create_web_wallet():
 def assistant_demo_chat():
     
     # Check if the session variable is set
-    if not session.get('access_granted_assistant_demo_chat'):
-        abort(403)  # Forbidden
+    #if not session.get('access_granted_assistant_demo_chat'):
+        #abort(403)  # Forbidden
     
     print(request.form)
     data = request.form
@@ -561,6 +561,12 @@ def get_restaurants(page, per_page):
 
 @app.route('/dashboard', methods=['POST', 'GET'])
 def dashboard_display():
+    if request.args.get("show_popup") == "True":
+        show_popup = True
+    else:
+        show_popup = False
+      
+
     print("Jumped on display dashboard link")
     res_email = session.get("res_email")
     res_password = session.get("password")
@@ -626,7 +632,8 @@ def dashboard_display():
                            res_currency=res_currency,
                            assistant_turned_on=assistant_turned_on,
                            logo_url=logo_url,
-                           restaurant=restaurant_instance)
+                           restaurant=restaurant_instance,
+                           show_popup=show_popup)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -707,7 +714,7 @@ def update_profile(attribute):
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'website_url': new_value}})
         elif attribute == 'notif_destin' and new_value:
             collection.update_one({'unique_azz_id': current_uni_azz_id},{'$push': {'notif_destin': new_value}})
-            NEW_CHAT_MESSAGE = f"🔝You are the best\n\nYou have successfully setup notifications!\n\nMOM AI bot will notify you upon upcoming of new orders in this chat."
+            NEW_CHAT_MESSAGE = f"🔝You are the best\n\nYou have successfully setup notifications!\n\nMOM AI bot will notify you upon upcoming of new orders in this chat.\n\nNow you should go to the 'Assistant' tab and start using your MOM AI Restaurant Assistant!"
             send_telegram_notification(new_value, message=NEW_CHAT_MESSAGE)
         elif attribute == 'pp_account' and new_value:
             if restaurant.get('pp_account', "nope") == "nope":
@@ -1261,13 +1268,15 @@ def add_order_record():
 
 
 
-################################### Guides ####################################
+################################### Guides/Static Pages ####################################
 
 @app.route('/excel_guide', methods=['GET'])
 def serve_excel_guide():
-    return render_template("guides/excel_guide.html", title="Excel File Guide", restaurant_name="MOM AI Assistant")
+    return render_template("guides/excel_guide.html", title="Menu Forming Guide", restaurant_name="MOM AI Assistant")
 
-
+@app.route('/privacy-policy', methods=['GET'])
+def serve_privacy_policy():
+    return render_template("privacy_policy/privacy_policy.html", title="Privacy Policy", restaurant_name="MOM AI Assistant")
 
     
 if __name__ == '__main__':

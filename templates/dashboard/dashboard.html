@@ -1,6 +1,94 @@
 {% extends 'layout_no_land.html' %}
 
 {% block content %}
+
+{% if show_popup %}
+<!-- Popup message container -->
+<div id="popup-message" class="popup">
+  <div class="popup-content">
+      <span class="close-button">&times;</span>
+      <h1>Congratulations!</h1>
+      <h2>✅Your Account Has Been Successfully Created✅</h2>
+      <h3>Next Step:</h3>
+        <h4>Setup Notifications in 30 seconds</li>
+            <p>1. Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
+            <img src="/static/images/notifications_setup/code_in_tg.png" style="width:auto; max-height: 250px">
+            <p>2. Go to Profile -> Notifications section and paste the obtained code</p>
+            <img src="/static/images/notifications_setup/insert_code.png" style="width:auto; max-height: 250px">
+            <p>3. Now you will be receiving the notification upon the incoming of the paid order</p>
+            <p><i>*you can set up notifications on the multiple devices(e.g. on your phone and the ones of employees)</i></p>
+  </div>
+</div>
+
+<!-- Add the CSS styles for the popup -->
+<style>
+  /* Popup container */
+  .popup {
+      display: none; /* Hidden by default */
+      position: fixed; /* Stay in place */
+      z-index: 1; /* Sit on top */
+      left: 0;
+      top: 0;
+      width: 100%; /* Full width */
+      height: 100%; /* Full height */
+      overflow: auto; /* Enable scroll if needed */
+      background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+  }
+
+  /* Popup content */
+  .popup-content {
+      background-color: #fff;
+      margin: 7.7% auto; /* 15% from the top and centered */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%; /* Could be more or less, depending on screen size */
+      border-radius: 8px;
+      text-align: center;
+  }
+
+  /* Close button */
+  .close-button {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+  }
+
+  .close-button:hover,
+  .close-button:focus {
+      color: #000;
+      text-decoration: none;
+      cursor: pointer;
+  }
+</style>
+
+<!-- Add the JavaScript to control the popup -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+      // Get the popup
+      var popup = document.getElementById('popup-message');
+
+      // Get the <span> element that closes the popup
+      var closeButton = document.getElementsByClassName('close-button')[0];
+
+      // Show the popup when the page loads
+      popup.style.display = 'block';
+
+      // When the user clicks on <span> (x), close the popup
+      closeButton.onclick = function() {
+          popup.style.display = 'none';
+      };
+
+      // When the user clicks anywhere outside of the popup, close it
+      window.onclick = function(event) {
+          if (event.target == popup) {
+              popup.style.display = 'none';
+          }
+      };
+  });
+</script>
+{% endif %}
+
 <div class="dashboard"> 
   <div class="dashboard-header">
     <div class="total-earned">
@@ -64,7 +152,7 @@
 
     <hr>
     
-    <div class="logout-section" style="text-align: right; margin-top: 10px;">
+    <div class="logout-section">
         <form action="/logout" method="post">
             <button type="submit">Logout</button>
         </form>
@@ -84,14 +172,27 @@
   <section class="dynamic-content" id="dynamic-content">
       <!-- Content will be dynamically loaded here based on the tab chosen -->
   </section>
-</div>
-{% with messages = get_flashed_messages() %}
+  {% with messages = get_flashed_messages() %}
         {% if messages %}
             <div class="flash-messages">
                     <div class="flash-message">{{ messages[-1] }}</div>
             </div>
         {% endif %}
     {% endwith %}
+  <div id="explanatoryInfo">
+    <h4 style="margin-top: 35px;">What do you want?</h4>
+    <ol>
+      <li><i>"I want to SEE the HISTORY of MADE PAYMENTS"</i> - Click on the <b>Payments</b> tab
+      <hr>
+      <li><i>"I want to know WHAT IS THE CURRENT MENU the assistant refers to and, probably, UPDATE it"</i> - Click on the <b>Menu</b> tab
+      <hr>
+      <li><i>"I want to actually <b>start using assistant</b> and integrate it with my restaurant"</i> - Click on the <b>Assistant</b> tab
+      <hr>
+      <li><i>"I want to MODIFY MY PROFILE and SETUP THE NOTIFICATIONS to receive on incoming orders"</i> - Click on the <b>Profile</b> tab
+      <hr>
+      <li><i>"I want to OPEN THE DASHBOARD with taken orders displayed"</i> - Click on the <b>View Orders</b> tab
+    </ol>          
+</div>
 
 <script>
   document.addEventListener('DOMContentLoaded', function() {
@@ -134,7 +235,7 @@
   if (flashMessages) {
     setTimeout(function() {
       flashMessages.style.display = 'none';
-    }, 10000);
+    }, 7000);
   }
 </script>
 
@@ -225,7 +326,14 @@
         }
         document.getElementById(tabName).classList.add("active");
         document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
-    }
+    };
+
+    if (window.location.search.includes('show_popup=True')) {
+    const url = new URL(window.location);
+    url.searchParams.delete('show_popup');
+    window.history.pushState({}, document.title, url.pathname);
+}
+
 </script>
 
 {% endblock %}

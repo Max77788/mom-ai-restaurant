@@ -18,12 +18,14 @@
             {% endif %}
         {% endfor %}
     </div>
-    <footer style="background-color: #000000; color: white; padding: 10px;">
-        <form action="{{ url_for('assistant_demo_chat') }}" method="post">
-            <input type="text" name="user_message" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;">
-            <button type="submit" style="width: 15%; background: none; border: none; color: white; font-size: 16px;" disabled>Send</button>
-        </form>
+    <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: relative;">
         <div id="countdown" style="color: white; text-align: center;"></div>
+        <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;" disabled>
+        <button onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center; margin-top: 7px;" disabled>Send</button>
+        <!-- spinner yuhuu! -->
+        <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
+            <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 50px; height: 50px;">
+        </div>
     </footer>
 </div>
 <script>
@@ -33,7 +35,7 @@
         const countdownElement = document.getElementById('countdown');
 
         if (messages >= 3) {
-            let timeLeft = 10;
+            let timeLeft = 7;
             countdownElement.textContent = 'Redirecting in ' + timeLeft + ' seconds...';
 
             const interval = setInterval(function() {
@@ -42,7 +44,7 @@
                 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
-                    window.location.href = "/dashboard";
+                    window.location.href = "/dashboard?show_popup=True";
                 }
             }, 1000);
         }

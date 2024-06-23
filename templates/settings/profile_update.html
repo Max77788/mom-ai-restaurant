@@ -11,6 +11,17 @@
     {% endwith %}
 <form method="POST" action="{{ url_for('update_profile', attribute=attribute) }}" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
+    <style>
+        /* Target input and textarea elements inside the form */
+        form input[type="text"],
+        form input[type="password"],
+        form input[type="email"],
+        form textarea,
+        form select {
+            width: 250px; /* Adjust the width as needed */
+            box-sizing: border-box; /* Ensure padding and border are included in the width */
+        }
+    </style>
     <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
         <thead>
             <tr style="background-color: #000; color: #fff;">
@@ -35,7 +46,7 @@
                 {% endif %}</td>
                 <td style="padding: 12px; border: 1px solid #ddd;">
                     <!-- {{ form[attribute].label }}<br> -->
-                    {{ form[attribute] }}
+                    {{ form[attribute](class_="input-cell") }}
                 </td>
                 <td style="padding: 12px; border: 1px solid #ddd;">
                     {{ form.submit }}
@@ -51,7 +62,7 @@
     if (flashMessages) {
       setTimeout(function() {
         flashMessages.style.display = 'none';
-      }, 10000);
+      }, 7000);
     }
   </script>
 {% endblock %}
