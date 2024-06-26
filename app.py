@@ -837,7 +837,7 @@ def activate_subscription():
 
 @app.route('/payment_buffer/<unique_azz_id>/<id>', methods=['POST', 'GET'])
 def payment_buffer(unique_azz_id, id):
-    if not session.get('access_granted_payment_buffer') or not id:
+    if not id:
         abort(403)  # Forbidden
 
     session['access_granted_payment_result'] = True

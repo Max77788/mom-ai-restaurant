@@ -608,7 +608,7 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
                     #session["total"] = total
                     #print(f"Setup the total in session!")
                     
-                    session["access_granted_payment_buffer"] = True
+                    #session["access_granted_payment_buffer"] = True
 
                     if items_ordered:
                         order_id = generate_code()
