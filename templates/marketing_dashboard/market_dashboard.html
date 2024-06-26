@@ -15,22 +15,26 @@
             </div>
             {% if restaurant.website_url != 'No URL provided' %}
                <p><a href="{{ restaurant.website_url }}" style="color: #0000ff;"target="_blank">Visit the website of {{ restaurant.name.replace("_", " ") }}</a></p>
+            {% else %}
+            <p>No URL Provided</p>
             {% endif %}
             <p><b>Contact the restaurant:</b></p>
             <p style="margin-bottom: 10px">{{ restaurant.email }}</p>
+
+            <p style="padding-bottom: 7px"><a href="/restaurant/{{ restaurant.unique_azz_id }}" target="_blank"><button>Visit Profile</button></a></p>
             
-            <p><a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button>Talk to Assistant</button></a>
+            <p><a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button>Order Food Now</button></a>
         </div>
         {% endfor %}
     </div>
 
     <div class="pagination" style="text-align: center; margin-top: 20px;">
         {% if page > 1 %}
-        <a href="{{ url_for('market_dashboard', page=page-1) }}" style="margin-right: 10px;">Previous</a>
+        <a href="{{ url_for('market_dashboard', page=page-1) }}" style="margin-right: 10px; text-decoration: none; color: #007bff; font-weight: bold;">Previous</a>
         {% endif %}
-        <span>Page {{ page }} of {{ (total // per_page) + 1 }}</span>
+        <span style="padding: 0 10px; font-weight: bold;">Page {{ page }} of {{ (total // per_page) + 1 }}</span>
         {% if (page * per_page) < total %}
-        <a href="{{ url_for('market_dashboard', page=page+1) }}" style="margin-left: 10px;">Next</a>
+        <a href="{{ url_for('market_dashboard', page=page+1) }}" style="margin-left: 10px; text-decoration: none; color: #007bff; font-weight: bold;">Next</a>
         {% endif %}
     </div>
 </div>

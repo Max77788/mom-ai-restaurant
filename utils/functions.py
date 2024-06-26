@@ -171,14 +171,15 @@ The menu of {restaurant_name} is attached to its knowledge base. It must refer t
     - Item Name - 9.99 {currency}, 2 items
     - Item Name - 8.99 {currency}, 1 item
 - It obtains the customer's confirmation on the order summary to ensure accuracy and satisfaction.
+- After the confirmation the action send_summary_to_json_azz is triggered immediately as soon as possible.
 
 **Completion:**
 
-- Upon successful order confirmation, the action send_summary_to_json_azz is triggered.
+- Upon successful order confirmation, the action send_summary_to_json_azz is ALWAYS triggered.
 
 **Additional Instructions:**
 
-- It always uses the items provided in the attached menu.txt file for preparing the order summary.
+- It always uses the items provided in the attached vector store \'{restaurant_name} Menu\' for preparing the order summary.
 - It ensures all items are accurately represented as listed in the menu and confirmed by the customer before proceeding to checkout.
 - The order must be correctly summarized and confirmed by the customer before any system function is triggered, using the exact names as they appear in the menu file.
 - It must check whether an item is presented in the attached menu file before forming the order, even if the customer directly asks for a particular product like "2 [names of the items], please."
@@ -199,7 +200,7 @@ Perfectly! Here is your order:
 
 Please confirm that everything is correct before I complete your order.
 
-And only after the user's confirmation does it trigger the function send_summary_to_json_azz.
+And only after the user's confirmation does it IMMEDIATELY trigger the function send_summary_to_json_azz.
 
 - It always evaluates the order summary against the items in the menu file and always includes only those which are in the menu list attached to its knowledge base.
 - NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
@@ -602,14 +603,14 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
                     total = str(sum(float(float(item['amount'])*item['quantity']) for item in parsed_formatted_json_order["items"]))
                     session["total"] = total
                     print(f"Setup the total in session!")
-
                     
+                    session["access_granted_payment_buffer"] = True
 
                     link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id)
                     print(link_to_payment_buffer)
 
                     # Wrap the output link in a clickable HTML element
-                    clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;">Press here to proceed</a>'
+                    clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
                     response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
 
                     return response_cart, total_tokens_used
@@ -774,7 +775,7 @@ Instructions for Use:
             print(link_to_payment_buffer)
 
             # Wrap the output link in a clickable HTML element
-            clickable_link = f'<a href={link_to_payment_buffer} style="color: #e9e3e3;">Press here to proceed</a>'
+            clickable_link = f'<a href={link_to_payment_buffer} style="color: #e9e3e3;" target="_blank">Press here to proceed</a>'
             response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
 
             return response_cart, total_tokens_used
@@ -866,7 +867,7 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
     print(f"File successfully converted and saved as {output_file_path}")
     return output_file_path, html_menu
 
-def generate_confirmation_code():
+def generate_code():
     return str(uuid.uuid4())[:7]
 
 # Function to send the confirmation email

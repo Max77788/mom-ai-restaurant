@@ -92,13 +92,25 @@
 <div class="dashboard"> 
   <div class="dashboard-header">
     <div class="total-earned">
-      <span><strong>Available Funds:</strong> {{ current_balance }} {{ res_currency }}*</span>
-      <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}*</span>
+      <span><strong>Available Funds:</strong> {{ current_balance }} {{ res_currency }}</span>
+      <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}</span>
       <br><a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
       {% if awaiting_withdrawal > 0 %}
-        <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
+          <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
       {% endif %}
-    </div>
+      <br><i><a href="javascript:void(0);" onclick="toggleVisibilityAndConvert('currency-converter', '{{ res_currency }}');"><u>Show/Hide Currency Converter</u></a></i>
+      <div id="currency-converter" style="display: none;">
+          <p style="font-size: 18px;">Available Funds of <b>{{ current_balance }} {{ res_currency }}</b> in other currencies:</p>
+          <span id="available-funds" style="display: none;">{{ current_balance }}</span>
+
+          <div class="results">
+              <p>UAH: <span id="uah"></span></p>
+              <p>ISK: <span id="isk"></span></p>
+          </div>
+      </div>
+  </div>
+
+
     <!-- <i style="font-size: 11px;">*the balance is automatically topped-up and subtracted<br>based on assistant usage and orders registered</i> -->
     <div class="wallet-address">
       <h1>Welcome to your dashboard, {{ restaurant_name.replace("_"," ") }}!</h1>
@@ -111,9 +123,9 @@
         {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
         <span id="assistantStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">   
             {% if assistant_turned_on %} 
-                Assistant is ON
+                Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is taking orders now</i></p>
             {% else %}
-                Assistant is OFF
+                Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is <b>NOT</b> taking orders now</i></p>
             {% endif %}
         </span>
         <label class="switch">
@@ -195,6 +207,49 @@
 </div>
 
 <script>
+
+  // Other currencies display
+  function toggleVisibilityAndConvert(id, baseCurrency) {
+        const element = document.getElementById(id);
+        if (element.style.display === "none") {
+            element.style.display = "block";
+            convertCurrency(baseCurrency);  // Perform conversion when showing
+        } else {
+            element.style.display = "none";
+        }
+    }
+
+    async function convertCurrency(baseCurrency) {
+        const amount = parseFloat(document.getElementById('available-funds').innerText);
+        const api_key = '{{ exchange_api_key }}';
+        
+          
+        if (isNaN(amount) || amount <= 0) {
+            alert('Invalid amount for available funds.');
+            return;
+        }
+
+        try {
+            const response = await fetch(`https://v6.exchangerate-api.com/v6/${api_key}/latest/${baseCurrency}`);
+            const data = await response.json();
+
+            if (data.result === "success") {
+                const rates = data.conversion_rates;
+                const amountInUAH = (amount * rates.UAH).toFixed(2);
+                const amountInISK = (amount * rates.ISK).toFixed(2);
+
+                document.getElementById('uah').innerText = amountInUAH+' (Ukrainian Hryvnias)';
+                document.getElementById('isk').innerText = amountInISK+' (Icelandic Kronas)';
+            } else {
+                alert('Failed to fetch exchange rates. Please try again later.');
+            }
+        } catch (error) {
+            console.error('Error fetching exchange rates:', error);
+            alert('Failed to fetch exchange rates. Please try again later.');
+        }
+    }
+
+
   document.addEventListener('DOMContentLoaded', function() {
     // Get all tab elements
     var tabs = document.querySelectorAll('.no-right-click-tab'); // Updated class name
@@ -252,9 +307,9 @@
 
               // Update the status label
               if (assistantTurnedOn) {
-                  statusLabel.textContent = 'Assistant is ON';
+                  statusLabel.innerHTML = 'Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is taking orders now</i></p>';
               } else {
-                  statusLabel.textContent = 'Assistant is OFF';
+                  statusLabel.innerHTML = 'Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is <b>NOT</b> taking orders now</i></p>';
               }
 
               // Send the assistantTurnedOn state to the server using AJAX

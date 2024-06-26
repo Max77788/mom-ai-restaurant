@@ -136,7 +136,7 @@ paypal.Button.render({
                 console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
                 var transaction = orderData.purchase_units[0].payments.captures[0];
                 const unique_azz_id = "{{ unique_azz_id }}";
-                window.location.href = `/success_payment/${unique_azz_id}`;
+                window.location.href = `/success_payment_backend/${unique_azz_id}`;
                 alert('Transaction '+ transaction.status + ': ' + transaction.id + '\n\nSee console for all available details');
 
                 // Replace the above to show a success message within this page, e.g.

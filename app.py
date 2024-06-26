@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from utils.functions import InvalidMenuFormatError, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_confirmation_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
+from utils.functions import InvalidMenuFormatError, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -65,6 +65,7 @@ CLIENT_OPENAI = AzureOpenAI(
 )
 """
 
+EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 
 fs = gridfs.GridFS(db)
 
@@ -231,7 +232,7 @@ def landing_page():
             session['res_email'] = users_email
 
             # Assume code generation and email sending are handled here
-            generated_confirmation_code = generate_confirmation_code()  # You need to implement this
+            generated_confirmation_code = generate_code()  # You need to implement this
 
             #print(mail)
             #print(users_email)
@@ -287,7 +288,7 @@ def landing_page():
         session['res_email'] = users_email
 
         # Assume code generation and email sending are handled here
-        generated_confirmation_code = generate_confirmation_code()  # You need to implement this
+        generated_confirmation_code = generate_code()  # You need to implement this
 
         #print(mail)
         #print(users_email)
@@ -543,8 +544,8 @@ def assistant_demo_chat():
 
 
 #################### Dashboard Part Main App ####################
-'''
-@app.route('/market_dashboard')
+
+@app.route('/ai-restaurants')
 def market_dashboard():
     page = request.args.get('page', 1, type=int)
     per_page = 12  # 2 columns * 6 rows
@@ -557,7 +558,6 @@ def get_restaurants(page, per_page):
     total = collection.count_documents({})
     restaurants = list(cursor)
     return restaurants, total
-'''
 
 @app.route('/dashboard', methods=['POST', 'GET'])
 def dashboard_display():
@@ -633,6 +633,7 @@ def dashboard_display():
                            assistant_turned_on=assistant_turned_on,
                            logo_url=logo_url,
                            restaurant=restaurant_instance,
+                           exchange_api_key=EXCHANGE_API_KEY,
                            show_popup=show_popup)
 
 ###################################### Dashboard Buttons ######################################
@@ -834,10 +835,16 @@ def activate_subscription():
 
 @app.route('/payment_buffer/<unique_azz_id>', methods=['POST', 'GET'])
 def payment_buffer(unique_azz_id):
+    if not session.get('access_granted_payment_buffer'):
+        abort(403)  # Forbidden
+
+    session['access_granted_payment_result'] = True
+
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
     items = session.get('items_ordered', [{"name":"Item1", "quantity":1, "amount":0.02}])
     print(f"Items on payment buffer: {items}")
     CURRENCY = session.get("res_currency", "USD")
+
     #checkout_link = session.get("paypal_link")
     total_to_pay = session.get("total", 0.07)
     total_to_pay = str(round(float(total_to_pay), 2))
@@ -1039,13 +1046,18 @@ def setup_payments():
 ################## Payment routes/Order Posting ###################
 
 
-@app.route('/success_payment/<unique_azz_id>', methods=["GET", "POST"])
-def success_payment(unique_azz_id):
+@app.route('/success_payment_backend/<unique_azz_id>', methods=["POST", "GET"])
+def success_payment_backend(unique_azz_id):
     
-    restaurant_name = session.get("restaurant_name", "restaurant_placeholder")
+    if not session.get('access_granted_payment_result'):
+        abort(403)  # Forbidden
+
+    session.pop('access_granted_payment_buffer', None)
     
     items = session.get('items_ordered', [{'name':'item1', 'quantity':1}, {'name':'item2', 'quantity':2}])
     total_paid = session.get('total')
+    order_id = generate_code()
+    session['order_id'] = order_id
     total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
 
     print(f"That's how much customer paid: {total_paid}")
@@ -1064,6 +1076,7 @@ def success_payment(unique_azz_id):
     assistant_used = session["unique_azz_id"]
     
     order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
+                        "orderID":order_id,
                         "timestamp": timestamp_utc,
                         "total_paid": total_received,
                         "assistant_used": assistant_used,
@@ -1079,10 +1092,13 @@ def success_payment(unique_azz_id):
     result = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": total_received}})
     
     all_ids_for_acc = current_restaurant_instance.get('notif_destin')
+
+    restaurant_name = current_restaurant_instance.get("name")
+    MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
     
     if all_ids_for_acc is not None:
         for chatId in all_ids_for_acc:
-            send_telegram_notification(chat_id=chatId)
+            send_telegram_notification(chat_id=chatId, message=MEW_ORDER_MESSAGE)
     
     # Check if the update was successful
     if result.matched_count > 0:
@@ -1100,10 +1116,25 @@ def success_payment(unique_azz_id):
     flash("Your Order was Successfully Placed!")
 
     # This route can be used for further processing if needed
-    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=unique_azz_id)
+    return redirect(url_for('success_payment_display', unique_azz_id=unique_azz_id))
+
+@app.route('/success_payment/<unique_azz_id>', methods=["GET", "POST"])
+def success_payment_display(unique_azz_id):
+    order_id = session.get('order_id', 'a_nema')
+    if order_id == 'a_nema':
+        abort(403)
+    current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    restaurant_name = current_restaurant_instance.get("name")
+    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=unique_azz_id, order_id=order_id)
+    
 
 @app.route('/cancel_payment')
 def cancel_payment():
+
+    if not session.get('access_granted_payment_result'):
+        abort(403)  # Forbidden
+
+    session.pop('access_granted_payment_buffer', None)
     restaurant_name = session.get("restaurant_name", "restaurant_placeholder")
     
     res_unique_azz_id = session.get("unique_azz_id")
@@ -1197,7 +1228,8 @@ def view_orders_ajax():
         order_info = {
             'foods': [item for item in order['items']],
             'timestamp': order['timestamp'],
-            'published': order['published']
+            'published': order['published'],
+            'orderID':order.get('orderID', 'no ID provided')
         }
         orders_list.append(order_info)
 
@@ -1278,12 +1310,19 @@ def serve_excel_guide():
 def serve_privacy_policy():
     return render_template("privacy_policy/privacy_policy.html", title="Privacy Policy", restaurant_name="MOM AI Assistant")
 
+######### Profile of the restaurant ##############
+@app.route('/restaurant/<unique_azz_id>', methods=['GET'])
+def show_restaurant_profile_public(unique_azz_id):
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+    return render_template("marketing_dashboard/public_profile.html", restaurant=restaurant, title=restaurant.get("name", "AI Restaurant"))
+
     
 if __name__ == '__main__':
     app.run(debug=True)
 
 
-################ Binance For Future Use ################
+
+
     
 """
 @app.route('/trigger_binance_withdrawal/<web3_wallet_address>/<total_amount>', methods=['POST', 'GET'])

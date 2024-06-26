@@ -106,9 +106,11 @@
                                 var orderItem = document.createElement('li');
                                 orderItem.className = 'order-item';
                                 orderItem.setAttribute('data-timestamp', order.timestamp);
-                                orderItem.innerHTML = `Order for <b>{{restaurant_name}}</b> taken by MOM AI Assistant<br><br>
+                                orderItem.innerHTML = `Order for <b>{{restaurant_name.replace('_', ' ')}}</b> taken by MOM AI Assistant<br><br>
                                     Made at: ${order.timestamp} UTC<br><br>
+                                    Order ID: <span style="font-size: 25px"><b>${order.orderID}</b></span><br><br>
                                     <ul>`;
+
                                 
                                 order.foods.forEach(item => {
                                     var foodItem = document.createElement('li');

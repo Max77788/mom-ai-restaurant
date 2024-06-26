@@ -33,7 +33,7 @@
             </div>  
             {% endif %}
             {% if restaurant_website_url != "No URL provided" %}
-                <p>Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
+                <p style="margin-bottom: 7px;">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a><br>Click below to start ordering.</p>
                 
             {% else %}
                 <p>Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
@@ -158,6 +158,14 @@
         window.sendMessage = sendMessage;
 
         function appendMessage(message, sender) {
+            // Disable the input and send button if the message contains "Press here to proceed"
+            if (message.includes("Press here to proceed")) {
+                document.getElementById('userMessage').disabled = true;
+                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+                {% if not iframe %}
+                return window.location.href = '{{ url_for("payment_buffer", unique_azz_id=unique_azz_id) }}'
+                {% endif %}
+            }
             const messageDiv = document.createElement('div');
             messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
             console.log("Opened appendMessage function");
@@ -186,12 +194,6 @@
             }
 
             document.getElementById('chatBox').appendChild(messageDiv);
-
-            // Disable the input and send button if the message contains "Press here to proceed"
-            if (message.includes("Press here to proceed")) {
-                document.getElementById('userMessage').disabled = true;
-                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-            }
 
             // Scroll to the bottom of the chatBox
             scrollToBottom();

@@ -2,14 +2,18 @@
 
 {% block content %}
     <div class="success-payment-message">
-        <h1>The payment was successful</h1>
-        <h3>Congratulaions, your order was successfully taken.</h3>
-        <h4>{{ restaurant_name.replace("_", " ") }} is already cooking it - visit the restaurant to pick up your food shortly.</h4>
-        <p>You will be redirected in <span id="countdown">7</span> seconds.</p>
+        <h1>✅The payment was successful.</h1>
+        <h2>Visit <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=res_unique_azz_id) }}' target="_blank">{{ restaurant_name.replace("_", " ") }}</a> to pick up your food shortly.</h2>
+        <h3>Here is your order id - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>. Please, either remember, note down or screenshot this number - you will be asked to provide it in the restaurant.</h2>
+        
+        <p>You can make the other order following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color:darkred">this link</a>.</p>
+        
+        <!-- <p>You will be redirected to the AI-assistant page automatically in <span id="countdown">60</span> seconds.</p> -->
     </div>
+    <!--
     <script>
         // Countdown and redirect script
-        let countdown = 7;
+        let countdown = 60;
         const countdownElement = document.getElementById('countdown');
 
         const interval = setInterval(() => {
@@ -21,4 +25,5 @@
             }
         }, 1000);
     </script>
+    -->
 {% endblock %}

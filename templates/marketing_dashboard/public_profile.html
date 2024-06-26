@@ -1,0 +1,80 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+    <div class="restaurant-profile">
+        <div class="profile-left">
+            <div class="profile-header">
+                <img src="{{ url_for('serve_image', file_id=restaurant['res_logo']) }}" alt="{{ restaurant['name'] }} Logo" class="restaurant-logo" />
+                <h1>{{ restaurant['name'].replace("_", " ") }}</h1>
+                {% if restaurant.website_url != 'No URL provided' %}
+                <p><a href="{{ restaurant.website_url }}" style="color: #0000ff;"target="_blank">Visit the website of {{ restaurant['name'].replace("_", " ") }}</a></p>
+                {% else %}
+                <p>No URL Provided</p>
+                {% endif %}
+                <!--
+                <p class="location">
+                    <a href="https://www.google.com/maps/search/?api=1&query={{ restaurant['location'] or 'hafnargata 31' }}" target="_blank">
+                        Check out {{ restaurant['name'].replace("_", " ") }} location
+                    </a>
+                </p>
+                -->
+            </div>
+        </div>
+        <div class="profile-right">
+            <div class="description">
+                <h2>Description</h2>
+                <p>{{ restaurant['description'] or "The best restaurant embracing the future with AI-implementation and just serving an awesome food"}}</p>
+            </div>
+            <div class="assistant-section">
+                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button>Take the order with AI</button></a>
+            </div>
+            <div class="menu">
+                <h2>Menu</h2>
+                <div class="menu-content table-responsive">
+                    {{ restaurant['html_menu']|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reviews will be here -->
+
+    <style>
+        .restaurant-profile {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            font-family: Arial, sans-serif;
+        }
+        .profile-left {
+            flex: 1;
+            max-width: 300px;
+            padding-right: 20px;
+        }
+        .profile-right {
+            flex: 2;
+            padding-left: 20px;
+        }
+        .profile-header {
+            text-align: center;
+        }
+        .restaurant-logo {
+            max-width: 150px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        .website a, .location a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        .website a:hover, .location a:hover {
+            text-decoration: underline;
+        }
+        .description, .menu, .assistant-section {
+            margin-top: 20px;
+        }
+    </style>
+{% endblock %}
