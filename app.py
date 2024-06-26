@@ -56,6 +56,8 @@ collection = db[os.environ.get("DB_VERSION")]
 
 db_order_dashboard = client_db["Dashboard_Orders"]
 
+db_items_cache = client_db["Items_Cache"]
+
 CLIENT_OPENAI = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 """
 CLIENT_OPENAI = AzureOpenAI(
@@ -833,20 +835,20 @@ def activate_subscription():
 """
 
 
-@app.route('/payment_buffer/<unique_azz_id>', methods=['POST', 'GET'])
-def payment_buffer(unique_azz_id):
-    if not session.get('access_granted_payment_buffer'):
+@app.route('/payment_buffer/<unique_azz_id>/<id>', methods=['POST', 'GET'])
+def payment_buffer(unique_azz_id, id):
+    if not session.get('access_granted_payment_buffer') or not id:
         abort(403)  # Forbidden
 
     session['access_granted_payment_result'] = True
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
-    items = session.get('items_ordered', [{"name":"Item1", "quantity":1, "amount":0.02}])
+    items = db_items_cache[unique_azz_id].find_one({"id":id}).get("data")
     print(f"Items on payment buffer: {items}")
-    CURRENCY = session.get("res_currency", "USD")
+    CURRENCY = restaurant.get("res_currency", "USD")
 
     #checkout_link = session.get("paypal_link")
-    total_to_pay = session.get("total", 0.07)
+    total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
     total_to_pay = str(round(float(total_to_pay), 2))
     
     return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, title="Payment Buffer")
@@ -1006,7 +1008,8 @@ def generate_response(unique_azz_id):
     print(f"\n\nList of all items formed: {list_of_all_items}\n\n") # debugging line
 
     response_llm, tokens_used = get_assistants_response(user_input, thread_id, assistant_id, res_currency, menu_file_id, CLIENT_OPENAI, list_of_all_items=list_of_all_items, unique_azz_id=unique_azz_id)
-    PRICE_PER_1_TOKEN = 0.000007
+    
+    PRICE_PER_1_TOKEN = 0.000005
 
     charge_for_message = PRICE_PER_1_TOKEN*tokens_used
 

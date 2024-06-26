@@ -13,7 +13,6 @@ import json
 from openai import OpenAI
 from time import sleep
 from pymongo import MongoClient
-
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
@@ -27,6 +26,10 @@ db = client_db['MOM_AI_Restaurants']
 
 # Specify the collection name
 collection = db[os.environ.get("DB_VERSION")]
+
+db_order_dashboard = client_db["Dashboard_Orders"]
+
+db_items_cache = client_db["Items_Cache"]
 
 MOM_AI_JSON_LORD_ID = os.environ.get("MOM_AI_JSON_LORD_ID", "asst_YccYd0v0CbhweBvNMh0dJyJH")
 
@@ -597,17 +600,22 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
                     # Generate checkput link
                     #output = SetExpressCheckout(parsed_formatted_json_order["items"])
 
-                    session["items_ordered"] = parsed_formatted_json_order["items"]
+                    items_ordered = parsed_formatted_json_order["items"]
+                    session["items_ordered"] = items_ordered
                     print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
 
-                    total = str(sum(float(float(item['amount'])*item['quantity']) for item in parsed_formatted_json_order["items"]))
-                    session["total"] = total
-                    print(f"Setup the total in session!")
+                    #total = str(sum(float(float(item['amount'])*item['quantity']) for item in parsed_formatted_json_order["items"]))
+                    #session["total"] = total
+                    #print(f"Setup the total in session!")
                     
                     session["access_granted_payment_buffer"] = True
 
-                    link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id)
-                    print(link_to_payment_buffer)
+                    if items_ordered:
+                        order_id = generate_code()
+                        db_items_cache[unique_azz_id].insert_one({"data":items_ordered, "id":order_id})
+
+                    link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
+                    print(link_to_payment_buffer)                    
 
                     # Wrap the output link in a clickable HTML element
                     clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
