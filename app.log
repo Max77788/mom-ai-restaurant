@@ -10483,3 +10483,17 @@ TypeError: 'Collection' object is not callable. If you meant to call the 'delete
 2024-06-27 15:55:43,656 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
 2024-06-27 15:55:44,495 - INFO -  * Restarting with stat
 2024-06-27 15:55:56,922 - INFO -  * Restarting with stat
+2024-06-27 15:59:08,348 - DEBUG - Looking for jobs to run
+2024-06-27 15:59:08,350 - DEBUG - Next wakeup is due at 2024-06-27 16:14:08.340980+00:00 (in 899.990412 seconds)
+2024-06-27 15:59:08,350 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 16:14:08 GMT)" (scheduled at 2024-06-27 15:59:08.340980+00:00)
+2024-06-27 15:59:08,442 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:59:08,492 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:59:08,494 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 16:14:08 GMT)" executed successfully
+2024-06-27 16:08:52,771 - INFO -  * Restarting with stat
+2024-06-27 16:14:08,344 - DEBUG - Looking for jobs to run
+2024-06-27 16:14:08,345 - DEBUG - Next wakeup is due at 2024-06-27 16:29:08.340980+00:00 (in 899.995898 seconds)
+2024-06-27 16:14:08,346 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 16:29:08 GMT)" (scheduled at 2024-06-27 16:14:08.340980+00:00)
+2024-06-27 16:14:08,447 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 16:14:08,508 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 16:14:08,510 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 16:29:08 GMT)" executed successfully
+2024-06-27 16:23:06,441 - INFO -  * Restarting with stat

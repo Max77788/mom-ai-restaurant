@@ -22,7 +22,7 @@
 <p>Otherwise, leave everything as it is and you will be able to request funds withdrawal later on following the link in the ;eft upper corner of this page</p>
 -->
 <div>
-    {% if payments %}
+    {% if there_are_payments %}
         {% for payment in payments %}
         <div class="payment-box">  
             <p><b>Amount</b>: {{ payment.total_paid }} {{ restaurant.res_currency or "EUR" }}</p>
@@ -32,8 +32,8 @@
         </div>
         {% endfor %}
     {% else %}
-        <p>No payments have been made yet.</p>
-        <p>The customer purchases will be displayed here.</p>
+        <h2 style="text-align: center;">No payments have been made yet.</h2>
+        <h3 style="text-align: center;">The customer purchases will be displayed here as soon as the order is placed🚀</h3>
     {% endif %}
 </div>
 {% endblock %}

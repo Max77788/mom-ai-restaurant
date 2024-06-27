@@ -690,11 +690,14 @@ def payments_display():
 
     orders = db_order_dashboard[order_dashboard_id].find()
 
-    payments = orders
+    payments = list(orders)
+    there_are_payments = True if len(payments)>=1 else False
+
+    print(f"\n\nPayments Retrieved\n\n")
 
     #payments = [{"timestamp":order.get("timestamp"), "total_paid":order.get("total_paid"), ""} for order in orders]
 
-    return render_template("dashboard/payments_history.html", payments=payments, restaurant=restaurant)
+    return render_template("dashboard/payments_history.html", payments=payments, restaurant=restaurant, there_are_payments=there_are_payments)
 
 @app.route('/profile')
 def show_restaurant_profile():
