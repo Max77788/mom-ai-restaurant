@@ -104,8 +104,9 @@
           <span id="available-funds" style="display: none;">{{ current_balance }}</span>
 
           <div class="results">
-              <p>UAH: <span id="uah"></span></p>
-              <p>ISK: <span id="isk"></span></p>
+              <b><p>USD($): <span id="usd"></span></p></b>
+              <b><p>UAH(₴): <span id="uah"></span></p></b>
+              <b><p>ISK(kr): <span id="isk"></span></p></b>
           </div>
       </div>
   </div>
@@ -113,7 +114,7 @@
 
     <!-- <i style="font-size: 11px;">*the balance is automatically topped-up and subtracted<br>based on assistant usage and orders registered</i> -->
     <div class="wallet-address">
-      
+
       <h1>Welcome to your dashboard, {{ restaurant_name.replace("_"," ") }}!</h1>
       <!-- <span><strong>Wallet Address:</strong> {{ wallet_address }}</span> -->
     </div>
@@ -238,9 +239,11 @@
                 const rates = data.conversion_rates;
                 const amountInUAH = (amount * rates.UAH).toFixed(2);
                 const amountInISK = (amount * rates.ISK).toFixed(2);
+                const amountInUSD = (amount * rates.USD).toFixed(2);
 
                 document.getElementById('uah').innerText = amountInUAH+' (Ukrainian Hryvnias)';
                 document.getElementById('isk').innerText = amountInISK+' (Icelandic Kronas)';
+                document.getElementById('usd').innerText = amountInUSD+' (US Dollars)';
             } else {
                 alert('Failed to fetch exchange rates. Please try again later.');
             }
