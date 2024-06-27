@@ -2,7 +2,7 @@
 {% block content %}
 <p>
     {% if available_amount < 100 %}
-        You need to reach <b>100 dollars</b> balance and come back. Your Current Balance is <b>{{ available_amount }} dollars</b>.
+        You need to reach <b>100 Euros</b> balance to be able to withdraw your funds. Your Current Balance is <b>{{ available_amount }} Euros</b>.
     {% else %}
         <form id="withdrawal-form" action="/post-withdrawal-request" method="POST">
             <label for="withdrawal-description">Describe where you want your withdrawal with the needed details(Card Number, IBAN, SWIFT, etc.):</label><br>
