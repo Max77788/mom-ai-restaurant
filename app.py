@@ -179,16 +179,16 @@ def landing_page():
         #print(f"Other instructions: {other_instructions}")
 
         password = form.password.data
-        print(f"Restaurant password: {password}")
+        #print(f"Restaurant password: {password}")
 
-        currency = form.currency.data
-        print(f"Currency of the restaurant: {currency}")
+        #currency = form.currency.data
+        #print(f"Currency of the restaurant: {currency}")
 
-        session["currency"] = currency
+        session["currency"] = "EUR"
 
         # Save the image to GridFS
         image = form.image.data
-        print(f'Image Received:{image}')
+        #print(f'Image Received:{image}')
         if image:
             filename = secure_filename(image.filename)
             file_id = fs.put(image, filename=filename)
@@ -207,18 +207,18 @@ def landing_page():
             menu_filename = secure_filename(f"menu_file{menu_extension}")
             #script_filename = secure_filename(f"script_file{script_extension}")
 
-            print(f"Menu filename: {menu_filename}")
-            #print(f"Script filename: {script_filename}")
+            # print(f"Menu filename: {menu_filename}")
+            # print(f"Script filename: {script_filename}")
 
             menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
             #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
-            print(f"Menu xlsx path: {menu_xlsx_path}")
-            #print(f"Script path: {script_path}")
+            # print(f"Menu xlsx path: {menu_xlsx_path}")
+            # print(f"Script path: {script_path}")
 
             # Save the files
             menu.save(menu_xlsx_path)
             #script.save(script_path)
-            print("Files saved")
+            # print("Files saved")
 
             menu_save_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
             
@@ -228,7 +228,7 @@ def landing_page():
                print("Entered Invalid Menu Error.")
                flash(str(menu_txt_path))
                return redirect("/")
-            print(f"Generated menu txt file: {menu_txt_path}")
+            # print(f"Generated menu txt file: {menu_txt_path}")
 
             session["restaurant_name"] = restaurant_name
             session["res_website_url"] = restaurant_url

@@ -10412,3 +10412,58 @@ TypeError: 'Collection' object is not callable. If you meant to call the 'delete
 2024-06-27 15:45:14,269 - INFO - 127.0.0.1 - - [27/Jun/2024 15:45:14] "GET /view_orders_ajax HTTP/1.1" 200 -
 2024-06-27 15:46:14,275 - INFO - 127.0.0.1 - - [27/Jun/2024 15:46:14] "GET /view_orders_ajax HTTP/1.1" 200 -
 2024-06-27 15:47:14,272 - INFO - 127.0.0.1 - - [27/Jun/2024 15:47:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:48:14,273 - INFO - 127.0.0.1 - - [27/Jun/2024 15:48:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:49:14,285 - INFO - 127.0.0.1 - - [27/Jun/2024 15:49:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:50:14,264 - INFO - 127.0.0.1 - - [27/Jun/2024 15:50:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:51:14,284 - INFO - 127.0.0.1 - - [27/Jun/2024 15:51:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:51:36,474 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\utils\\forms.py', reloading
+2024-06-27 15:51:37,421 - INFO -  * Restarting with stat
+2024-06-27 15:51:46,441 - DEBUG - load_ssl_context verify=True cert=None trust_env=True http2=False
+2024-06-27 15:51:46,442 - DEBUG - load_verify_locations cafile='C:\\Users\\mmatr\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\certifi\\cacert.pem'
+2024-06-27 15:51:46,458 - DEBUG - Looking up time zone info from registry
+2024-06-27 15:51:46,465 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2024-06-27 15:51:46,467 - INFO - Added job "clear_collection" to job store "default"
+2024-06-27 15:51:46,468 - INFO - Scheduler started
+2024-06-27 15:51:46,470 - DEBUG - Looking for jobs to run
+2024-06-27 15:51:46,491 - DEBUG - Next wakeup is due at 2024-06-27 16:06:46.465594+00:00 (in 899.973971 seconds)
+2024-06-27 15:51:46,508 - WARNING -  * Debugger is active!
+2024-06-27 15:51:46,522 - INFO -  * Debugger PIN: 770-216-781
+2024-06-27 15:52:12,935 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
+2024-06-27 15:52:13,864 - INFO -  * Restarting with stat
+2024-06-27 15:52:20,616 - DEBUG - load_ssl_context verify=True cert=None trust_env=True http2=False
+2024-06-27 15:52:20,617 - DEBUG - load_verify_locations cafile='C:\\Users\\mmatr\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\certifi\\cacert.pem'
+2024-06-27 15:52:20,636 - DEBUG - Looking up time zone info from registry
+2024-06-27 15:52:20,643 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2024-06-27 15:52:20,644 - INFO - Added job "clear_collection" to job store "default"
+2024-06-27 15:52:20,645 - INFO - Scheduler started
+2024-06-27 15:52:20,646 - DEBUG - Looking for jobs to run
+2024-06-27 15:52:20,655 - DEBUG - Next wakeup is due at 2024-06-27 16:07:20.643390+00:00 (in 899.988007 seconds)
+2024-06-27 15:52:20,690 - WARNING -  * Debugger is active!
+2024-06-27 15:52:20,698 - INFO -  * Debugger PIN: 770-216-781
+2024-06-27 15:52:21,255 - INFO - 127.0.0.1 - - [27/Jun/2024 15:52:21] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:52:22,867 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
+2024-06-27 15:52:23,643 - INFO -  * Restarting with stat
+2024-06-27 15:52:30,681 - DEBUG - load_ssl_context verify=True cert=None trust_env=True http2=False
+2024-06-27 15:52:30,682 - DEBUG - load_verify_locations cafile='C:\\Users\\mmatr\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\certifi\\cacert.pem'
+2024-06-27 15:52:30,698 - DEBUG - Looking up time zone info from registry
+2024-06-27 15:52:30,704 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2024-06-27 15:52:30,705 - INFO - Added job "clear_collection" to job store "default"
+2024-06-27 15:52:30,706 - INFO - Scheduler started
+2024-06-27 15:52:30,707 - DEBUG - Looking for jobs to run
+2024-06-27 15:52:30,725 - DEBUG - Next wakeup is due at 2024-06-27 16:07:30.704119+00:00 (in 899.979022 seconds)
+2024-06-27 15:52:30,740 - WARNING -  * Debugger is active!
+2024-06-27 15:52:30,749 - INFO -  * Debugger PIN: 770-216-781
+2024-06-27 15:52:49,679 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
+2024-06-27 15:52:50,615 - INFO -  * Restarting with stat
+2024-06-27 15:52:57,550 - DEBUG - load_ssl_context verify=True cert=None trust_env=True http2=False
+2024-06-27 15:52:57,551 - DEBUG - load_verify_locations cafile='C:\\Users\\mmatr\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\certifi\\cacert.pem'
+2024-06-27 15:52:57,567 - DEBUG - Looking up time zone info from registry
+2024-06-27 15:52:57,573 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2024-06-27 15:52:57,574 - INFO - Added job "clear_collection" to job store "default"
+2024-06-27 15:52:57,575 - INFO - Scheduler started
+2024-06-27 15:52:57,577 - DEBUG - Looking for jobs to run
+2024-06-27 15:52:57,577 - DEBUG - Next wakeup is due at 2024-06-27 16:07:57.573993+00:00 (in 899.996446 seconds)
+2024-06-27 15:52:57,607 - WARNING -  * Debugger is active!
+2024-06-27 15:52:57,614 - INFO -  * Debugger PIN: 770-216-781
+2024-06-27 15:53:14,570 - INFO - 127.0.0.1 - - [27/Jun/2024 15:53:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:53:20,905 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
