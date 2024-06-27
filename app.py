@@ -182,6 +182,8 @@ def landing_page():
         #currency = form.currency.data
         #print(f"Currency of the restaurant: {currency}")
 
+        currency = "EUR"
+
         session["currency"] = "EUR"
 
         # Save the image to GridFS
