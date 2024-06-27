@@ -10467,3 +10467,19 @@ TypeError: 'Collection' object is not callable. If you meant to call the 'delete
 2024-06-27 15:52:57,614 - INFO -  * Debugger PIN: 770-216-781
 2024-06-27 15:53:14,570 - INFO - 127.0.0.1 - - [27/Jun/2024 15:53:14] "GET /view_orders_ajax HTTP/1.1" 200 -
 2024-06-27 15:53:20,905 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
+2024-06-27 15:53:21,932 - INFO -  * Restarting with stat
+2024-06-27 15:53:28,724 - DEBUG - load_ssl_context verify=True cert=None trust_env=True http2=False
+2024-06-27 15:53:28,725 - DEBUG - load_verify_locations cafile='C:\\Users\\mmatr\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\certifi\\cacert.pem'
+2024-06-27 15:53:28,744 - DEBUG - Looking up time zone info from registry
+2024-06-27 15:53:28,751 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2024-06-27 15:53:28,752 - INFO - Added job "clear_collection" to job store "default"
+2024-06-27 15:53:28,753 - INFO - Scheduler started
+2024-06-27 15:53:28,754 - DEBUG - Looking for jobs to run
+2024-06-27 15:53:28,755 - DEBUG - Next wakeup is due at 2024-06-27 16:08:28.751935+00:00 (in 899.996005 seconds)
+2024-06-27 15:53:28,792 - WARNING -  * Debugger is active!
+2024-06-27 15:53:28,800 - INFO -  * Debugger PIN: 770-216-781
+2024-06-27 15:54:14,756 - INFO - 127.0.0.1 - - [27/Jun/2024 15:54:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:55:14,255 - INFO - 127.0.0.1 - - [27/Jun/2024 15:55:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:55:43,656 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
+2024-06-27 15:55:44,495 - INFO -  * Restarting with stat
+2024-06-27 15:55:56,922 - INFO -  * Restarting with stat

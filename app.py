@@ -29,17 +29,15 @@ load_dotenv(find_dotenv())
 
 app = Flask(__name__)
 
-
+"""
 logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    filename='app.log',  # Log to a file
-                    filemode='a')  # Append mode
+                    format='%(asctime)s - %(levelname)s - %(message)s',)  # Append mode
 
 # Configure APScheduler logging
 scheduler_logger = logging.getLogger('apscheduler')
 scheduler_logger.setLevel(logging.DEBUG)
 scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
-
+"""
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
