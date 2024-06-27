@@ -10175,3 +10175,240 @@ TypeError: 'Collection' object is not callable. If you meant to call the 'delete
 2024-06-27 14:44:08,527 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 14:59:08 GMT)" executed successfully
 2024-06-27 14:44:14,563 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:14] "GET /view_orders_ajax HTTP/1.1" 200 -
 2024-06-27 14:44:27,531 - INFO -  * Detected change in 'C:\\Users\\mmatr\\OneDrive\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\MOM AI Saas\\app.py', reloading
+2024-06-27 14:44:28,573 - INFO -  * Restarting with stat
+2024-06-27 14:44:35,764 - DEBUG - load_ssl_context verify=True cert=None trust_env=True http2=False
+2024-06-27 14:44:35,765 - DEBUG - load_verify_locations cafile='C:\\Users\\mmatr\\AppData\\Local\\Programs\\Python\\Python39\\lib\\site-packages\\certifi\\cacert.pem'
+2024-06-27 14:44:35,783 - DEBUG - Looking up time zone info from registry
+2024-06-27 14:44:35,789 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2024-06-27 14:44:35,790 - INFO - Added job "clear_collection" to job store "default"
+2024-06-27 14:44:35,791 - INFO - Scheduler started
+2024-06-27 14:44:35,792 - DEBUG - Looking for jobs to run
+2024-06-27 14:44:35,803 - DEBUG - Next wakeup is due at 2024-06-27 14:59:35.789948+00:00 (in 899.986600 seconds)
+2024-06-27 14:44:35,834 - WARNING -  * Debugger is active!
+2024-06-27 14:44:35,844 - INFO -  * Debugger PIN: 770-216-781
+2024-06-27 14:44:36,446 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:36] "GET /dashboard HTTP/1.1" 200 -
+2024-06-27 14:44:36,631 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:36] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:44:36,846 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:36] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 14:44:37,397 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:37] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 14:44:37,599 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:37] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 14:44:37,637 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:37] "[36mGET /static/images/dashboard_background.jpg HTTP/1.1[0m" 304 -
+2024-06-27 14:44:37,662 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:37] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:44:37,855 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:37] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:44:38,847 - INFO - 127.0.0.1 - - [27/Jun/2024 14:44:38] "GET /payments HTTP/1.1" 200 -
+2024-06-27 14:45:14,255 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:45:19,255 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:19] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:45:23,154 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:23] "GET /profile HTTP/1.1" 200 -
+2024-06-27 14:45:23,448 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:23] "GET /image/667d384af59e55166436e918 HTTP/1.1" 200 -
+2024-06-27 14:45:26,897 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "GET /assistant_dash HTTP/1.1" 200 -
+2024-06-27 14:45:26,923 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "[36mGET /static/images/thumbnails/ThumbnailAddIFrame.png HTTP/1.1[0m" 304 -
+2024-06-27 14:45:26,929 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "[36mGET /static/images/thumbnails/ThumbnailAddLink.png HTTP/1.1[0m" 304 -
+2024-06-27 14:45:26,931 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:45:26,943 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "[36mGET /static/images/tablet_at_the_counter.jpg HTTP/1.1[0m" 304 -
+2024-06-27 14:45:26,946 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:26,954 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:26] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:27,002 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:27] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:27,006 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:27] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:27,030 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:27] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:27,031 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:27] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:27,042 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:27] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:27,045 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:27] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 14:45:28,439 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:28] "GET /assistant_order_chat/Biryani_AnGt HTTP/1.1" 200 -
+2024-06-27 14:45:28,530 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:28] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:45:28,569 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:28] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 14:45:29,858 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:29] "[36mGET /static/assets/loading-gif.gif HTTP/1.1[0m" 304 -
+2024-06-27 14:45:30,091 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:30] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 14:45:30,121 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:30] "GET /image/667d384af59e55166436e918 HTTP/1.1" 200 -
+2024-06-27 14:45:30,179 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:30] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 14:45:30,439 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:30] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:45:31,901 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:31] "GET /restaurant/Biryani_AnGt HTTP/1.1" 200 -
+2024-06-27 14:45:31,943 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:31] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:45:31,971 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:31] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 14:45:32,255 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:32] "GET /image/667d384af59e55166436e918 HTTP/1.1" 200 -
+2024-06-27 14:45:33,305 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:33] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 14:45:33,305 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:33] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 14:45:33,860 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:33] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:45:39,250 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:39] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:45:59,247 - INFO - 127.0.0.1 - - [27/Jun/2024 14:45:59] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:46:12,015 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "GET /dashboard HTTP/1.1" 200 -
+2024-06-27 14:46:12,100 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:46:12,121 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 14:46:12,130 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 14:46:12,591 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 14:46:12,719 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "[36mGET /static/images/dashboard_background.jpg HTTP/1.1[0m" 304 -
+2024-06-27 14:46:12,801 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:12] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:46:13,189 - INFO - 127.0.0.1 - - [27/Jun/2024 14:46:13] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:47:14,256 - INFO - 127.0.0.1 - - [27/Jun/2024 14:47:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:48:14,273 - INFO - 127.0.0.1 - - [27/Jun/2024 14:48:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:49:14,252 - INFO - 127.0.0.1 - - [27/Jun/2024 14:49:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:50:14,263 - INFO - 127.0.0.1 - - [27/Jun/2024 14:50:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:51:14,288 - INFO - 127.0.0.1 - - [27/Jun/2024 14:51:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:52:05,555 - INFO - 127.0.0.1 - - [27/Jun/2024 14:52:05] "GET /payments HTTP/1.1" 200 -
+2024-06-27 14:52:14,288 - INFO - 127.0.0.1 - - [27/Jun/2024 14:52:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:53:02,749 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:02] "GET /dashboard HTTP/1.1" 200 -
+2024-06-27 14:53:02,831 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:02] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:53:02,844 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:02] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 14:53:02,851 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:02] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 14:53:04,357 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:04] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 14:53:04,602 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:04] "[36mGET /static/images/dashboard_background.jpg HTTP/1.1[0m" 304 -
+2024-06-27 14:53:04,683 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:04] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:53:05,471 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:05] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:53:06,148 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:06] "GET /payments HTTP/1.1" 200 -
+2024-06-27 14:53:14,291 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:53:26,443 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:26] "GET /dashboard HTTP/1.1" 200 -
+2024-06-27 14:53:26,520 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:26] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 14:53:26,552 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:26] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 14:53:26,561 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:26] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 14:53:27,003 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:27] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 14:53:27,191 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:27] "[36mGET /static/images/dashboard_background.jpg HTTP/1.1[0m" 304 -
+2024-06-27 14:53:27,255 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:27] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:53:27,634 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:27] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 14:53:27,975 - INFO - 127.0.0.1 - - [27/Jun/2024 14:53:27] "GET /payments HTTP/1.1" 200 -
+2024-06-27 14:54:14,274 - INFO - 127.0.0.1 - - [27/Jun/2024 14:54:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:55:14,262 - INFO - 127.0.0.1 - - [27/Jun/2024 14:55:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:56:14,283 - INFO - 127.0.0.1 - - [27/Jun/2024 14:56:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:57:14,289 - INFO - 127.0.0.1 - - [27/Jun/2024 14:57:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:58:14,284 - INFO - 127.0.0.1 - - [27/Jun/2024 14:58:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:59:08,343 - DEBUG - Looking for jobs to run
+2024-06-27 14:59:08,345 - DEBUG - Next wakeup is due at 2024-06-27 15:14:08.340980+00:00 (in 899.995826 seconds)
+2024-06-27 14:59:08,346 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:14:08 GMT)" (scheduled at 2024-06-27 14:59:08.340980+00:00)
+2024-06-27 14:59:08,463 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 14:59:08,532 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 14:59:08,534 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:14:08 GMT)" executed successfully
+2024-06-27 14:59:14,261 - INFO - 127.0.0.1 - - [27/Jun/2024 14:59:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 14:59:35,818 - DEBUG - Looking for jobs to run
+2024-06-27 14:59:35,821 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:14:35 GMT)" (scheduled at 2024-06-27 14:59:35.789948+00:00)
+2024-06-27 14:59:35,822 - DEBUG - Next wakeup is due at 2024-06-27 15:14:35.789948+00:00 (in 899.967770 seconds)
+2024-06-27 14:59:36,382 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 14:59:36,428 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 14:59:36,430 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:14:35 GMT)" executed successfully
+2024-06-27 15:00:14,298 - INFO - 127.0.0.1 - - [27/Jun/2024 15:00:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:01:14,307 - INFO - 127.0.0.1 - - [27/Jun/2024 15:01:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:02:14,296 - INFO - 127.0.0.1 - - [27/Jun/2024 15:02:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:03:14,275 - INFO - 127.0.0.1 - - [27/Jun/2024 15:03:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:04:14,278 - INFO - 127.0.0.1 - - [27/Jun/2024 15:04:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:05:14,296 - INFO - 127.0.0.1 - - [27/Jun/2024 15:05:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:06:14,284 - INFO - 127.0.0.1 - - [27/Jun/2024 15:06:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:07:14,269 - INFO - 127.0.0.1 - - [27/Jun/2024 15:07:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:08:14,265 - INFO - 127.0.0.1 - - [27/Jun/2024 15:08:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:09:14,302 - INFO - 127.0.0.1 - - [27/Jun/2024 15:09:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:10:14,278 - INFO - 127.0.0.1 - - [27/Jun/2024 15:10:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:11:14,262 - INFO - 127.0.0.1 - - [27/Jun/2024 15:11:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:12:14,287 - INFO - 127.0.0.1 - - [27/Jun/2024 15:12:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:13:14,267 - INFO - 127.0.0.1 - - [27/Jun/2024 15:13:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:14:08,348 - DEBUG - Looking for jobs to run
+2024-06-27 15:14:08,349 - DEBUG - Next wakeup is due at 2024-06-27 15:29:08.340980+00:00 (in 899.991660 seconds)
+2024-06-27 15:14:08,349 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:29:08 GMT)" (scheduled at 2024-06-27 15:14:08.340980+00:00)
+2024-06-27 15:14:08,472 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:14:08,534 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:14:08,535 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:29:08 GMT)" executed successfully
+2024-06-27 15:14:14,304 - INFO - 127.0.0.1 - - [27/Jun/2024 15:14:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:14:35,798 - DEBUG - Looking for jobs to run
+2024-06-27 15:14:35,800 - DEBUG - Next wakeup is due at 2024-06-27 15:29:35.789948+00:00 (in 899.989773 seconds)
+2024-06-27 15:14:35,800 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:29:35 GMT)" (scheduled at 2024-06-27 15:14:35.789948+00:00)
+2024-06-27 15:14:35,909 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:14:35,960 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:14:35,962 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:29:35 GMT)" executed successfully
+2024-06-27 15:15:14,284 - INFO - 127.0.0.1 - - [27/Jun/2024 15:15:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:16:14,354 - INFO - 127.0.0.1 - - [27/Jun/2024 15:16:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:17:14,288 - INFO - 127.0.0.1 - - [27/Jun/2024 15:17:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:18:14,309 - INFO - 127.0.0.1 - - [27/Jun/2024 15:18:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:19:14,289 - INFO - 127.0.0.1 - - [27/Jun/2024 15:19:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:20:14,351 - INFO - 127.0.0.1 - - [27/Jun/2024 15:20:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:21:14,303 - INFO - 127.0.0.1 - - [27/Jun/2024 15:21:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:22:14,282 - INFO - 127.0.0.1 - - [27/Jun/2024 15:22:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:23:14,370 - INFO - 127.0.0.1 - - [27/Jun/2024 15:23:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:24:14,293 - INFO - 127.0.0.1 - - [27/Jun/2024 15:24:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:25:14,280 - INFO - 127.0.0.1 - - [27/Jun/2024 15:25:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:26:14,283 - INFO - 127.0.0.1 - - [27/Jun/2024 15:26:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:27:14,318 - INFO - 127.0.0.1 - - [27/Jun/2024 15:27:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:28:14,288 - INFO - 127.0.0.1 - - [27/Jun/2024 15:28:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:29:08,353 - DEBUG - Looking for jobs to run
+2024-06-27 15:29:08,355 - DEBUG - Next wakeup is due at 2024-06-27 15:44:08.340980+00:00 (in 899.985871 seconds)
+2024-06-27 15:29:08,356 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:44:08 GMT)" (scheduled at 2024-06-27 15:29:08.340980+00:00)
+2024-06-27 15:29:08,485 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:29:08,547 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:29:08,548 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:44:08 GMT)" executed successfully
+2024-06-27 15:29:14,291 - INFO - 127.0.0.1 - - [27/Jun/2024 15:29:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:29:35,798 - DEBUG - Looking for jobs to run
+2024-06-27 15:29:35,800 - DEBUG - Next wakeup is due at 2024-06-27 15:44:35.789948+00:00 (in 899.989003 seconds)
+2024-06-27 15:29:35,801 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:44:35 GMT)" (scheduled at 2024-06-27 15:29:35.789948+00:00)
+2024-06-27 15:29:35,906 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:29:35,965 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:29:35,966 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:44:35 GMT)" executed successfully
+2024-06-27 15:30:14,309 - INFO - 127.0.0.1 - - [27/Jun/2024 15:30:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:31:14,250 - INFO - 127.0.0.1 - - [27/Jun/2024 15:31:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:32:14,304 - INFO - 127.0.0.1 - - [27/Jun/2024 15:32:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:33:14,299 - INFO - 127.0.0.1 - - [27/Jun/2024 15:33:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:34:14,294 - INFO - 127.0.0.1 - - [27/Jun/2024 15:34:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:35:14,272 - INFO - 127.0.0.1 - - [27/Jun/2024 15:35:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:36:14,290 - INFO - 127.0.0.1 - - [27/Jun/2024 15:36:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:37:14,285 - INFO - 127.0.0.1 - - [27/Jun/2024 15:37:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:38:14,275 - INFO - 127.0.0.1 - - [27/Jun/2024 15:38:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:39:14,252 - INFO - 127.0.0.1 - - [27/Jun/2024 15:39:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:40:14,300 - INFO - 127.0.0.1 - - [27/Jun/2024 15:40:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:41:14,283 - INFO - 127.0.0.1 - - [27/Jun/2024 15:41:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:42:14,295 - INFO - 127.0.0.1 - - [27/Jun/2024 15:42:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:43:14,248 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:43:43,068 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:43] "GET /dashboard HTTP/1.1" 200 -
+2024-06-27 15:43:43,170 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:43] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 15:43:43,180 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:43] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 15:43:43,185 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:43] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 15:43:43,202 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:43] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 15:43:45,043 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:45] "[36mGET /static/images/dashboard_background.jpg HTTP/1.1[0m" 304 -
+2024-06-27 15:43:45,165 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:45] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 15:43:45,968 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:45] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 15:43:47,502 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:47] "GET /menu HTTP/1.1" 200 -
+2024-06-27 15:43:48,470 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "GET /assistant_dash HTTP/1.1" 200 -
+2024-06-27 15:43:48,504 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[36mGET /static/images/thumbnails/ThumbnailAddLink.png HTTP/1.1[0m" 304 -
+2024-06-27 15:43:48,510 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[36mGET /static/images/tablet_at_the_counter.jpg HTTP/1.1[0m" 304 -
+2024-06-27 15:43:48,511 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[36mGET /static/images/thumbnails/ThumbnailAddIFrame.png HTTP/1.1[0m" 304 -
+2024-06-27 15:43:48,512 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 15:43:48,518 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,518 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,564 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,565 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,593 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,594 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,601 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/iframe-tutorial.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:48,602 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:48] "[35m[1mGET /static/videos/LinkExample.mp4 HTTP/1.1[0m" 206 -
+2024-06-27 15:43:49,094 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:49] "GET /assistant_dash HTTP/1.1" 200 -
+2024-06-27 15:43:49,108 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:49] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 15:43:49,487 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:49] "GET /profile HTTP/1.1" 200 -
+2024-06-27 15:43:49,770 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:49] "GET /image/667d384af59e55166436e918 HTTP/1.1" 200 -
+2024-06-27 15:43:53,996 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:53] "GET /profile_update/notif_destin HTTP/1.1" 200 -
+2024-06-27 15:43:54,061 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:54] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 15:43:54,118 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:54] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 15:43:54,119 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:54] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 15:43:55,389 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:55] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 15:43:55,991 - INFO - 127.0.0.1 - - [27/Jun/2024 15:43:55] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 15:44:08,358 - DEBUG - Looking for jobs to run
+2024-06-27 15:44:08,361 - DEBUG - Next wakeup is due at 2024-06-27 15:59:08.340980+00:00 (in 899.979610 seconds)
+2024-06-27 15:44:08,361 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:59:08 GMT)" (scheduled at 2024-06-27 15:44:08.340980+00:00)
+2024-06-27 15:44:08,479 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:44:08,539 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:44:08,540 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:59:08 GMT)" executed successfully
+2024-06-27 15:44:14,261 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:44:29,654 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:29] "[32mPOST /logout HTTP/1.1[0m" 302 -
+2024-06-27 15:44:29,678 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:29] "GET /login HTTP/1.1" 200 -
+2024-06-27 15:44:29,755 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:29] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 15:44:29,762 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:29] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 15:44:29,766 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:29] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 15:44:30,364 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:30] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 15:44:35,805 - DEBUG - Looking for jobs to run
+2024-06-27 15:44:35,807 - DEBUG - Next wakeup is due at 2024-06-27 15:59:35.789948+00:00 (in 899.982551 seconds)
+2024-06-27 15:44:35,807 - INFO - Running job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:59:35 GMT)" (scheduled at 2024-06-27 15:44:35.789948+00:00)
+2024-06-27 15:44:35,902 - INFO - Scheduled clearing of collection 'Biryani_AnGt' executed.
+2024-06-27 15:44:35,964 - INFO - Scheduled clearing of collection 'Public_Deli_ewgf' executed.
+2024-06-27 15:44:35,966 - INFO - Job "clear_collection (trigger: interval[0:15:00], next run at: 2024-06-27 15:59:35 GMT)" executed successfully
+2024-06-27 15:44:38,441 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:38] "[32mPOST /login HTTP/1.1[0m" 302 -
+2024-06-27 15:44:38,502 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:38] "GET /dashboard HTTP/1.1" 200 -
+2024-06-27 15:44:38,592 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:38] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2024-06-27 15:44:38,594 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:38] "[36mGET /static/logos/logo_trans.png HTTP/1.1[0m" 304 -
+2024-06-27 15:44:38,600 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:38] "[36mGET /static/logos/LogoInvertedColors_noSlogan.png HTTP/1.1[0m" 304 -
+2024-06-27 15:44:38,972 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:38] "[33mGET /static/js/main.js HTTP/1.1[0m" 404 -
+2024-06-27 15:44:39,199 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:39] "[36mGET /static/images/dashboard_background.jpg HTTP/1.1[0m" 304 -
+2024-06-27 15:44:39,227 - INFO - 127.0.0.1 - - [27/Jun/2024 15:44:39] "[36mGET /static/favicon.ico HTTP/1.1[0m" 304 -
+2024-06-27 15:45:00,783 - INFO - 127.0.0.1 - - [27/Jun/2024 15:45:00] "GET /withdraw-funds HTTP/1.1" 200 -
+2024-06-27 15:45:14,269 - INFO - 127.0.0.1 - - [27/Jun/2024 15:45:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:46:14,275 - INFO - 127.0.0.1 - - [27/Jun/2024 15:46:14] "GET /view_orders_ajax HTTP/1.1" 200 -
+2024-06-27 15:47:14,272 - INFO - 127.0.0.1 - - [27/Jun/2024 15:47:14] "GET /view_orders_ajax HTTP/1.1" 200 -
