@@ -53,6 +53,13 @@ white-space: nowrap;
 }
 </style>
 
+{% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                    <div class="flash-message">{{ messages[-1] }}</div>
+            </div>
+        {% endif %}
+    {% endwith %}
 
 <div class="image-container">
     <img src="/static/images/landing_gipsy_banner.png" alt="Restaurant of the Future">
@@ -89,13 +96,6 @@ white-space: nowrap;
     <h1>Welcome to MOM AI Restaurant Assistant <span style="font-size: 77%;"><a href="#instructions"><b><u>(Check the setup guide)</u></b></a></span></h1>
     <p style="margin-bottom: 10px; font-size: 25px;">Fill in the details below to get started.</p>
 </div>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-messages">
-                    <div class="flash-message">{{ messages[-1] }}</div>
-            </div>
-        {% endif %}
-    {% endwith %}
     <form action="/" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <div class="form-group">
