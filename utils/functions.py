@@ -6,12 +6,17 @@ from bs4 import BeautifulSoup
 import ast
 import re
 import os
+import base64
 from flask_mail import Message
 import uuid
 from utils.pp_payment import SetExpressCheckout
 import json
 from openai import OpenAI
 from time import sleep
+import time
+import logging
+import bcrypt
+from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
@@ -70,6 +75,35 @@ def send_email(subject, body, to):
     return message
 
 
+def clear_collection():
+    """Function to clear items older than 15 minutes in all collections."""
+    # Get current time in seconds since the epoch
+    current_time = time.time()
+    # Calculate the threshold time (15 minutes ago)
+    time_threshold = current_time - 900  # 900 seconds are 15 minutes
+
+    # Iterate over all collections in the database
+    for collection_name in db_items_cache.list_collection_names():
+        # Get the collection
+        collection = db_items_cache[collection_name]
+        # Delete documents where the 'timestamp' is less than the threshold time
+        result = collection.delete_many({"timestamp": {"$lt": time_threshold}})
+        logging.info(f"Scheduled clearing of collection '{collection_name}' executed.")
+        print(f"All records older than 15 minutes deleted from collection '{collection_name}', count: {result.deleted_count}.")
+
+
+# Function to hash a password
+def hash_password(password):
+    # Generate a salt
+    salt = bcrypt.gensalt()
+    # Hash the password
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed_password
+
+def check_password(hashed_password, user_password):
+    return bcrypt.checkpw(user_password.encode('utf-8'), hashed_password)
+
+
 
 def check_credentials(email, password, collection, for_login_redirect=False):
     """
@@ -88,10 +122,12 @@ def check_credentials(email, password, collection, for_login_redirect=False):
             return True
         else:
             return False
+        
+    print(f'User Password being checked: {user["password"]}')
 
     if user:
         # Check the hashed password
-        if user['password'] == password:
+        if check_password(user['password'], password):
             return True
     return False
 
@@ -175,6 +211,7 @@ The menu of {restaurant_name} is attached to its knowledge base. It must refer t
     - Item Name - 8.99 {currency}, 1 item
 - It obtains the customer's confirmation on the order summary to ensure accuracy and satisfaction.
 - After the confirmation the action send_summary_to_json_azz is triggered immediately as soon as possible.
+- No double-asking for the confirmation is made
 
 **Completion:**
 
@@ -436,10 +473,11 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
     Role: You are the best restaurant assistant who serves customers and register orders in the system
     
     Context: Identify users language. The customer asks you the question or writes the statement - your goal is to provide the response appropriately in the detected language
-    facilitating order taking. To your knowledge base is attached the file menu_file.txt. The currency in which prices of the items are specified is {currency}.
+    facilitating order taking. To your knowledge base is attached the vector store provided for you. The currency in which prices of the items are specified is {currency}.
     Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
     If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
-    Make sure that the item you suggest are from this list(also, included in the menu file attached to you):
+    Confirm the order and trigger the action as fast as possible in the context of the particular order. 
+    Make sure that the item you suggest are from this list(also, included in the vector store provided for you):
     {list_of_all_items}
     Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items.
     
@@ -447,7 +485,7 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
     {user_message}      
     (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
     """
-    
+    '''
     user_message_is = f"""
     Hlutverk: Þú ert besti veitingastaðaþjónninn sem þjónar viðskiptavinum og skráir pantanir í kerfið.
 
@@ -457,6 +495,7 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
     {user_message}
     (í samhengi við áframhaldandi pöntunarferli og meðfylgjandi skrá sem er menu_file)
 """
+'''
     
     #print(user_message_enhanced)
     #print(user_message_is)
@@ -612,7 +651,8 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
 
                     if items_ordered:
                         order_id = generate_code()
-                        db_items_cache[unique_azz_id].insert_one({"data":items_ordered, "id":order_id})
+                        current_utc_timestamp = time.time()
+                        db_items_cache[unique_azz_id].insert_one({"data":items_ordered, "id":order_id, "timestamp":current_utc_timestamp})
 
                     link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
                     print(link_to_payment_buffer)                    
@@ -621,7 +661,7 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
                     clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
                     response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
 
-                    return response_cart, total_tokens_used
+                    return link_to_payment_buffer, total_tokens_used
                 if run_status.status == 'failed':
                     
                     print("Run of JSON assistant failed.")
@@ -884,14 +924,26 @@ def send_confirmation_email(mail, email, confirmation_code, from_email):
     # HTML content with bold and centered confirmation code
     msg.html = f'''
     <html>
-    <body>
-        <p>You have requested account registration on MOM AI Restaturant Assistant.</p>
-        <p>Please confirm your email by inserting the following code:</p>
-        <div style="text-align: center; font-size: 20px">
-            <strong>{confirmation_code}</strong>
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #444;">MOM AI Restaurant Assistant</h2>
+            <p style="font-size: 16px; line-height: 1.5;">
+                You have requested account registration on MOM AI Restaurant Assistant.
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Please confirm your email by inserting the following code:
+            </p>
+            <div style="text-align: center; font-size: 24px; margin: 20px 0;">
+                <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">{confirmation_code}</strong>
+            </div>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Kind Regards,<br>
+                <strong>MOM AI Team</strong>
+            </p>
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+            </div>
         </div>
-        <p>Kind Regards,<br>MOM AI Team</p>
-        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
     </body>
     </html>
     '''
@@ -930,20 +982,34 @@ def send_waitlist_email(mail, email, restaurant_name, from_email):
     mail.send(msg)
 
 def send_confirmation_email_registered(mail, email, restaurant_name, from_email):
-    msg = Message(f'{restaurant_name} is on MOM AI Waitlist!', recipients=[email], sender=from_email)
-    msg_for_mom_ai =  Message('MOM AI Waitlist New Person', recipients=["contact@mom-ai-agency.site"], sender=from_email)
+    msg = Message(f'{restaurant_name} is in MOM AI Family!', recipients=[email], sender=from_email)
+    msg_for_mom_ai =  Message('MOM AI New Restaurant Registered', recipients=["contact@mom-ai-agency.site"], sender=from_email)
     msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been registered. Awesome!\n\nI love ya!'
 
     mail.send(msg_for_mom_ai)
 
     msg.html = f'''
     <html>
-    <body>
-        <p>Hi, {restaurant_name}\'s restaurant representative.
-        <p>Your account has been successfully registered!</p>
-        <p>Go to <a href="https://mom-ai-restaurant.pro/login" target="_blank">mom-ai-restaurant.pro</a></p>and start earning with AI.<br>
-        <p>Kind Regards,<br>MOM AI Team</p>
-        <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #444;">Welcome to MOM AI Restaurant Assistant!</h2>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Hi, {restaurant_name}'s restaurant representative.
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Your account has been successfully registered!
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Go to <a href="https://mom-ai-restaurant.pro/login" target="_blank" style="color: #1a73e8; text-decoration: none;">mom-ai-restaurant.pro</a> and start earning with AI.
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Kind Regards,<br>
+                <strong>MOM AI Team</strong>
+            </p>
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+            </div>
+        </div>
     </body>
     </html>
     '''

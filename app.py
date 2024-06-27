@@ -2,11 +2,12 @@ from flask import Flask, abort, make_response, jsonify, request, render_template
 from werkzeug.utils import secure_filename
 import os
 import gridfs
+import base64
 from bs4 import BeautifulSoup
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from utils.functions import InvalidMenuFormatError, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
+from utils.functions import InvalidMenuFormatError, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -17,14 +18,29 @@ from utils.pp_payment import createPayment, executePayment, get_subscription_sta
 #from utils.withdraw.pp_payout import send_payout_pp
 from datetime import datetime
 from openai import OpenAI, AzureOpenAI
+from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId  # Import ObjectId from bson
 import io
+import logging
 #from tools.stellar_payments.list_payments import list_received_payments
 #from tools.stellar_payments.create_account import create_stellar_account
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
 app = Flask(__name__)
+
+
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    filename='app.log',  # Log to a file
+                    filemode='a')  # Append mode
+
+# Configure APScheduler logging
+scheduler_logger = logging.getLogger('apscheduler')
+scheduler_logger.setLevel(logging.DEBUG)
+scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
+
+
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
@@ -87,6 +103,17 @@ def handle_redirect():
 @app.errorhandler(403)
 def forbidden(error):
     return make_response(jsonify({'error': 'Forbidden', 'message': error.description}), 403)
+
+
+def schedule_tasks():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
+    scheduler.start()
+    print("The scheduler started")
+
+
+with app.app_context():
+    schedule_tasks()
 
 
 # Middleware to modify headers
@@ -528,8 +555,14 @@ def assistant_demo_chat():
 
     file_id = session.get("logo_id", "666af654dee400a1d635eb08")
 
-    insert_document(collection, res_name, verified_res_email, res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", logo_id=file_id)
+    hashed_res_password = hash_password(res_password)
+
+    session["hashed_res_passord"] = hashed_res_password
+
+    insert_document(collection, res_name, verified_res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", logo_id=file_id)
     send_confirmation_email_registered(mail, verified_res_email, restaurant_name, FROM_EMAIL)
+    print("Confirmation of registarion Email has been sent and the account created.\n\n")
+    print(f"Setup hashed res password in session:{hashed_res_password}")
     #send_waitlist_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
 
     # Clear the session variable after access
@@ -573,8 +606,11 @@ def dashboard_display():
     res_email = session.get("res_email")
     res_password = session.get("password")
 
+    hashed_res_password = session.get("hashed_res_password")
+    print(f"hashed_res_password on dashboard {hashed_res_password}")
+
     # Find the instance in MongoDB
-    restaurant_instance = collection.find_one({"email": res_email, "password": res_password})
+    restaurant_instance = collection.find_one({"email": res_email})
 
     # Check if the instance exists
     if restaurant_instance:
@@ -654,7 +690,9 @@ def payments_display():
 
     orders = db_order_dashboard[order_dashboard_id].find()
 
-    payments = [{"timestamp":order.get("timestamp"), "total_paid":round(order.get("total_paid"),2)} for order in orders]
+    payments = orders
+
+    #payments = [{"timestamp":order.get("timestamp"), "total_paid":order.get("total_paid"), ""} for order in orders]
 
     return render_template("dashboard/payments_history.html", payments=payments, restaurant=restaurant)
 
@@ -843,13 +881,25 @@ def payment_buffer(unique_azz_id, id):
     session['access_granted_payment_result'] = True
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
-    items = db_items_cache[unique_azz_id].find_one({"id":id}).get("data")
+    item_db =  db_items_cache[unique_azz_id].find_one({"id":id})
+
+    if item_db == None:
+       abort(403)  # Forbidden
+    else:
+        items = item_db.get("data")
     print(f"Items on payment buffer: {items}")
     CURRENCY = restaurant.get("res_currency", "USD")
 
     #checkout_link = session.get("paypal_link")
     total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
     total_to_pay = str(round(float(total_to_pay), 2))
+
+    session["total"] = total_to_pay
+
+    session["unique_azz_id"] = unique_azz_id
+
+    session["items_ordered"] = items
+    session['order_id'] = id
     
     return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, title="Payment Buffer")
 
@@ -884,7 +934,7 @@ def execute_payment(unique_azz_id):
     if exec_success:
         return redirect(url_for("success_payment", unique_azz_id=unique_azz_id))
     else:
-        return redirect(url_for("cancel_payment"))
+        return redirect(url_for("cancel_payment", unique_azz_id=unique_azz_id))
 
 @app.route("/create_order", methods=['POST','GET'])
 def create_order():
@@ -1057,11 +1107,19 @@ def success_payment_backend(unique_azz_id):
 
     session.pop('access_granted_payment_buffer', None)
     
-    items = session.get('items_ordered', [{'name':'item1', 'quantity':1}, {'name':'item2', 'quantity':2}])
+    items = session.get('items_ordered')
     total_paid = session.get('total')
-    order_id = generate_code()
-    session['order_id'] = order_id
-    total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
+    order_id = session.get("order_id")
+
+    #total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
+    
+    MOM_AI_FEE = float(round(float(round(float(total_paid),2))*0.01, 2))+0.10 # 1 percent retained for prOOOOOOfit
+    PAYPAL_FEE = 0.35+float(round(float(round(float(total_paid),2))*0.0349, 2))
+
+    print(f"MOM AI fee in the order: {MOM_AI_FEE}\n\n")
+    print(f"PAYPAL fee in the order: {PAYPAL_FEE}\n\n")
+
+    total_received = float(total_paid) - float(round(MOM_AI_FEE, 2)) - float(round(PAYPAL_FEE, 2))
 
     print(f"That's how much customer paid: {total_paid}")
     print(f"That's how much restaurant received: {total_received}")
@@ -1081,8 +1139,9 @@ def success_payment_backend(unique_azz_id):
     order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
                         "orderID":order_id,
                         "timestamp": timestamp_utc,
-                        "total_paid": total_received,
-                        "assistant_used": assistant_used,
+                        "total_paid": total_paid,
+                        "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
+                        "paypal_fee": float(round(PAYPAL_FEE, 2)),
                         "published":True}
     
     order_dashboard_id = assistant_used
@@ -1119,26 +1178,42 @@ def success_payment_backend(unique_azz_id):
     flash("Your Order was Successfully Placed!")
 
     # This route can be used for further processing if needed
-    return redirect(url_for('success_payment_display', unique_azz_id=unique_azz_id))
+    return redirect(url_for('success_payment_display', unique_azz_id=unique_azz_id, id=order_id))
 
-@app.route('/success_payment/<unique_azz_id>', methods=["GET", "POST"])
-def success_payment_display(unique_azz_id):
-    order_id = session.get('order_id', 'a_nema')
-    if order_id == 'a_nema':
+@app.route('/success_payment/<unique_azz_id>/<id>', methods=["GET", "POST"])
+def success_payment_display(unique_azz_id, id):
+    if not id:
         abort(403)
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     restaurant_name = current_restaurant_instance.get("name")
-    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=unique_azz_id, order_id=order_id)
+    result = db_items_cache[unique_azz_id].delete_one({"id":id})
+
+    # Check if the delete was successful
+    if result.deleted_count > 0:
+        print("Document deleted.")
+    else:
+        print("No document matches the query. Nothing was deleted.")
+    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=unique_azz_id, order_id=id)
     
 
-@app.route('/cancel_payment')
-def cancel_payment():
+@app.route('/cancel_payment/<unique_azz_id>')
+def cancel_payment(unique_azz_id):
 
     if not session.get('access_granted_payment_result'):
         abort(403)  # Forbidden
 
     session.pop('access_granted_payment_buffer', None)
     restaurant_name = session.get("restaurant_name", "restaurant_placeholder")
+    
+    id = session['order_id']
+
+    result = db_items_cache[unique_azz_id].delete_one({"id":id})
+
+    # Check if the delete was successful
+    if result.deleted_count > 0:
+        print("Document deleted.")
+    else:
+        print("No document matches the query. Nothing was deleted.")
     
     res_unique_azz_id = session.get("unique_azz_id")
     

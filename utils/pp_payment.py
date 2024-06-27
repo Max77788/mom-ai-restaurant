@@ -15,7 +15,10 @@ SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDB
 
 SANDBOX = True if os.environ.get("PAYPAL_SANDBOX") == "True" else False
 
+# print(f'os.environ.get("PAYPAL_SANDBOX") is {os.environ.get("PAYPAL_SANDBOX")}')
+
 BASE_URL = "https://api.sandbox.paypal.com" if SANDBOX else "https://api.paypal.com"
+# print(f"BASE_URL sandbox - {SANDBOX}")
 
 api = PaypalAPI({
             'mode': 'sandbox' if SANDBOX else 'live',
@@ -264,6 +267,8 @@ def createOrder():
     amount = f"{float(session.get('total', 10)):.2f}"
     restaurant_name = session.get("restaurant_name", "restaurant_name_place") 
     print(f"Data on /createOrder:\n\n{currency_code, reference_id, amount, restaurant_name}")
+
+    unique_azz_id = session['unique_azz_id']
     
     data = f'''
 {{
@@ -281,7 +286,7 @@ def createOrder():
         "paypal": {{
             "experience_context": {{
                 "payment_method_preference": "IMMEDIATE_PAYMENT_REQUIRED",
-                "brand_name": "MOM AI - {restaurant_name}",
+                "brand_name": "MOM AI - {restaurant_name.replace("_", " ")}",
                 "locale": "en-US",
                 "landing_page": "LOGIN",
                 "user_action": "PAY_NOW",

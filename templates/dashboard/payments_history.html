@@ -25,12 +25,15 @@
     {% if payments %}
         {% for payment in payments %}
         <div class="payment-box">  
-            <p>Amount: {{ payment.total_paid }} {{ restaurant.res_currency }}</p>
-            <p>Time: {{ payment.timestamp }} UTC</p>
+            <p><b>Amount</b>: {{ payment.total_paid }} {{ restaurant.res_currency or "EUR" }}</p>
+            <p><b>MOM AI Restaurant Assistant fee</b>: {{ payment.mom_ai_restaurant_assistant_fee or "undefined" }} EUR</p>
+            <p><b>PayPal fee</b>: {{ payment.paypal_fee or "undefined" }} EUR</p>
+            <p><b>Time</b>: {{ payment.timestamp }} UTC</p>
         </div>
         {% endfor %}
     {% else %}
         <p>No payments have been made yet.</p>
+        <p>The customer purchases will be displayed here.</p>
     {% endif %}
 </div>
 {% endblock %}

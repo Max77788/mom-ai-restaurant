@@ -10,7 +10,7 @@
             <span id="description-error" style="color: red; display: none; padding-bottom: 15px;">Withdrawal description must be between 50 and 500 characters.</span><br>
             <button type="submit" id="leave-request" class="{% if available_amount < 400 %}disabled{% else %}enabled{% endif %}" {% if available_amount < 400 %}disabled{% endif %}>Leave Request</button>
         </form><br>
-        <p>You have {{ available_amount }} USD to withdraw. - <b>Only all funds withdrawal is available</b></p>
+        <p>You have {{ available_amount }} EUR to withdraw. - <b>Only all funds withdrawal is available</b></p>
         <p>Please get familiar with paypal fees - <a href="https://www.paypal.com/us/webapps/mpp/merchant-fees" target="_blank">learn more</a></p>
     {% endif %}
 </p>

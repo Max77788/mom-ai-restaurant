@@ -81,7 +81,14 @@
 </head>
 <body>
     <h1>{{ restaurant_name.replace("_", " ") }} Orders</h1>
-    <h4 style="text-align: center;">*the page is being automatically updated every 20 seconds - you won't miss any orders!</h4>
+    <h4 style="text-align: center; color:#eccc68">*the page is being automatically updated every 20 seconds - you won't miss any orders!</h4>
+    <h3 style="text-align: center; color:#eccc68">
+        Do not forget to setup the telegram notifications 
+        <a href="https://t.me/mom_ai_rest_bot" target="_blank" style="color:aqua">
+            here
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/82/Telegram_logo.svg" alt="Telegram Logo" style="width: 20px; height: 20px; vertical-align: middle;">
+        </a>.
+    </h3>
     <h3>Orders which are older than 30 minutes are in red color</h3>
     <h2 id="no-orders-message" style="text-align: center;">No orders yet, as soon as MOM AI Assistant registers the order it will be displayed here</h2>
     <ul id="orders-list">

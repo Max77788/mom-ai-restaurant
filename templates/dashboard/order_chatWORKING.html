@@ -24,22 +24,22 @@
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
             <!-- Logo display -->
             {% if restaurant.res_logo %}
-            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;">
                 <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
             </div>
             {% else %}
-            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;">
                 <img src="/static/images/Black Bold Initial AI Business Logo.png" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
             </div>  
             {% endif %}
             {% if restaurant_website_url != "No URL provided" %}
-                <p id="welcomeMessage" style="margin-bottom: 7px;">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a><br>Click below to start ordering.</p>
+                <p style="margin-bottom: 7px;">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a><br>Click below to start ordering.</p>
                 
             {% else %}
-                <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
+                <p>Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
             {% endif %}
             {% if assistant_turned_on %}
-            <button id="startChatButton" onclick="startConversation()" style="padding: 10px 20px; font-size: 16px; background-color: #000000; color: white; border: none; border-radius: 5px;">Start New Chat</button>
+            <button onclick="startConversation()" style="padding: 10px 20px; font-size: 16px; background-color: #000000; color: white; border: none; border-radius: 5px;">Start New Chat</button>
             {% else %}
             <p><b>We are currently off. You will be able to take the order later.</b></p>
             {% endif %}
@@ -77,15 +77,7 @@
             .then(data => {
                 currentThreadId = data.thread_id;
                 currentAssistantId = data.assistant_id;
-                
-                // Hide the logo, greeting message, and button
-                document.getElementById('restaurantLogo').style.display = 'none';
-                document.getElementById('welcomeMessage').style.display = 'none';
-                document.getElementById('startChatButton').style.display = 'none';
-
-                // Display the initial message
-                const initialMessage = `Hello, welcome in {{ restaurant_name.replace('_', ' ') }}.<br><br> Please, type in the message to make the order, I will provide you with the best service possible.<br><br>Feel free to check out our restaurant's story and menu <a href="{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}" style="color:#e9e9e9" target="_blank"><u>here.</u></a>`;
-                appendMessage(initialMessage, 'assistant');
+                document.getElementById('chatBox').innerHTML = '<p style="text-align:center;"><b>Type in your message now</b></p>';
                 
                 // Enable the message input and send button
                 document.getElementById('userMessage').disabled = false;
@@ -172,14 +164,15 @@
                 document.getElementById('userMessage').disabled = true;
                 document.querySelector('button[onclick="sendMessage()"]').disabled = true;
                 
-                return window.location.href = message;
+                return window.location.href = message
+                
             }
             {% else %}
             if (message.includes("/payment_buffer")) {
                 document.getElementById('userMessage').disabled = true;
                 document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                let clickable_link = `<a href="${message}" style="color: #c0c0c0;" target="_blank">Press here to proceed.</a>`;
-                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
+                let clickable_link = `<a href=${message} style="color: #c0c0c0;" target="_blank">Press here to proceed.</a>`
+                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`
             }
             {% endif %}
             const messageDiv = document.createElement('div');
