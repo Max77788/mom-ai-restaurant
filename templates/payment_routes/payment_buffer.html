@@ -4,7 +4,7 @@
 
     <div class="payment-buffer-message">
         <h1>Order Confirmation</h1>
-        <p>You are ready to proceed with the payment for</p>
+        <p>You are ready to proceed with the payment</p>
         <ul>
             {% for item in items %}
                 <li>
@@ -67,7 +67,7 @@ paypal.Button.render({
 <!-- Set up a container element for the button -->
 <div id="paypal-button-container" style="margin-top: 10px; margin-bottom: 20px"></div>
 
-<a href='{{ url_for("assistant_order_chat", unique_azz_id=unique_azz_id) }}'><button>Come Back</button></a>
+<!-- <a href='{{ url_for("assistant_order_chat", unique_azz_id=unique_azz_id) }}'><button>Come Back</button></a> -->
 
 <!-- Include the PayPal JavaScript SDK -->
 <script src="https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency={{ CURRENCY }}"></script>
