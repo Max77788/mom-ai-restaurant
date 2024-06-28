@@ -149,6 +149,12 @@ a {
    color: #4E1E1E; 
 }
 
+.responsive-video {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+  }
+
 .flash-message {
     padding: 10px 20px;
     border: 1px solid #ccc;

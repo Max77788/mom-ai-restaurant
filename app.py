@@ -707,7 +707,7 @@ def show_restaurant_profile():
     restaurant_balance = round(restaurant.get("balance"), 2)
     connected_chats_len = len(restaurant.get("notif_destin", []))
     if restaurant:
-        return render_template('dashboard/profile.html', restaurant=restaurant, restaurant_balance=restaurant_balance, connected_chats=connected_chats_len)
+        return render_template('dashboard/profile.html', restaurant=restaurant, restaurant_balance=restaurant_balance, connected_chats=connected_chats_len, unique_azz_id=unique_azz_id)
     else:
         return "Restaurant not found", 404
 

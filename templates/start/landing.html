@@ -51,6 +51,9 @@ font-weight: bold;
 text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 white-space: nowrap;
 }
+@media (max-width: 700px) {
+   
+}
 </style>
 
 {% with messages = get_flashed_messages() %}
@@ -83,14 +86,16 @@ white-space: nowrap;
 <div style="text-align: center;">
     <h1 style="text-align: center;">Designed with the support and the best practices of</h1>
 <!-- Carousel for logos -->
-<div class="carousel">
-    <!-- Replace the src with the actual logo paths -->
+<div class="image-container">
+    <img src="/static/images/bulls_logos/mom_ai_bull_logos.png" alt="MOM AI Ambassadors">
+</div>
+<!-- <div class="carousel">
     <img src="/static/images/bulls_logos/google-logo-png-google-sva-scholarship-20.png" alt="Logo Google">
     <img src="/static/images/bulls_logos/Paypal_2014_logo.png" alt="Logo PayPal">
     <img src="/static/images/bulls_logos/OpenAI_Logo.png" alt="Logo OpenAI">
     <img src="/static/images/bulls_logos/Telegram_logo.webp" alt="Logo Telegram">
     <img src="/static/images/bulls_logos/Heroku_logo.png" alt="Logo Heroku">
-</div>
+</div> -->
 <hr>
    <div id="registration-form"></div>
     <h1>Welcome to MOM AI Restaurant Assistant <span style="font-size: 77%;"><a href="#instructions"><b><u>(Check the setup guide)</u></b></a></span></h1>
@@ -107,9 +112,9 @@ white-space: nowrap;
             {{ form.restaurant_url }}
         </div>
         <div class="form-group">
-            <label for="menu">Upload Menu (only Excel File - <a href='{{ url_for("serve_excel_guide") }}' target="_blank"><u>Read the guide on how to form excel menu file</u></a> or <a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank"><u>Talk to MOM AI GPT and have your menu file formed!</u></a>)</label>
+            <label for="menu">Upload Menu (only Excel File - <!-- <a href='{{ url_for("serve_excel_guide") }}' target="_blank"><u>Read the guide on how to form excel menu file</u></a> or --> <a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank"><u>Talk to MOM AI GPT and have your menu file formed!</u></a>)</label>
             <p><p style="font-size: 14px;"><b><i>please, state the prices in Euro.</i></b></p>
-            <p style="font-size: 14px;"><b><i>**in case of ambiguity we will form this file for you - simply drop your menu file or webpage link on <a href="mailto:contact@mom-ai-agency.site">contact@mom-ai-agency.site</a></u></b></i></p>
+            <!-- <p style="font-size: 14px;"><b><i>**in case of ambiguity we will form this file for you - simply drop your menu file or webpage link on <a href="mailto:contact@mom-ai-agency.site">contact@mom-ai-agency.site</a></u></b></i></p> -->
             {{ form.menu }}
         </div>
         <!--
@@ -152,7 +157,7 @@ white-space: nowrap;
     <h3 style="text-align: center; margin-bottom: 5px; margin-top: 5px;">Video Guide</h3>
     
     <div id="register-guide" style="align-items: center; text-align: center;">
-    <video width="640" height="360" controls poster="/static/images/thumbnails/Thumbnail_Registration.png">
+    <video class="responsive-video" controls poster="/static/images/thumbnails/Thumbnail_Registration.png">
         <source src="/static/videos/MOMAI_Registration.mp4" type="video/mp4">
         Your browser does not support the video tag.
     </video>
@@ -190,7 +195,7 @@ white-space: nowrap;
             <ol style="margin-top: 10px; padding-left: 20px;">
                 <li>Access the "Order Dashboard" to view incoming orders.</li>
                 <li><a href="https://t.me/mom_ai_rest_bot" target="_blank">MOM AI Restaurant Assistant telegram bot</a> will notify you about new orders via Telegram chat(works in the background).</li>
-                <li>Track the orders' dates & manage your restaurant operations efficiently.</li>
+                <li>Track the orders' details & manage your restaurant operations efficiently.</li>
             </ol>
         </li>
     </ol>
@@ -198,14 +203,15 @@ white-space: nowrap;
     <h3 style="margin-top: 30px; color: #2c3e50;"><strong>Pricing Overview</strong></h3>
     <ul style="line-height: 1.6; color: #34495e;">
         <li>Pay as you go based on the usage of the AI assistant.</li>
-        <li>Message Fee: ~$0.03 per message sent by the AI assistant.</li>
-        <li>Order Fee: 1% of the total price of each successfully paid order.</li>
-        <li>Estimated Cost per Order: Approximately $0.20 based on average message volume per chat.</li>
-        <li><b>No upfront payments required!</b> At the start, <b>you receive $3</b> to pay for chat messages and generate your first AI order!</li>
+        <li>Message Fee: ~0.03€ per message sent by the AI assistant.</li>
+        <li>MOM AI Order Fee: 0.10€+1% of the total price of each successfully paid order.</li>
+        <li>PayPal Order Fee: 0.35€+3.49% of the total price of each successfully paid order.</li>
+        <!-- <li>Estimated Cost per Order: Approximately $0.20 based on average message volume per chat.</li> -->
+        <li><b>No upfront payments required!</b> At the start, <b>you receive 3€</b> to cover the AI-usage and generate your first AI order!</li>
     </ul>
 
     <h3 style="margin-top: 30px; color: #2c3e50;"><strong>How do I access my funds?</strong></h3>
-    <p style="line-height: 1.6; color: #34495e;"> - Once you earn $100 on the MOM AI Restaurant Assistant platform, you can visit the "Withdraw Funds" section on your dashboard(left upper corner) and request the withdrawal of your funds in a way convenient for you, including crypto!</p>
+    <p style="line-height: 1.6; color: #34495e;"> - Once you earn 100€ on the MOM AI Restaurant Assistant platform, you can visit the "Withdraw Funds" section on your dashboard(left upper corner) and request the withdrawal of your funds in a way convenient for you!</p>
 </div>
 
 <!-- Case Study Section -->
