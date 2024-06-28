@@ -50,10 +50,10 @@
     <nav class="navigation">
         <ul>
             <li><strong>For Restaurants:</strong></li>
-            <li><a href="/#registration-form"><u>Register</u></a></li>
-            <li><a href="/login"><u>Login</u></a></li>
+            <li><a href="/#registration-form"><u><b>Register</b></u></a></li>
+            <li><a href="/login"><u><b>Login</b></u></a></li>
             <li><strong>For Customers:</strong></li>
-            <li><a href="/ai-restaurants"><u>List of Top AI-Restaurants</u></a></li>
+            <li><a href="/ai-restaurants"><u><b>List of Top AI-Restaurants</b></u></a></li>
         </ul>
     </nav>
 
@@ -135,41 +135,52 @@
         }
         .navigation {
             background-color: #000;
-            max-width: 100%;
+            width: 100%;
+            height: 60px; /* Initial height for the navigation bar */
+            display: flex;
+            justify-content: center; /* Center the navigation bar */
+            align-items: center; /* Vertically center the items */
         }
-        /* General styles for the navigation */
+
         .navigation ul {
             list-style-type: none; /* Remove default list styling */
             margin: 0;
             padding: 0;
             display: flex; /* Use flexbox for layout */
-            flex-wrap: wrap; /* Allow items to wrap to the next line */
+            flex-wrap: wrap; /* Allow items to wrap to the next line if necessary */
             justify-content: space-around; /* Distribute items evenly */
+            align-items: center; /* Center items vertically */
+            width: 100%; /* Make the ul take the full width */
+            max-width: 1200px; /* Maximum width for larger screens */
+            padding: 0 20px; /* Padding for responsiveness */
         }
 
-        /* Styles for individual list items */
         .navigation li {
-            margin: 10px; /* Add some spacing around items */
-            flex: 1 1 auto; /* Allow items to grow and shrink */
+            margin: 0 10px; /* Adjust spacing around items */
             text-align: center; /* Center the text */
             color:#f0f0f0
         }
 
-        /* Media query for small screens */
-        @media (max-width: 600px) {
+        .navigation a {
+            color: #00ffff; /* Ensure links are still visible */
+            text-decoration: underline;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .navigation {
+                height: 167px; /* Increase height for smaller screens */
+            }
+            
             .navigation ul {
                 flex-direction: column; /* Stack items vertically */
+                justify-content: center; /* Center items vertically */
+                padding: 10px 0; /* Add some vertical padding */
             }
 
             .navigation li {
-                width: 100%; /* Make each item take the full width */
-                text-align: center; /* Align text to the left */
+                margin: 5px 0; /* Adjust spacing for vertical layout */
             }
-        }
-        .navigation a {
-            text-decoration: none;
-            color: #00FFFF;
-            font-weight: 600;
         }
         .navigation a:hover {
             text-decoration: underline;
