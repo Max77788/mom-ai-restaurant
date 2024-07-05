@@ -627,7 +627,7 @@ def enter_code():
                 # Clear the session variable after access
                 session.pop('access_granted_email_enter_code', None)
                 session["access_granted_email_confirm_page"] = True
-                return redirect(url_for('confirm_email'))
+                return redirect(url_for('confirm_email', res_email=res_email))
         else:
             flash('Invalid confirmation code. Please try again.', 'error')
 
@@ -635,7 +635,7 @@ def enter_code():
 
 
 @app.route('/confirm_email')
-def confirm_email():
+def confirm_email(res_email):
     # Check if the session variable is set
     if not session.get('access_granted_email_confirm_page'):
         abort(403)  # Forbidden
@@ -660,7 +660,7 @@ def confirm_email():
     res_password = session.get("password", "password_placeholder")
     print(f"Restaurant Password: {res_password}")
 
-    verified_res_email = session.get("verified_res_email", "email_placeholder")
+    #verified_res_email = session.get("verified_res_email", "email_placeholder")
 
     restaurant_name = session.get("restaurant_name")
     
@@ -681,8 +681,8 @@ def confirm_email():
     location_coord = session["location_coord"]
     location_name = session["location_name"]
 
-    insert_restaurant(collection, res_name, verified_res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, logo_id=file_id)
-    send_confirmation_email_registered(mail, verified_res_email, restaurant_name, FROM_EMAIL)
+    insert_restaurant(collection, res_name, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, logo_id=file_id)
+    send_confirmation_email_registered(mail, res_email, restaurant_name, FROM_EMAIL)
     print("Confirmation of registarion Email has been sent and the account created.\n\n")
     print(f"Setup hashed res password in session:{hashed_res_password}")
     
