@@ -638,8 +638,8 @@ def enter_code():
                 session.pop('access_granted_email_enter_code', None)
                 session["access_granted_email_confirm_page"] = True
                 return redirect(url_for('confirm_email', res_email=res_email))
-        else:
-            flash('Invalid confirmation code. Please try again.', 'error')
+            else:
+                flash('Invalid confirmation code. Please try again.', 'error')
 
     return render_template('email_confirm/enter_code.html', form=form, res_email=res_email, title="Enter Confirmation Code")
 
