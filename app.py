@@ -111,6 +111,7 @@ def internal_server_error(error):
     # Log the error if necessary
     app.logger.error(f"Server Error: {error}")
     # Redirect to the main page
+    flash("Internal Server Error Occurred - you were redirected to the main page")
     return redirect(url_for('landing_page'))
 
 
