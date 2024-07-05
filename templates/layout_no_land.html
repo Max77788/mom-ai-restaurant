@@ -2,28 +2,27 @@
 <html lang="en">
 <head>
     <!-- Google Analytics Script -->
-<script>
-    // Check if the current hostname is not localhost or 127.0.0.1
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        // Google Tag Manager (gtag.js) snippet
-        (function() {
-            var gtag = document.createElement('script');
-            gtag.async = true;
-            gtag.src = 'https://www.googletagmanager.com/gtag/js?id=G-RKFGF647M8';
-            var s = document.getElementsByTagName('script')[0];
-            s.parentNode.insertBefore(gtag, s);
-        })();
+    <script>
+        // Check if the current hostname is not localhost or 127.0.0.1
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            // Google Tag Manager (gtag.js) snippet
+            (function() {
+                var gtag = document.createElement('script');
+                gtag.async = true;
+                gtag.src = 'https://www.googletagmanager.com/gtag/js?id=G-RKFGF647M8';
+                var s = document.getElementsByTagName('script')[0];
+                s.parentNode.insertBefore(gtag, s);
+            })();
 
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
 
-        gtag('config', 'G-RKFGF647M8');
-    } else {
-        console.log('Analytics tracking disabled for localhost');
-    }
-</script>
-
+            gtag('config', 'G-RKFGF647M8');
+        } else {
+            console.log('Analytics tracking disabled for localhost');
+        }
+    </script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,7 +37,8 @@
 
     <header>
         <img src="{{ url_for('static', filename='logos/logo_trans.png') }}" alt="{{ restaurant_name }} Logo" class="logo" />
-        <p class="slogan">Restaurant of the Future Today!</p><p style="color:black">Simple. Innovative. Classy.</p>
+        <p class="slogan">Restaurant of the Future Today!</p>
+        <p style="color:black">Simple. Innovative. Classy.</p>
     </header>
 
     <main>
@@ -77,18 +77,13 @@
             align-items: center;
             max-width: 1200px;
             margin: 0 auto;
+            flex-wrap: wrap; /* Ensure the content wraps on smaller screens */
         }
-        .footer-left {
-            flex: 1;
-            text-align: left;
-        }
-        .footer-center {
-            flex: 1;
-            text-align: center;
-        }
+        .footer-left,
+        .footer-center,
         .footer-right {
             flex: 1;
-            text-align: right;
+            text-align: left; /* Default text alignment for larger screens */
         }
         .social-icons a {
             margin: 0 10px;
@@ -105,8 +100,31 @@
             display: block;
             margin: 0 auto;
         }
+        /* Responsive design for footer */
+        @media (max-width: 768px) {
+            .footer-left {
+                order: 3; /* Move to last */
+                text-align: center; /* Center-align content on smaller screens */
+            }
+            .footer-center {
+                order: 2; /* Move to middle */
+                text-align: center; /* Center-align content on smaller screens */
+                margin-bottom: 12px;
+            }
+            .footer-right {
+                order: 1; /* Move to first */
+                text-align: center; /* Center-align content on smaller screens */
+                margin-bottom: 12px;
+            }
+            .footer-left,
+            .footer-center,
+            .footer-right {
+                flex: 1 1 100%; /* Make each section take full width */
+            }
+        }
     </style>
 
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>
 </html>
+

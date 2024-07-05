@@ -14,6 +14,8 @@ import json
 from openai import OpenAI
 from time import sleep
 import time
+from datetime import datetime
+import pytz
 import logging
 import bcrypt
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -123,7 +125,7 @@ def check_credentials(email, password, collection, for_login_redirect=False):
         else:
             return False
         
-    print(f'User Password being checked: {user["password"]}')
+    # print(f'User Password being checked: {user["password"]}')
 
     if user:
         # Check the hashed password
@@ -131,11 +133,11 @@ def check_credentials(email, password, collection, for_login_redirect=False):
             return True
     return False
 
-def insert_document(collection, name, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address, wallet_private_key, logo_id=None):
+def insert_restaurant(collection, name, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address, wallet_private_key, location_coord, location_name, logo_id=None):
     """Insert a document into MongoDB that includes a name and two files."""
     # Replace spaces with underscores
-    name = name.replace(" ", "_")
-    unique_azz_id = name+"_"+assistant_id[-4:]
+    #name = name.replace(" ", "_")
+    unique_azz_id = name.replace(" ", "_")+"_"+assistant_id[-4:]
     try:
         # Document to insert
         document = {
@@ -153,9 +155,17 @@ def insert_document(collection, name, email, password, website_url, assistant_id
             "res_currency":currency,
             "res_logo":logo_id,
             "html_menu":html_menu,
+            "location_coord":location_coord,
+            "location_name":location_name, 
             "web3_wallet_address": wallet_public_key_address,
             "web3_private_key": wallet_private_key,
-            "balance": 3
+            "start_work":[10, 10, 10, 10, 10, 10, 10],
+            "end_work":[20, 20, 20, 20, 20, 20, 20],
+            "description":None,
+            "balance": 3,
+            "timezone":"Etc/GMT+0",
+            "profile_visible": True,
+            "addFees": True
             # "stripe_secret_test_key": stripe_secret_test_key
         }
 
@@ -884,6 +894,87 @@ def validate_menu_dataframe(df):
         raise InvalidMenuFormatError(f"Error in the menu - The first row of the third column can be a string, integer, or float. Actual type: {actual_dtype_first_row}")
 
 
+def convert_hours_to_time(hour_string):
+    hour_string = str(hour_string)
+    if "." in hour_string:    
+        # Separate hours and fractional hours
+        hours = float(hour_string.split('.')[0])
+        fractional = float("0."+hour_string.split('.')[1])
+        #print(hours, fractional)
+        total_minutes = int(hours * 60 + fractional * 60)
+
+        #print(total_minutes)
+
+        # Calculate the hour and minutes after converting total_minutes
+        converted_hours = total_minutes // 60
+        minutes = total_minutes % 60
+
+        #print("Converted hours ", converted_hours, " Minutes ", minutes)
+
+        # Normalize the hours to 24-hour format
+        converted_hours = int(converted_hours % 24)
+        
+        return f"{converted_hours}:{minutes:02d}"
+    else:
+        return f"{hour_string}:00"
+
+
+def setup_working_hours():
+    """Function to update whether the restaurant is opened"""
+    #print("Initialized working hours setup")
+    # Iterate over all collections in the database
+    for res_instance in collection.find():
+        
+        start_work = res_instance.get("start_work")
+        end_work = res_instance.get("end_work")
+        timezone = res_instance.get("timezone")
+        
+        # Convert timezone to the correct format for pytz
+        if timezone.startswith("Etc/GMT-"):
+            timezoneG = timezone.replace("-", "+", 1)
+        elif timezone.startswith("Etc/GMT+"):
+            timezoneG = timezone.replace("+", "-", 1)
+        
+        # Get the current date and time in the restaurant's timezone
+        now_tz = datetime.now(pytz.timezone(timezoneG))
+        current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+        current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+        
+        # Adjust current_day to match our list index where Sunday is 0
+        # current_day = (current_day + 1) % 7
+
+        # Determine if the restaurant is open
+        start = start_work[current_day]
+        end = end_work[current_day]
+
+        previous_day_end = end_work[current_day-1]
+
+        if previous_day_end > 24 and current_hour < previous_day_end-24:
+            isWorkingHours = current_hour < previous_day_end-24
+
+        
+        # Check if the current time falls within the working hours
+        if start <= end:
+            # Same day operation
+            isWorkingHours = start <= current_hour < end
+            # Update the restaurant's open status in the database
+            collection.update_one(
+                {"unique_azz_id": res_instance.get("unique_azz_id")},
+                {"$set": {"isOpen": isWorkingHours}}
+            )
+            return
+        else:
+            # Spans to the next day
+            isWorkingHours = current_hour >= start or current_hour < end
+            # Update the restaurant's open status in the database
+            collection.update_one(
+                {"unique_azz_id": res_instance.get("unique_azz_id")},
+                {"$set": {"isOpen": isWorkingHours}}
+            )
+            return
+
+    #print(f"Updated working status successfully!")
+
 
 
 def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currency):
@@ -893,7 +984,7 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
     df = df.fillna('No value provided')
 
     # Format the third column to two decimal places
-    if df.shape[1] >= 3:  # Check if the DataFrame has at least three columns
+    if df.shape[1] == 3:  # Check if the DataFrame has EXACTLY three columns
         df.iloc[:, 2] = df.iloc[:, 2].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
 
     html_menu = df.to_html(classes='table table-striped', index=False)

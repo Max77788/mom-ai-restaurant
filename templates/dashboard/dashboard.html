@@ -9,15 +9,18 @@
       <span class="close-button">&times;</span>
       <h1>Congratulations!</h1>
       <h2>✅Your Account Has Been Successfully Created✅</h2>
-      <h3>Next Step:</h3>
-        <h4>Setup Notifications in 30 seconds</li>
-            <p>1. Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
-            <img src="/static/images/notifications_setup/code_in_tg.png" style="width:auto; max-height: 250px">
-            <p>2. Go to Profile -> Notifications section and paste the obtained code</p>
-            <img src="/static/images/notifications_setup/insert_code.png" style="width:auto; max-height: 250px">
-            <p>3. Now you will be receiving the notification upon the incoming of the paid order</p>
+      <h3>Next Steps:</h3>
+        <h2 style="margin-top: 10px;">1. Setup Notifications in 30 seconds</h2>
+            <p>- Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
+            <!-- <img src="/static/images/notifications_setup/code_in_tg.png" style="width:auto; max-height: 250px"> -->
+            <p>- Go to Profile -> Notifications section and paste the obtained code</p>
+            <!-- <img src="/static/images/notifications_setup/insert_code.png" style="width:auto; max-height: 250px"> -->
+            <p>- Now you will be receiving the notification upon the incoming of the paid order</p>
             <p><i>*you can set up notifications on the multiple devices(e.g. on your phone and the ones of employees)</i></p>
-  </div>
+        <h2 style="margin-top: 10px;">2. Set the working hours of your restaurant</h2>  
+        <p>- Go to Profile -> <a href="/set-working-hours" target="_blank"><u>Set Working Hours</u></a> section and press 'Edit' button</p>
+        <p>- Choose your restaurant's timezone and working hours, press 'Submit' button</p>
+        </div>
 </div>
 
 <!-- Add the CSS styles for the popup -->
@@ -125,9 +128,9 @@
         {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
         <span id="assistantStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">   
             {% if assistant_turned_on %} 
-                Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is taking orders now</i></p>
+                Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currrently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
             {% else %}
-                Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is <b>NOT</b> taking orders now</i></p>
+                Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
             {% endif %}
         </span>
         <label class="switch">
@@ -139,6 +142,36 @@
           Please, visit <b>Menu</b> tab to upload menu<br>and start using AI-assistant
         </span>
         {% endif %}
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
+        <span id="profileVisibilityStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
+            {% if restaurant.profile_visible %}
+                Profile is VISIBLE<br><p style="font-size:0.7em"><i>*users currently <b>CAN</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>
+            {% else %}
+                Profile is HIDDEN<br><p style="font-size:0.7em"><i>*users currently <b>CANNOT</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>
+            {% endif %}
+        </span>
+        <label class="switch">
+            <input type="checkbox" id="profileVisibilityToggle" {% if restaurant.profile_visible %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
+        <span id="addFeeToPaymentStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
+            {% if restaurant.addFees %}
+                Customer pays fee<br><p style="font-size:0.7em"><i>
+                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the payment</i></p>
+            {% else %}
+                Customer DOES NOT pay fee<br><p style="font-size:0.7em"><i>
+                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the payment</i></p>
+            {% endif %}
+        </span>
+        <label class="switch">
+            <input type="checkbox" id="addFeeToPaymentToggle" {% if restaurant.addFees %}checked{% endif %}>
+            <span class="slider round"></span>
+        </label>
       </div>
       
       <!--
@@ -193,20 +226,32 @@
             </div>
         {% endif %}
     {% endwith %}
-  <div id="explanatoryInfo">
-    <h4 style="margin-top: 35px;">What do you want?</h4>
-    <ol>
-      <li><i>"I want to SEE the HISTORY of MADE PAYMENTS"</i> - Click on the <b>Payments</b> tab
-      <hr>
-      <li><i>"I want to know WHAT IS THE CURRENT MENU the assistant refers to and, probably, UPDATE it"</i> - Click on the <b>Menu</b> tab
-      <hr>
-      <li><i>"I want to actually <b>start using assistant</b> and integrate it with my restaurant"</i> - Click on the <b>Assistant</b> tab
-      <hr>
-      <li><i>"I want to MODIFY MY PROFILE and SETUP THE NOTIFICATIONS to receive on incoming orders"</i> - Click on the <b>Profile</b> tab
-      <hr>
-      <li><i>"I want to OPEN THE DASHBOARD with taken orders displayed"</i> - Click on the <b>View Orders</b> tab
-    </ol>          
-</div>
+    <div id="explanatoryInfo" style="padding: 20px; background-color: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
+        <h4 style="margin-top: 35px; color: #333;">What do you want?</h4>
+        <ol style="list-style-type: none; padding-left: 0;">
+            <li style="margin-bottom: 20px;">
+                <i>"I want to SEE the HISTORY of MADE PAYMENTS"</i> - Click on the <b>Payments</b> tab
+            </li>
+            <hr style="border: none; border-top: 1px solid #ccc;">
+            <li style="margin-bottom: 20px;">
+                <i>"I want to know WHAT IS THE CURRENT MENU the assistant refers to and, probably, UPDATE it"</i> - Click on the <b>Menu</b> tab
+            </li>
+            <hr style="border: none; border-top: 1px solid #ccc;">
+            <li style="margin-bottom: 20px;">
+                <i>"I want to actually <b>start using assistant</b> and integrate it with my restaurant"</i> - Click on the <b>Assistant</b> tab
+            </li>
+            <hr style="border: none; border-top: 1px solid #ccc;">
+            <li style="margin-bottom: 20px;">
+                <i>"I want to MODIFY MY PROFILE and SETUP THE NOTIFICATIONS to receive on incoming orders"</i> - Click on the <b>Profile</b> tab
+            </li>
+            <hr style="border: none; border-top: 1px solid #ccc;">
+            <li style="margin-bottom: 20px;">
+                <i>"I want to OPEN THE DASHBOARD with taken orders displayed"</i> - Click on the <b>View Orders</b> tab
+            </li>
+        </ol>
+        <h3 style="margin-top: 30px;"><a href="/dashboard?show_popup=True" style="color: #007bff; text-decoration: underline;"><u>Check out the setup guide</u></a></h3>
+    </div>
+    
 
 <script>
 
@@ -311,9 +356,9 @@
 
               // Update the status label
               if (assistantTurnedOn) {
-                  statusLabel.innerHTML = 'Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is taking orders now</i></p>';
+                  statusLabel.innerHTML = 'Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currrently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>';
               } else {
-                  statusLabel.innerHTML = 'Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is <b>NOT</b> taking orders now</i></p>';
+                  statusLabel.innerHTML = 'Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>';
               }
 
               // Send the assistantTurnedOn state to the server using AJAX
@@ -334,6 +379,76 @@
           });
       }
 
+      
+      
+      // Restaurant profile visibility toggle
+      const profileVisibilityToggle = document.getElementById('profileVisibilityToggle');
+      const profileVisibilityStatus = document.getElementById('profileVisibilityStatus');
+
+      if (profileVisibilityToggle) {
+          profileVisibilityToggle.addEventListener('change', function() {
+              var profileVisible = this.checked;
+              console.log('Profile visibility toggle changed:', profileVisible); // Debugging: Check if the toggle is detected
+
+              // Update the status label
+              if (profileVisible) {
+                  profileVisibilityStatus.innerHTML = 'Profile is VISIBLE<br><p style="font-size:0.7em"><i>*users currently <b>CAN</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>';
+              } else {
+                  profileVisibilityStatus.innerHTML = 'Profile is HIDDEN<br><p style="font-size:0.7em"><i>*users currently <b>CANNOT</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>';
+              }
+
+              // Send the profileVisible state to the server using AJAX
+              var xhr = new XMLHttpRequest();
+              xhr.open('POST', '/profile_visibility_toggler', true);
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.onreadystatechange = function() {
+                  if (xhr.readyState === 4) {
+                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
+                      if (xhr.status === 200) {
+                          console.log('Profile visibility state updated successfully.');
+                      } else {
+                          console.error('Error updating profile visibility state.');
+                      }
+                  }
+              };
+              xhr.send(JSON.stringify({ profile_visible: profileVisible }));
+          });
+      }
+
+      // Restaurant add fee toggle
+      const addFeeToPaymentToggle = document.getElementById('addFeeToPaymentToggle');
+      const addFeeToPaymentStatus = document.getElementById('addFeeToPaymentStatus');
+
+      if (addFeeToPaymentToggle) {
+            addFeeToPaymentToggle.addEventListener('change', function() {
+              var addFeeToPayment = this.checked;
+              console.log('Add fee to payment toggle changed:', addFeeToPayment); // Debugging: Check if the toggle is detected
+
+              // Update the status label
+              if (addFeeToPayment) {
+                addFeeToPaymentStatus.innerHTML = 'Customer pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the payment</i></p>';
+              } else {
+                addFeeToPaymentStatus.innerHTML = 'Customer DOES NOT pay fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the payment</i></p>';
+              }
+
+              // Send the profileVisible state to the server using AJAX
+              var xhr = new XMLHttpRequest();
+              xhr.open('POST', '/add_fee_payment_toggler', true);
+              xhr.setRequestHeader('Content-Type', 'application/json');
+              xhr.onreadystatechange = function() {
+                  if (xhr.readyState === 4) {
+                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
+                      if (xhr.status === 200) {
+                          console.log('Add fee to payment state updated successfully.');
+                      } else {
+                          console.error('Error updating add fee to payment state.');
+                      }
+                  }
+              };
+              xhr.send(JSON.stringify({ add_fee_payment: addFeeToPayment }));
+          });
+      }
+      
       /*
       const paymentGatewayToggle = document.getElementById('paymentGatewayToggle');
       const paymentGatewayStatus = document.getElementById('paymentGatewayStatus');

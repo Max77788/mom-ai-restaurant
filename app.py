@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from utils.functions import InvalidMenuFormatError, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_document, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
+from utils.functions import InvalidMenuFormatError, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -22,6 +22,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId  # Import ObjectId from bson
 import io
 import logging
+import pytz
 #from tools.stellar_payments.list_payments import list_received_payments
 #from tools.stellar_payments.create_account import create_stellar_account
 from dotenv import load_dotenv, find_dotenv
@@ -82,6 +83,7 @@ CLIENT_OPENAI = AzureOpenAI(
 """
 
 EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
+GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 
 fs = gridfs.GridFS(db)
 
@@ -106,12 +108,14 @@ def forbidden(error):
 def schedule_tasks():
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
+    scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=15)
     scheduler.start()
     print("The scheduler started")
 
 
 with app.app_context():
     schedule_tasks()
+    
 
 
 # Middleware to modify headers
@@ -150,7 +154,7 @@ def landing_page():
 
     #if session.get("res_email"):
         #return redirect(url_for("notify_waitlist"))
-
+    """
     form = RestaurantForm()
     print("Form Created")
 
@@ -178,6 +182,15 @@ def landing_page():
 
         password = form.password.data
         #print(f"Restaurant password: {password}")
+
+        location_coord = request.form['location']
+        print(f"Location: {location_coord}")
+        
+        location_name = request.form['locationName']
+        print(f"Location Name: {location_name}")
+
+        session["location_coord"] = location_coord
+        session["location_name"] = location_name
 
         #currency = form.currency.data
         #print(f"Currency of the restaurant: {currency}")
@@ -300,6 +313,213 @@ def landing_page():
         # Optionally, you can insert these details into a database here
         # insert_document(collection, restaurant_name, menu_encoded, script_encoded, assistant.id)
         
+        '''
+        if menu_path == script_path:
+            os.remove(menu_path)
+        else:    
+            os.remove(menu_path)
+            os.remove(script_path)
+        print("Temporary files removed")
+        '''
+        
+        messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
+        session['messages'] = messages
+        
+        users_email = form.email.data
+
+        session['res_email'] = users_email
+
+        # Assume code generation and email sending are handled here
+        generated_confirmation_code = generate_code()  # You need to implement this
+
+        #print(mail)
+        #print(users_email)
+        #print(generated_confirmation_code)
+        #print(FROM_EMAIL)
+
+        send_confirmation_email(mail, users_email, generated_confirmation_code, FROM_EMAIL)  # Implement this
+        session['expected_code'] = generated_confirmation_code  # Store in session for simplicity
+        
+        session["access_granted_email_enter_code"] = True
+
+        # Save other form data as needed, then redirect to enter the code
+        return redirect(url_for('enter_code'))
+
+
+    else:
+        if check_credentials(form.email.data, form.password.data, collection, for_login_redirect=True):
+            flash('It seems that your email and password are already registered. Please log in.')
+            return redirect(url_for('login'))
+        # Output the errors
+        for field, errors in form.errors.items():
+            for error in errors[:1]:
+                print(f"Error in field '{field}': {error}")
+                flash(f"Error in field '{field}': {error}", 'error')
+        print("Form not submitted or validation failed")
+    """
+    
+    return render_template('start/landing.html', title="Restaurant Assistant")
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    form = RestaurantForm()
+    print("Form Created")
+
+    if form.validate_on_submit():
+        print("Pressed submit")
+
+        session["email"] = form.email.data
+        session["password"] = form.password.data
+
+        if check_credentials(form.email.data, form.password.data, collection, for_login_redirect=True):
+            flash('It seems that your email and password are already registered. Please log in.')
+            return redirect(url_for('login'))
+
+        restaurant_name = form.restaurant_name.data
+        print(f"Restaurant name: {restaurant_name}")
+
+        if form.restaurant_url.data:
+            restaurant_url = form.restaurant_url.data
+            print(f"Restaurant website URL: {restaurant_url}")
+        else:
+            restaurant_url = "No URL provided"
+
+        #other_instructions = form.other_instructions.data
+        #print(f"Other instructions: {other_instructions}")
+
+        password = form.password.data
+        #print(f"Restaurant password: {password}")
+
+        location_coord = request.form['location']
+        print(f"Location: {location_coord}")
+        
+        location_name = request.form['locationName']
+        print(f"Location Name: {location_name}")
+
+        session["location_coord"] = location_coord
+        session["location_name"] = location_name
+
+        #currency = form.currency.data
+        #print(f"Currency of the restaurant: {currency}")
+
+        currency = "EUR"
+
+        session["currency"] = "EUR"
+
+        # Save the image to GridFS
+        image = form.image.data
+        #print(f'Image Received:{image}')
+        if image:
+            filename = secure_filename(image.filename)
+            file_id = fs.put(image, filename=filename)
+            print(f'Raw file id {file_id} and string file id {str(file_id)}')
+            session["logo_id"] = str(file_id)
+        
+
+        if request.files['menu']:
+            menu = request.files['menu']
+            #script = request.files['script']
+
+            # Extract the original file extensions
+            menu_extension = os.path.splitext(menu.filename)[1]
+            #script_extension = os.path.splitext(script.filename)[1]
+
+            menu_filename = secure_filename(f"menu_file{menu_extension}")
+            #script_filename = secure_filename(f"script_file{script_extension}")
+
+            # print(f"Menu filename: {menu_filename}")
+            # print(f"Script filename: {script_filename}")
+
+            menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
+            #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
+            # print(f"Menu xlsx path: {menu_xlsx_path}")
+            # print(f"Script path: {script_path}")
+
+            # Save the files
+            menu.save(menu_xlsx_path)
+            #script.save(script_path)
+            # print("Files saved")
+
+            menu_save_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
+            
+            menu_txt_path, html_menu = convert_xlsx_to_txt_and_menu_html(menu_xlsx_path, menu_save_path, currency)
+            
+            if not isinstance(menu_txt_path, str):
+               print("Entered Invalid Menu Error.")
+               flash(str(menu_txt_path))
+               return redirect("/register")
+            # print(f"Generated menu txt file: {menu_txt_path}")
+
+            session["restaurant_name"] = restaurant_name
+            session["res_website_url"] = restaurant_url
+            session["html_menu"] = html_menu       
+
+            with open(menu_txt_path, 'rb') as menu_file:
+                menu_encoded = base64.b64encode(menu_file.read())
+                #script_encoded = base64.b64encode(script_file.read())
+        
+            #session["menu_encoded"] = menu_encoded
+            #session["script_encoded"] = script_encoded
+
+            print(f"\nMenu encoded: {menu_encoded}\n")
+            #print(f"\nScript encoded: {script_encoded}\n")
+            print("Files encoded")
+            
+            print(f"Menu TXT path passed {menu_txt_path}")
+
+            assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_txt_path, client=CLIENT_OPENAI)
+
+            session['assistant_id'] = assistant.id
+            session['menu_file_id'] = menu_file_id
+            session['menu_vector_id'] = menu_vector_id
+
+            messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
+            session['messages'] = messages
+            
+            users_email = form.email.data
+
+            session['res_email'] = users_email
+
+            # Assume code generation and email sending are handled here
+            generated_confirmation_code = generate_code()  # You need to implement this
+
+            #print(mail)
+            #print(users_email)
+            #print(generated_confirmation_code)
+            #print(FROM_EMAIL)
+
+            send_confirmation_email(mail, users_email, generated_confirmation_code, FROM_EMAIL)  # Implement this
+            session['expected_code'] = generated_confirmation_code  # Store in session for simplicity
+            
+            session["access_granted_email_enter_code"] = True
+
+            # Save other form data as needed, then redirect to enter the code
+            return redirect(url_for('enter_code'))
+
+
+        
+        session["password"] = password
+
+
+        session["restaurant_name"] = restaurant_name
+        session["res_website_url"] = restaurant_url        
+
+        
+        session["password"] = password
+
+        #print(f"Files saved at {menu_txt_path} and {script_path}")
+        
+        #session["menu_encoded"] = menu_encoded
+        #session["script_encoded"] = script_encoded
+
+        assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
+        session['assistant_id'] = assistant.id
+        session['menu_vector_id'] = menu_vector_id
+        session['menu_file_id'] = menu_file_id
+
+        # Optionally, you can insert these details into a database here
+        # insert_document(collection, restaurant_name, menu_encoded, script_encoded, assistant.id)
+        
         """
         if menu_path == script_path:
             os.remove(menu_path)
@@ -343,8 +563,7 @@ def landing_page():
                 print(f"Error in field '{field}': {error}")
                 flash(f"Error in field '{field}': {error}", 'error')
         print("Form not submitted or validation failed")
-    
-    return render_template('start/landing.html', form=form, title="Restaurant Assistant")
+    return render_template('start/register.html', form=form, title="Register", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -365,7 +584,7 @@ def login():
             print('Login failed. Check your email and password.')
             flash('Login failed. Check your email and password.')
             return redirect(url_for('login'))
-    return render_template('start/login.html', form=form, title="Login")
+    return render_template('start/login.html', form=form, title="Login", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -423,6 +642,49 @@ def confirm_email():
     
     # Clear the session variable after access
     session.pop('access_granted_email_confirm_page', None)
+
+    #session["res_email"] = session.get("verified_res_email")
+
+    res_name = session.get("restaurant_name", "name_placeholder")
+    print(f"Restaurant Name: {res_name}")
+
+    #menu_file = session.get("menu_encoded", "menu_placeholder")
+    #print(f"Menu File: {menu_file}")
+
+    #script_file = session.get("script_encoded", "script_placeholder")
+    #print(f"Script File: {script_file}")
+
+    assistant_id = session.get("assistant_id", "assistant_id_placeholder")
+    print(f"Assistant ID: {assistant_id}")
+
+    res_password = session.get("password", "password_placeholder")
+    print(f"Restaurant Password: {res_password}")
+
+    verified_res_email = session.get("verified_res_email", "email_placeholder")
+
+    restaurant_name = session.get("restaurant_name")
+    
+    website_url = session.get("res_website_url", "Restaurant URL placeholder")
+
+    menu_file_id = session.get("menu_file_id")
+    menu_vector_id = session.get("menu_vector_id")
+
+    currency = session.get("currency")
+    html_menu = session.get("html_menu")
+
+    file_id = session.get("logo_id", "666af654dee400a1d635eb08")
+
+    hashed_res_password = hash_password(res_password)
+
+    session["hashed_res_passord"] = hashed_res_password
+
+    location_coord = session["location_coord"]
+    location_name = session["location_name"]
+
+    insert_restaurant(collection, res_name, verified_res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, logo_id=file_id)
+    send_confirmation_email_registered(mail, verified_res_email, restaurant_name, FROM_EMAIL)
+    print("Confirmation of registarion Email has been sent and the account created.\n\n")
+    print(f"Setup hashed res password in session:{hashed_res_password}")
     
     session["verified_res_email"] = session.get("res_email", "placeholder_email")
     # Example: mark user as 'email_verified' in your database
@@ -523,46 +785,7 @@ def assistant_demo_chat():
     
     session['messages'] = messages
     print(messages)
-    
-    #session["res_email"] = session.get("verified_res_email")
 
-    res_name = session.get("restaurant_name", "name_placeholder")
-    print(f"Restaurant Name: {res_name}")
-
-    #menu_file = session.get("menu_encoded", "menu_placeholder")
-    #print(f"Menu File: {menu_file}")
-
-    #script_file = session.get("script_encoded", "script_placeholder")
-    #print(f"Script File: {script_file}")
-
-    assistant_id = session.get("assistant_id", "assistant_id_placeholder")
-    print(f"Assistant ID: {assistant_id}")
-
-    res_password = session.get("password", "password_placeholder")
-    print(f"Restaurant Password: {res_password}")
-
-    verified_res_email = session.get("verified_res_email", "email_placeholder")
-
-    restaurant_name = session.get("restaurant_name")
-    
-    website_url = session.get("res_website_url", "Restaurant URL placeholder")
-
-    menu_file_id = session.get("menu_file_id")
-    menu_vector_id = session.get("menu_vector_id")
-
-    currency = session.get("currency")
-    html_menu = session.get("html_menu")
-
-    file_id = session.get("logo_id", "666af654dee400a1d635eb08")
-
-    hashed_res_password = hash_password(res_password)
-
-    session["hashed_res_passord"] = hashed_res_password
-
-    insert_document(collection, res_name, verified_res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", logo_id=file_id)
-    send_confirmation_email_registered(mail, verified_res_email, restaurant_name, FROM_EMAIL)
-    print("Confirmation of registarion Email has been sent and the account created.\n\n")
-    print(f"Setup hashed res password in session:{hashed_res_password}")
     #send_waitlist_email(mail, verified_res_email, restaurant_name, FROM_EMAIL)
 
     # Clear the session variable after access
@@ -584,15 +807,29 @@ def assistant_demo_chat():
 def market_dashboard():
     page = request.args.get('page', 1, type=int)
     per_page = 12  # 2 columns * 6 rows
-    restaurants, total = get_restaurants(page, per_page)  # Function to fetch paginated restaurant data
-    return render_template('marketing_dashboard/market_dashboard.html', restaurants=restaurants, page=page, per_page=per_page, total=total, title="AI Restaurants Market")
+    search_query = request.args.get('location', '')
+    restaurants, total = get_restaurants(page, per_page, search_query)  # Function to fetch paginated restaurant data
+    return render_template('marketing_dashboard/market_dashboard.html', restaurants=restaurants, page=page, per_page=per_page, total=total, title="AI Restaurants Market", search_query=search_query, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
-def get_restaurants(page, per_page):
+def get_restaurants(page, per_page, search_query=''):
     skip = (page - 1) * per_page
-    cursor = collection.find().skip(skip).limit(per_page)
+    cursor = collection.find()
     total = collection.count_documents({})
     restaurants = list(cursor)
-    return restaurants, total
+    
+    if search_query:
+        search_terms = [term.strip().lower() for term in search_query.split(',')]
+        filtered_restaurants = [r for r in restaurants if any(term in r.get('location_name', '').lower() for term in search_terms) and r.get('profile_visible', False)]
+    else:
+        filtered_restaurants = [r for r in restaurants if r.get('profile_visible', True)]
+
+    total = len(filtered_restaurants)
+    start = (page - 1) * per_page
+    end = start + per_page
+    paginated_restaurants = filtered_restaurants[start:end]
+
+    return paginated_restaurants, total
+
 
 @app.route('/dashboard', methods=['POST', 'GET'])
 def dashboard_display():
@@ -724,6 +961,33 @@ def toggle_assistant():
     # Respond with the new state
     return jsonify({'assistant_turned_on': assistant_turned_on})
 
+@app.route('/profile_visibility_toggler', methods=['POST'])
+def toggle_profile_visibility():
+    data = request.get_json()
+    profile_visible = data.get('profile_visible')
+    print(f"Profile visible: {profile_visible}")
+
+    unique_azz_id = session.get("unique_azz_id")
+    print(unique_azz_id)
+    collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"profile_visible":profile_visible}})
+    
+    # Respond with the new state
+    return jsonify({'profile_visible': profile_visible})
+
+@app.route('/add_fee_payment_toggler', methods=['POST'])
+def toggle_add_fee_payment():
+    data = request.get_json()
+    add_fee_payment = data.get('add_fee_payment')
+    print(f"add_fee_payment: {add_fee_payment}")
+
+    unique_azz_id = session.get("unique_azz_id")
+    print(unique_azz_id)
+    collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"addFees":add_fee_payment}})
+    
+    # Respond with the new state
+    return jsonify({'add_fee_payment': add_fee_payment})
+
+
 '''
 @app.route('/payment_gateway_toggler', methods=['POST'])
 def toggle_payment_gateway():
@@ -756,6 +1020,8 @@ def update_profile(attribute):
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'name': new_value}})
         elif attribute == 'website_url' and new_value:
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'website_url': new_value}})
+        elif attribute == 'description' and new_value:
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'description': new_value}})    
         elif attribute == 'notif_destin' and new_value:
             collection.update_one({'unique_azz_id': current_uni_azz_id},{'$push': {'notif_destin': new_value}})
             NEW_CHAT_MESSAGE = f"🔝You are the best\n\nYou have successfully setup notifications!\n\nMOM AI bot will notify you upon upcoming of new orders in this chat.\n\nNow you should go to the 'Assistant' tab and start using your MOM AI Restaurant Assistant!"
@@ -784,6 +1050,43 @@ def update_profile(attribute):
                 flash(f"Error in the {getattr(form, field).label.text} field - {error}", 'danger')
                 print(f"Error in the {getattr(form, field).label.text} field - {error}")
     return render_template('settings/profile_update.html', form=form, attribute=attribute, restaurant=restaurant, title="Update Profile")
+
+@app.route('/set-working-hours')
+def set_working_hours():
+    current_uni_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({'unique_azz_id': current_uni_azz_id})
+
+    start_hours = restaurant["start_work"]
+    end_hours = restaurant["end_work"]
+
+    current_rest_timezone = restaurant.get('timezone', None)
+    print(f"Current restaurant timezone: ", current_rest_timezone)
+
+    return render_template('settings/set_working_hours.html', title="Set Working Hours", start_hours=start_hours, end_hours=end_hours, restaurant=restaurant, current_rest_timezone=current_rest_timezone)
+
+
+
+@app.route('/submit_hours', methods=['POST'])
+def submit_hours():
+    working_hours = request.json['schedule']
+    timezone = request.json['timezone']
+    # Process the working hours as needed
+    # For now, we'll just print them
+    print(working_hours)
+    current_uni_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({'unique_azz_id': current_uni_azz_id})
+    
+    start_values = []
+    end_values = []
+    
+    for day, times in working_hours.items():
+        start_values.append(times['start'])
+        end_values.append(times['end'])
+    result = collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set':{"start_work":start_values, "end_work":end_values, "timezone":timezone}})
+    print("\nUpdated successfully\n")
+    flash("The working hours were updated successfully")
+
+    return jsonify({"status": "success", "data": working_hours}), 200
 
 
 @app.route('/settings', methods=['POST', 'GET'])
@@ -884,6 +1187,7 @@ def payment_buffer(unique_azz_id, id):
     session['access_granted_payment_result'] = True
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
     item_db =  db_items_cache[unique_azz_id].find_one({"id":id})
 
     if item_db == None:
@@ -894,8 +1198,14 @@ def payment_buffer(unique_azz_id, id):
     CURRENCY = restaurant.get("res_currency", "USD")
 
     #checkout_link = session.get("paypal_link")
-    total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
-    total_to_pay = str(round(float(total_to_pay), 2))
+    if restaurant['addFees']:
+        sum_of_order = sum(float(float(item['amount'])*item['quantity']) for item in items)
+        total_to_pay = str(sum_of_order+0.45+0.049*sum_of_order)
+        total_to_pay = str(round(float(total_to_pay), 2)) 
+        print("Add fees on payment buffer")
+    else:    
+        total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
+        total_to_pay = str(round(float(total_to_pay), 2))
 
     session["total"] = total_to_pay
 
@@ -941,7 +1251,14 @@ def execute_payment(unique_azz_id):
 
 @app.route("/create_order", methods=['POST','GET'])
 def create_order():
-    order = createOrder()
+    addFees = request.args.get('addFees')
+    
+    if addFees == "yes":
+        print("Added fees")
+        order = createOrder(addFees=True)
+    else:
+        order = createOrder()
+
     if order.status_code in [201,200]:  # Check if the request was successful
         order_data = order.json()  # Parse the JSON response
         print(f"Order on create_order: {order_data}")
@@ -1020,6 +1337,30 @@ def assistant_order_chat(unique_azz_id):
     assistant_turned_on = res_instance.get("assistant_turned_on")
     print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
 
+
+    start_work = res_instance.get("start_work")
+    end_work = res_instance.get("end_work")
+    timezone = res_instance.get("timezone")
+    if timezone.startswith("Etc/GMT-"):
+        timezoneG = timezone.replace("-", "+", 1)
+        print("Minus changed")
+    elif timezone.startswith("Etc/GMT+"):
+        timezoneG = timezone.replace("+", "-", 1)
+        print("Plus changed")
+
+    # Get the current date and time in UTC
+    now_tz = datetime.now(pytz.timezone(timezoneG))
+    current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+    current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+
+    # Adjust current_day to match our list index where Sunday is 0
+    # current_day = (current_day + 1) % 7
+
+    # Check if the current time falls within the working hours
+    isWorkingHours = start_work[current_day] <= current_hour < end_work[current_day]
+    print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work[current_day]} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
+
+
     session["unique_azz_id"] = unique_azz_id
     session["full_assistant_id"] = full_assistant_id
     session["menu_file_id"] = menu_file_id
@@ -1027,7 +1368,7 @@ def assistant_order_chat(unique_azz_id):
     session["res_currency"] = res_currency
     session["restaurant_name"] = restaurant_name
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant", assistant_turned_on=assistant_turned_on, restaurant=res_instance, iframe=iframe)
+    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant", assistant_turned_on=assistant_turned_on, restaurant=res_instance, iframe=iframe, isWorkingHours=isWorkingHours)
 
 # Generate response
 @app.route('/generate_response/<unique_azz_id>', methods=['POST', 'GET'])
@@ -1395,7 +1736,41 @@ def serve_privacy_policy():
 @app.route('/restaurant/<unique_azz_id>', methods=['GET'])
 def show_restaurant_profile_public(unique_azz_id):
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
-    return render_template("marketing_dashboard/public_profile.html", restaurant=restaurant, title=restaurant.get("name", "AI Restaurant"))
+    res_coords = ast.literal_eval(restaurant["location_coord"])
+    latitude = res_coords["lat"]
+    longitude = res_coords["lng"]
+    
+    start_work = restaurant.get("start_work")
+    end_work = restaurant.get("end_work")
+    timezone = restaurant.get("timezone")
+    if timezone.startswith("Etc/GMT-"):
+        timezoneG = timezone.replace("-", "+", 1)
+        print("Minus changed")
+    elif timezone.startswith("Etc/GMT+"):
+        timezoneG = timezone.replace("+", "-", 1)
+        print("Plus changed")
+
+    # Get the current date and time in UTC
+    now_tz = datetime.now(pytz.timezone(timezoneG))
+    current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+    current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+
+    # Adjust current_day to match our list index where Sunday is 0
+    # current_day = (current_day + 1) % 7
+
+    start_working_hours = [convert_hours_to_time(hour) for hour in restaurant["start_work"]]
+    end_working_hours = [convert_hours_to_time(hour) for hour in restaurant["end_work"]]
+
+    # Check if the current time falls within the working hours
+    isWorkingHours = start_work[current_day] <= current_hour < end_work[current_day]
+
+    return render_template("marketing_dashboard/public_profile.html", restaurant=restaurant, 
+                           title=restaurant.get("name", "AI Restaurant"), 
+                           GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY, 
+                           latitude=latitude, longitude=longitude, 
+                           isWorkingHours=isWorkingHours,
+                           start_working_hours=start_working_hours,
+                           end_working_hours=end_working_hours)
 
     
 if __name__ == '__main__':

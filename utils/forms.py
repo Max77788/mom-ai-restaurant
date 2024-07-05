@@ -18,6 +18,8 @@ class RestaurantForm(FlaskForm):
         #DataRequired(), URL(require_tld=True, message="Invalid URL. Please enter a valid URL.")])
     email = StringField('Email', validators=[DataRequired(), Email()])
     menu = FileField('Upload Menu')#, validators=[DataRequired()])
+    location = StringField('Location', validators=[DataRequired()])
+    locationName = StringField('Location Name', validators=[DataRequired()])
     #currency = RadioField('Currency of your restaurant', choices=[('USD','USD'), ('EUR','EUR')], validators=[DataRequired()])
     #script = FileField('Upload Script', validators=[DataRequired()])
     #other_instructions = StringField('Other Instructions (Optional)')
@@ -43,6 +45,13 @@ def validate_paypal_string(form, field):
     if not value or len(value) < 10 or '___' not in value or value.find('___') not in range(1, len(value) - 3):
         raise ValidationError('Invalid PayPal secret and ID. It must be a long string with exactly three underscores in the middle.')
 
+# Custom validator to check if description is at least 40 characters long
+def validate_description_length(form, field):
+    if field.data and len(field.data) < 40:
+        raise ValidationError('Description must be at least 40 characters long.')
+
+
+
 class RestaurantFormUpdate(FlaskForm):
     name = StringField('Restaurant Name', validators=[Optional()])
     website_url = StringField('Restaurant Website', validators=[Optional(),
@@ -51,6 +60,7 @@ class RestaurantFormUpdate(FlaskForm):
     image = FileField('Upload Image', validators=[
         Optional(), FileAllowed(['jpg', 'png'], 'Images only!')  # Restricting the file types to images only
     ])
+    description = StringField('Restaurant Description', validators=[Optional(), validate_description_length])
     submit = SubmitField('Update')
     # pp_account = StringField('PayPal secret and ID', validators=[Optional(), validate_paypal_string])
 

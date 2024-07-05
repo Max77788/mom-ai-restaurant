@@ -1,0 +1,158 @@
+{% extends 'layout_no_land.html' %}
+
+{% block content %}
+
+<h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Set Working Hours for {{ restaurant['name'] }} Assistant</h1>
+<form id="scheduleForm" style="max-width: 600px; margin: auto; background: #ecf0f1; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="margin-bottom: 20px;">
+        <label for="timezone" style="font-family: 'Arial', sans-serif; color: #34495e; font-size: 16px;">Select Timezone:</label>
+        <select id="timezone" class="timezone" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; margin-top: 5px;">
+            <option value="{{ current_rest_timezone }}">{{ current_rest_timezone.replace("Etc/", "") }} - current option</option>
+            <option value="Etc/GMT+0">GMT+0</option>
+            <option value="Etc/GMT+1">GMT+1</option>
+            <option value="Etc/GMT+2">GMT+2</option>
+            <option value="Etc/GMT+3">GMT+3</option>
+            <option value="Etc/GMT+4">GMT+4</option>
+            <option value="Etc/GMT+5">GMT+5</option>
+            <option value="Etc/GMT+6">GMT+6</option>
+            <option value="Etc/GMT+7">GMT+7</option>
+            <option value="Etc/GMT+8">GMT+8</option>
+            <option value="Etc/GMT+9">GMT+9</option>
+            <option value="Etc/GMT+10">GMT+10</option>
+            <option value="Etc/GMT+11">GMT+11</option>
+            <option value="Etc/GMT-1">GMT-1</option>
+            <option value="Etc/GMT-2">GMT-2</option>
+            <option value="Etc/GMT-3">GMT-3</option>
+            <option value="Etc/GMT-4">GMT-4</option>
+            <option value="Etc/GMT-5">GMT-5</option>
+            <option value="Etc/GMT-6">GMT-6</option>
+            <option value="Etc/GMT-7">GMT-7</option>
+            <option value="Etc/GMT-8">GMT-8</option>
+            <option value="Etc/GMT-9">GMT-9</option>
+            <option value="Etc/GMT-10">GMT-10</option>
+            <option value="Etc/GMT-11">GMT-11</option>
+            <!-- add other timezones as needed -->
+        </select>
+    </div>
+    <div style="margin-bottom: 20px;">
+        <a id="timeLink" href="https://time.is/GMT" target="_blank" style="font-family: 'Arial', sans-serif; font-size: 16px;"><u>Check the current time in the specified timezone</u></a>
+    </div>
+    <div id="scheduleInputs" style="margin-bottom: 20px;">
+        <!-- Schedule inputs will be dynamically generated here -->
+    </div>
+    <button type="submit" style="padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">Submit</button>
+</form>
+<style>
+    .day-schedule {
+        margin-bottom: 20px;
+    }
+    .day-schedule h2 {
+        font-size: 18px;
+        font-family: 'Arial', sans-serif;
+        color: #2c3e50;
+        margin: 10px 0;
+    }
+    .day-schedule label {
+        font-size: 16px;
+        font-family: 'Arial', sans-serif;
+        color: #34495e;
+        margin-right: 10px;
+    }
+    .start-time, .end-time {
+        font-size: 16px;
+        padding: 5px 10px;
+        width: auto;
+        border-radius: 5px;
+        border: 1px solid #bdc3c7;
+    }
+    select {
+        margin-right: 10px;
+    }
+    button:hover {
+        background-color: #2980b9;
+    }
+</style>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const startHours = {{ start_hours|tojson }};
+        const endHours = {{ end_hours|tojson }};
+        const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+        const scheduleInputs = document.getElementById("scheduleInputs");
+
+        const timezoneSelect = document.getElementById("timezone") || "GMT";
+        const timeLink = document.getElementById("timeLink");
+
+        timezoneSelect.addEventListener("change", () => {
+            const selectedTimezone = timezoneSelect.value.replace("Etc/", "");
+            timeLink.href = `https://time.is/${selectedTimezone}`;
+        });
+
+        daysOfWeek.forEach((day, index) => {
+            const dayDiv = document.createElement("div");
+            dayDiv.classList.add("day-schedule");
+            dayDiv.innerHTML = `
+                <h2>${day}</h2>
+                <label for="start-${index}">Start:</label>
+                <select id="start-${index}" class="start-time">${generateTimeOptions(startHours[index])}</select>
+                <label for="end-${index}">End:</label>
+                <select id="end-${index}" class="end-time">${generateTimeOptions(endHours[index])}</select>
+            `;
+            scheduleInputs.appendChild(dayDiv);
+        });
+
+        document.getElementById("scheduleForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const newSchedule = {};
+            document.querySelectorAll(".day-schedule").forEach((dayDiv, index) => {
+                const startTime = parseFloat(dayDiv.querySelector(".start-time").value);
+                const endTime = parseFloat(dayDiv.querySelector(".end-time").value);
+                newSchedule[index] = { start: startTime, end: endTime };
+            });
+
+            const timezone = document.getElementById("timezone").value;
+
+            fetch('/submit_hours', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ schedule: newSchedule, timezone: timezone })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                window.location.href = "/dashboard";
+            })
+            .catch(error => console.error('Error:', error));
+        });
+
+        function generateTimeOptions(selectedValue) {
+            let options = "";
+            for (let i = 0; i < 24; i += 0.25) {
+                const hours = Math.floor(i);
+                const minutes = (i - hours) * 60;
+                const time = new Date();
+                time.setHours(hours, minutes);
+                const timeString = time.toTimeString().slice(0, 5);
+                const selected = (i === selectedValue) ? 'selected' : '';
+                options += `<option value="${i}" ${selected}>${timeString}</option>`;
+            }
+            // Adding early hours for the next day
+            for (let i = 24; i < 29; i += 0.25) {
+                const hours = Math.floor(i - 24);
+                const minutes = (i - 24 - hours) * 60;
+                const time = new Date();
+                time.setHours(hours, minutes);
+                const timeString = `${time.toTimeString().slice(0, 5)} (next day)`;
+                const selected = (i === selectedValue) ? 'selected' : '';
+                options += `<option value="${i}" ${selected}>${timeString}</option>`;
+            }
+            return options;
+        }
+    });
+</script>
+
+{% endblock %}
+
+
+

@@ -1,0 +1,138 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<!-- Existing Registration Form Section -->
+<div id="upper-part" style="margin-bottom: 15px;">
+    <div style="text-align: center;">
+        <div id="registration-form"></div>
+        <h1>Register the restaurant on MOM AI Restaurant Assistant</h1>
+        <p style="margin-bottom: 10px; font-size: 25px;">Fill in the details below to get started.</p>
+    </div>
+    <form action="/register" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            <label for="restaurant_name">*Restaurant Name:</label>
+            {{ form.restaurant_name }}
+        </div>
+        <div class="form-group">
+            <label for="restaurant_url">Restaurant Website:</label>
+            {{ form.restaurant_url }}
+        </div>
+        <div class="form-group">
+            <label for="menu">Upload Menu (only Excel File - <a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank"><u>Talk to MOM AI GPT and have your menu file formed!</u></a>)</label>
+            <p style="font-size: 14px;"><b><i>Please, state the prices in Euro.</i></b></p>
+            {{ form.menu }}
+        </div>
+        <div class="form-group">
+            <label for="image">Upload Your Restaurant Logo:</label>
+            {{ form.image }}
+        </div>
+        <div class="form-group">
+            <label for="email">*Input Valid Email (You Will Receive code on it):</label>
+            {{ form.email }}
+        </div>
+        
+        <!-- Map Container -->
+<div class="form-group">
+    <label for="location">*Restaurant Location:</label>
+    <!-- Input for location search -->
+    <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location">
+    <!-- Hidden input for location data -->
+    <input type="hidden" id="locationInput" name="location" required>
+    <!-- Hidden input for location name -->
+    <input type="hidden" id="locationName" name="locationName" required>
+</div>
+<div class="form-group">
+    <label for="password">*Password:</label>
+    {{ form.password }}
+    <p style="font-size: 14px;"><b><i>at least 8 characters</i></b></p>
+</div>
+<div class="form-group">
+    <label for="confirm_password">*Confirm Password:</label>
+    {{ form.confirm_password }}
+</div>
+
+<div class="form-group">
+    {{ form.submit }}
+</div>
+</form>
+
+<!-- Include Google Maps JavaScript API with Places library -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
+
+<script>
+    function initAutocomplete() {
+        const input = document.getElementById('pac-input');
+        const autocomplete = new google.maps.places.Autocomplete(input);
+
+        // Autocomplete select listener
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                console.log("Place details not found for input: " + input.value);
+                return;
+            }
+
+            const formattedAddress = formatAddressWithCity(place);
+            updateLocation(place.geometry.location, formattedAddress);
+        });
+    }
+
+    function formatAddressWithCity(place) {
+        let addressComponents = place.address_components;
+        let street = '', buildingNumber = '', city = '', region = '', country = '';
+
+        addressComponents.forEach(component => {
+            if (component.types.includes('route')) {
+                street = component.long_name;
+            }
+            if (component.types.includes('street_number')) {
+                buildingNumber = component.long_name;
+            }
+            if (component.types.includes('locality')) {
+                city = component.long_name;
+            }
+            if (component.types.includes('administrative_area_level_1')) {
+                region = component.long_name;
+            }
+            if (component.types.includes('country')) {
+                country = component.long_name;
+            }
+        });
+
+        // Ensure that required components are present
+        if (!street || !city || !country) {
+            alert("Please select a valid location including street, city, and country.");
+            return '';
+        }
+
+        // Construct formatted address
+        let formattedAddress = `${street}`;
+        if (buildingNumber) {
+            formattedAddress += `, ${buildingNumber}`;
+        }
+        formattedAddress += `, ${city}`;
+        if (region) {
+            formattedAddress += `, ${region}`;
+        }
+        formattedAddress += `, ${country}`;
+        return formattedAddress;
+    }
+
+    function updateLocation(position, formattedAddress) {
+        if (formattedAddress) {
+            document.getElementById('locationInput').value = JSON.stringify(position);
+            document.getElementById('locationName').value = formattedAddress;
+        }
+    }
+</script>
+
+
+        
+    
+    <p style="font-size: 14px;">* - required fields</p>
+    <!-- <p style="font-size: 14px;">** - simply reach us on <a href="mailto:contact@mom-ai-agency.site" target="_blank">contact@mom-ai-agency.site</a></p> -->
+    <p>Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
+</div>
+
+{% endblock %}

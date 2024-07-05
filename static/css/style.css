@@ -596,3 +596,158 @@ input, select {
 .dataframe tbody tr:hover {
     background-color: #f1f1f1;
 }
+
+/* Hero Section */
+.hero-section {
+    text-align: center;
+    background-image: url('/static/images/landing_gipsy_banner.png');
+    background-size: cover;
+    color: white;
+    padding: 60px 20px;
+    position: relative;
+}
+
+.hero-section .slogan {
+    font-size: 3em;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.hero-section .sub-slogan {
+    font-size: 2em;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    margin-top: 20px;
+}
+
+.hero-section .cta-button {
+    font-size: 1.2em;
+    background-color: #ff6347;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.hero-section .cta-button:hover {
+    background-color: #ff4500;
+}
+
+.section {
+    text-align: center;
+    margin: 40px 0;
+}
+
+.section-header {
+    background-color: black;
+    color: white;
+    padding: 20px 0;
+    width: 100%;
+    margin-bottom: 40px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 2.5em;
+}
+
+.benefit-item, .feature-item {
+    display: inline-block;
+    width: 30%;
+    vertical-align: top;
+    margin: 0 1%;
+    text-align: center;
+}
+
+.benefit-image, .feature-image {
+    width: 150px;
+    height: 150px;
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    font-size: 1em;
+    color: #7f8c8d;
+    border: 2px solid #ccc;
+}
+
+.benefit-image img, .feature-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Ensures the image covers the entire container */
+}
+
+.benefit-item h3, .feature-item h3 {
+    font-size: 1.5em;
+    color: #34495e;
+    margin-bottom: 10px;
+}
+
+.benefit-item p, .feature-item p {
+    font-size: 1em;
+    color: #7f8c8d;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .benefit-item, .feature-item {
+        width: 45%;
+        margin: 20px 2.5%;
+    }
+}
+
+@media (max-width: 768px) {
+    .benefit-item, .feature-item {
+        width: 90%;
+        margin: 20px 5%;
+    }
+}
+
+
+/* How It Works Section */
+#how-it-works-section {
+    text-align: center;
+    margin: 40px 0;
+}
+
+#how-it-works-section h2 {
+    margin-bottom: 20px;
+}
+
+#how-it-works-section h3 {
+    font-size: 1.5em;
+    color: #34495e;
+    margin-top: 20px;
+}
+
+#how-it-works-section p {
+    font-size: 1em;
+    color: #7f8c8d;
+}
+
+/* Call to Action Section */
+#call-to-action-section {
+    text-align: center;
+    margin: 40px 0;
+}
+
+#call-to-action-section h2 {
+    margin-bottom: 20px;
+}
+
+#call-to-action-section button {
+    font-size: 1.5em;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+#call-to-action-section button:hover {
+    background-color: #2980b9;
+}

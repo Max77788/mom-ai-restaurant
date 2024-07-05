@@ -38,7 +38,7 @@
             {% else %}
                 <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<br>Click below to start chatting. </p>
             {% endif %}
-            {% if assistant_turned_on %}
+            {% if assistant_turned_on and isWorkingHours %}
             <button id="startChatButton" onclick="startConversation()" style="padding: 10px 20px; font-size: 16px; background-color: #000000; color: white; border: none; border-radius: 5px;">Start New Chat</button>
             {% else %}
             <p><b>We are currently off. You will be able to take the order later.</b></p>

@@ -6,27 +6,51 @@
             <div class="profile-header">
                 <img src="{{ url_for('serve_image', file_id=restaurant['res_logo']) }}" alt="{{ restaurant['name'] }} Logo" class="restaurant-logo" />
                 <h1>{{ restaurant['name'].replace("_", " ") }}</h1>
+                {% if isWorkingHours %}
+                <p style="color:#00ff00"><strong>Open</strong></p>
+                {% else %}
+                <p style="color:#ff0000"><strong>Closed</strong></p>
+                {% endif %}
                 {% if restaurant.website_url != 'No URL provided' %}
-                <p><a href="{{ restaurant.website_url }}" style="color: #0000ff;"target="_blank">Visit the website of {{ restaurant['name'].replace("_", " ") }}</a></p>
+                <p><a href="{{ restaurant.website_url }}" style="color: #0000ff;" target="_blank">Visit the website of {{ restaurant['name'].replace("_", " ") }}</a></p>
                 {% else %}
                 <p>No URL Provided</p>
                 {% endif %}
-                <!--
-                <p class="location">
-                    <a href="https://www.google.com/maps/search/?api=1&query={{ restaurant['location'] or 'hafnargata 31' }}" target="_blank">
-                        Check out {{ restaurant['name'].replace("_", " ") }} location
-                    </a>
-                </p>
-                -->
+                <div class="assistant-section-mobile">
+                    <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Take the order with AI</button></a>
+                </div>
+                <h3>Location</h3>
+                <p>{{ restaurant.location_name }}</p>
+                <!-- Map container -->
+                <div id="map"></div>
             </div>
         </div>
         <div class="profile-right">
+            {% if not restaurant.profile_visible %}
+            <h1 style="background-color: #ddd;">The profile is not diplayed to the customers. To change it toggle profile visibility on the dashboard</h1>
+            {% endif %}
             <div class="description">
                 <h2>Description</h2>
                 <p>{{ restaurant['description'] or "The best restaurant embracing the future with AI-implementation and just serving an awesome food"}}</p>
             </div>
             <div class="assistant-section">
-                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button>Take the order with AI</button></a>
+                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Take the order with AI</button></a>
+            </div>
+            <div class="working-hours">
+                <h2 style="margin-top: 15px;">Working Hours (Timezone: <a id="timeLink" href="https://time.is/{{ restaurant.timezone.replace('Etc/', '').replace('+0', '') }}" target="_blank">{{ restaurant.timezone.replace("Etc/", "") }}</a>)</h2>
+                <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
+                    <tr style="background-color: #f2f2f2; border: 1px solid #ddd;">
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Day</th>
+                        <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Hours</th>
+                    </tr>
+                    {% set days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"] %}
+                    {% for i in range(7) %}
+                    <tr style="border: 1px solid #ddd;">
+                        <td style="border: 1px solid #ddd; padding: 12px;">{{ days[i] }}</td>
+                        <td style="border: 1px solid #ddd; padding: 12px;">{{ start_working_hours[i] }} - {{ end_working_hours[i] }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
             </div>
             <div class="menu">
                 <h2>Menu</h2>
@@ -40,6 +64,12 @@
     <!-- Reviews will be here -->
 
     <style>
+        /* Ensure the map takes up the full width and height of its container */
+        #map {
+            height: 300px;
+            width: 100%;
+            border: solid black 3px;
+        }
         .restaurant-profile {
             display: flex;
             flex-wrap: wrap;
@@ -61,7 +91,7 @@
             text-align: center;
         }
         .restaurant-logo {
-            max-width: 150px;
+            max-width: 250px;
             height: auto;
             display: block;
             margin: 0 auto;
@@ -76,5 +106,52 @@
         .description, .menu, .assistant-section {
             margin-top: 20px;
         }
+        .assistant-section-mobile {
+            display: none;
+        }
+        .ai-button {
+            font-size: 18px;
+            padding: 10px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .restaurant-profile {
+                flex-direction: column;
+            }
+            .profile-left, .profile-right {
+                max-width: 100%;
+                padding: 0;
+            }
+            .profile-left {
+                margin-bottom: 20px;
+            }
+            .assistant-section {
+                display: none;
+            }
+            .assistant-section-mobile {
+                display: block;
+                margin-top: 10px;
+            }
+        }
     </style>
+    <!-- Include Google Maps JavaScript API with Places library -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initMap" async defer></script>
+
+<script>
+    const latitude = {{ latitude }};
+    const longitude = {{ longitude }};
+    const restik_coords = {"lat": latitude, "lng": longitude};
+
+    function initMap() {
+        const map = new google.maps.Map(document.getElementById("map"), {
+            center: restik_coords, // Initial map center
+            zoom: 17, // Initial zoom level
+        });
+
+        const marker = new google.maps.Marker({
+            map,
+            position: restik_coords
+        });
+    }
+</script>
 {% endblock %}

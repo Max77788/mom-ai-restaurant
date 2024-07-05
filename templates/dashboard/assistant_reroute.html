@@ -61,7 +61,7 @@
     <div id="get-link" class="tab-content">
         <p>Paste the following link on your site: <i>https://mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i></p>
         <p>After clicking the link the customer will be redirected to the MOM AI Restaurant Assistant and will make the order in {{ restaurant_name.replace("_"," ") }}</p>
-        <video class="responsive-video" controls poster="/static/images/thumbnails/ThumbnailAddLink.png">
+        <video class="responsive-video" controls poster="/static/images/thumbnails/ThumbnailAddLink.png" style="max-height:400px; width:auto">
             <source src="/static/videos/LinkExample.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>
@@ -74,7 +74,7 @@
                 &lt;iframe src="https://mom-ai-restaurant.pro/assistant_order_chat/{{ unique_azz_id }}?iframe=yes" width="600" height="700" style="border:none;"&gt;&lt;/iframe&gt;
             </code>
         </pre>
-        <video class="responsive-video" controls poster="/static/images/thumbnails/ThumbnailAddIFrame.png">
+        <video class="responsive-video" controls poster="/static/images/thumbnails/ThumbnailAddIFrame.png" style="max-height:400px; width:auto">
             <source src="/static/videos/iframe-tutorial.mp4" type="video/mp4">
             Your browser does not support the video tag.
         </video>

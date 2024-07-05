@@ -247,7 +247,7 @@ def get_subscription_status(subscription_id, access_token=get_access_token()):
         logging.error(f"Error retrieving subscription status: {response.json()}")
         return "Error retrieving subscription status"
     
-def createOrder():
+def createOrder(addFees=False):
     
     access_token=get_access_token()
 
@@ -264,7 +264,12 @@ def createOrder():
  
     currency_code = session.get("res_currency", "USD")
     
-    amount = f"{float(session.get('total', 10)):.2f}"
+    session_total = float(session.get('total', 10))
+    
+    if addFees:
+        amount = f"{session_total+0.45+(0.049*session_total):.2f}"
+    else:
+        amount = f"{session_total:.2f}"
     restaurant_name = session.get("restaurant_name", "restaurant_name_place") 
     print(f"Data on /createOrder:\n\n{currency_code, reference_id, amount, restaurant_name}")
 

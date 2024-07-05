@@ -38,9 +38,11 @@
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     
+    <!--
     <div id="mobile-banner" class="mobile-banner">
-        <p>For the best experience, please switch your device to the horizontal mode.</p>
+        <p>For the best experience, please switch&nbsp; your device to the horizontal&nbsp; mode.</p>
     </div>
+    -->
 
     <header>
         <div class="header-content">
@@ -54,11 +56,12 @@
 
     <nav class="navigation">
         <ul>
+            <li><a href="/"><u><b>Welcome Page</b></u></a></li>
             <li><strong>For Restaurants:</strong></li>
-            <li><a href="/#registration-form"><u><b>Register</b></u></a></li>
+            <li><a href="/register"><u><b>Register</b></u></a></li>
             <li><a href="/login"><u><b>Login</b></u></a></li>
             <li><strong>For Customers:</strong></li>
-            <li><a href="/ai-restaurants"><u><b>List of Top AI-Restaurants</b></u></a></li>
+            <li><a href="/ai-restaurants"><u><b>Explore Top AI-Restaurants</b></u></a></li>
         </ul>
     </nav>
 
@@ -95,8 +98,6 @@
             text-align: center;
             padding: 10px;
             font-size: 1.2em;
-            position: fixed;
-            top: 0;
             width: 100%;
             z-index: 1000;
         }
@@ -104,9 +105,14 @@
         @media (max-width: 665px) {
             .mobile-banner {
                 display: block;
+                margin-right: 10px;
             }
-            .header-content {
-                padding-top: 25%; /* Adjust this value if needed */
+        }
+        
+        @media (max-width: 398px) {
+            .mobile-banner {
+                display: block;
+                padding-right: 10px;
             }
         }
 
@@ -174,7 +180,7 @@
         /* Responsive design */
         @media (max-width: 768px) {
             .navigation {
-                height: 167px; /* Increase height for smaller screens */
+                height: 207px; /* Increase height for smaller screens */
             }
             
             .navigation ul {
@@ -201,18 +207,14 @@
             align-items: center;
             max-width: 1200px;
             margin: 0 auto;
+            flex-wrap: wrap; /* Ensure the content wraps on smaller screens */
         }
-        .footer-left {
-            flex: 1;
-            text-align: left;
-        }
-        .footer-center {
-            flex: 1;
-            text-align: center;
-        }
+        .footer-left,
+        .footer-center,
         .footer-right {
             flex: 1;
-            text-align: right;
+            text-align: center; /* Center-align content by default */
+            margin-bottom: 10px; /* Add some space between sections on small screens */
         }
         .social-icons a {
             margin: 0 10px;
@@ -222,6 +224,27 @@
         }
         .social-icons a:hover {
             color: #3498db;
+        }
+
+        /* Responsive design for footer */
+        @media (max-width: 768px) {
+            .footer-left {
+                order: 3; /* Move to last */
+                margin-bottom: 10px;
+            }
+            .footer-center {
+                order: 2; /* Move to middle */
+                margin-bottom: 10px;
+            }
+            .footer-right {
+                order: 1; /* Move to first */
+            }
+            .footer-left,
+            .footer-center,
+            .footer-right {
+                text-align: center;
+                flex: 1 1 100%; /* Make each section take full width */
+            }
         }
     </style>
 
@@ -235,3 +258,4 @@
     </script>
 </body>
 </html>
+

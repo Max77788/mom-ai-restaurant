@@ -76,6 +76,13 @@ paypal.Button.render({
     // console.log("https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency={{ CURRENCY }}")
     // Render the PayPal button into #paypal-button-container
     const unique_azz_id = "{{unique_azz_id}}";
+
+    {% if restaurant.addFees %}
+      const url_to_fetch = '/create_order?addFees=yes'
+    {% else %}
+      const url_to_fetch = '/create_order'
+    {% endif %}
+
     paypal.Buttons({
         
         style: {
@@ -86,9 +93,10 @@ paypal.Button.render({
         tagline: false // Show the tagline text at the bottom
     },
 
+
         // Call your server to set up the transaction
         createOrder: function(data, actions) {
-            return fetch('/create_order', {
+            return fetch(url_to_fetch, {
                 method: 'post',
                 headers: {
                     'Content-Type': 'application/json'
