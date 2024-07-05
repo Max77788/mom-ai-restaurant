@@ -105,6 +105,15 @@ def forbidden(error):
     return make_response(jsonify({'error': 'Forbidden', 'message': error.description}), 403)
 
 
+# Define error handler for 500 internal server error
+@app.errorhandler(500)
+def internal_server_error(error):
+    # Log the error if necessary
+    app.logger.error(f"Server Error: {error}")
+    # Redirect to the main page
+    return redirect(url_for('landing_page'))
+
+
 def schedule_tasks():
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
