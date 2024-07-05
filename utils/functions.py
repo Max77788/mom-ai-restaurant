@@ -165,7 +165,8 @@ def insert_restaurant(collection, name, email, password, website_url, assistant_
             "balance": 3,
             "timezone":"Etc/GMT+0",
             "profile_visible": True,
-            "addFees": True
+            "addFees": True,
+            "assistant_turned_on":False
             # "stripe_secret_test_key": stripe_secret_test_key
         }
 

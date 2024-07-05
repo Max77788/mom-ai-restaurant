@@ -644,7 +644,7 @@ def enter_code():
     return render_template('email_confirm/enter_code.html', form=form, res_email=res_email, title="Enter Confirmation Code")
 
 
-@app.route('/confirm_email')
+@app.route('/confirm_email/<res_email>')
 def confirm_email(res_email):
     # Check if the session variable is set
     if not session.get('access_granted_email_confirm_page'):
@@ -800,6 +800,7 @@ def assistant_demo_chat():
 
     # Clear the session variable after access
     session.pop('access_granted_assistant_demo_chat', None)
+    restaurant_name = session.get('restaurant_name')
       
     session["access_granted_waitlist_page"] = True
     
