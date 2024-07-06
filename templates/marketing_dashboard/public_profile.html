@@ -6,10 +6,12 @@
             <div class="profile-header">
                 <img src="{{ url_for('serve_image', file_id=restaurant['res_logo']) }}" alt="{{ restaurant['name'] }} Logo" class="restaurant-logo" />
                 <h1>{{ restaurant['name'].replace("_", " ") }}</h1>
-                {% if isWorkingHours %}
+                {% if restaurant.isOpen and restaurant.assistant_turned_on %}
                 <p style="color:#00ff00"><strong>Open</strong></p>
+                {% elif restaurant.isOpen and not restaurant.assistant_turned_on %}
+                    <p style="color:brown"><strong>AI-Assistant Paused</strong></p>
                 {% else %}
-                <p style="color:#ff0000"><strong>Closed</strong></p>
+                    <p style="color:#ff0000"><strong>Currently Closed</strong></p>
                 {% endif %}
                 {% if restaurant.website_url != 'No URL provided' %}
                 <p><a href="{{ restaurant.website_url }}" style="color: #0000ff;" target="_blank">Visit the website of {{ restaurant['name'].replace("_", " ") }}</a></p>
