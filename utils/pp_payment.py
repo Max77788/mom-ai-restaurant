@@ -247,7 +247,7 @@ def get_subscription_status(subscription_id, access_token=get_access_token()):
         logging.error(f"Error retrieving subscription status: {response.json()}")
         return "Error retrieving subscription status"
     
-def createOrder(addFees=False):
+def createOrder(total_to_pay):
     
     access_token=get_access_token()
 
@@ -266,12 +266,18 @@ def createOrder(addFees=False):
     
     session_total = float(session.get('total', 10))
     
+    '''
     if addFees:
+        print("Entered addFees loop")
+        print("Session total ", session_total)
         amount = f"{session_total+0.45+(0.049*session_total):.2f}"
+        print("Amount formed ", amount)
     else:
         amount = f"{session_total:.2f}"
+    '''
+    
     restaurant_name = session.get("restaurant_name", "restaurant_name_place") 
-    print(f"Data on /createOrder:\n\n{currency_code, reference_id, amount, restaurant_name}")
+    print(f"Data on /createOrder:\n\n{currency_code, reference_id, total_to_pay, restaurant_name}")
 
     unique_azz_id = session['unique_azz_id']
     
@@ -283,7 +289,7 @@ def createOrder(addFees=False):
             "reference_id": "{reference_id}",
             "amount": {{
                 "currency_code": "{currency_code}",
-                "value": "{amount}"
+                "value": "{total_to_pay}"
             }}
         }}
     ],

@@ -77,12 +77,14 @@ paypal.Button.render({
     // Render the PayPal button into #paypal-button-container
     const unique_azz_id = "{{unique_azz_id}}";
 
+    /*
     {% if restaurant.addFees %}
       const url_to_fetch = '/create_order?addFees=yes'
     {% else %}
       const url_to_fetch = '/create_order'
     {% endif %}
-
+    */
+    
     paypal.Buttons({
         
         style: {
@@ -96,20 +98,25 @@ paypal.Button.render({
 
         // Call your server to set up the transaction
         createOrder: function(data, actions) {
-            return fetch(url_to_fetch, {
+            // Assuming `total_to_pay` is defined somewhere in your JavaScript code
+            const totalToPay = '{{ total_to_pay }}';
+
+            return fetch('/create_order', {
                 method: 'post',
                 headers: {
                     'Content-Type': 'application/json'
-                }
+                },
+                body: JSON.stringify({ total_to_pay: totalToPay })
             }).then(function(res) {
                 return res.json()
             }).then(function(orderData) {
-                console.log(orderData)    
+                console.log(orderData)
                 return orderData.id;
             }).catch(function(error) {
                 console.error('Error:', error);  // Handle any errors
-        })
+            });
         },
+
         // Call your server to finalize the transaction
         
         

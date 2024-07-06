@@ -1194,7 +1194,7 @@ def activate_subscription():
 def payment_buffer(unique_azz_id, id):
     if not id:
         abort(403)  # Forbidden
-
+    
     session['access_granted_payment_result'] = True
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
@@ -1262,13 +1262,11 @@ def execute_payment(unique_azz_id):
 
 @app.route("/create_order", methods=['POST','GET'])
 def create_order():
-    addFees = request.args.get('addFees')
-    
-    if addFees == "yes":
-        print("Added fees")
-        order = createOrder(addFees=True)
-    else:
-        order = createOrder()
+    #addFees = request.args.get('addFees')
+
+    total_to_pay = request.json.get('total_to_pay')
+
+    order = createOrder(total_to_pay=total_to_pay)
 
     if order.status_code in [201,200]:  # Check if the request was successful
         order_data = order.json()  # Parse the JSON response
