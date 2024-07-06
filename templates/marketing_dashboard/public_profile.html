@@ -55,7 +55,7 @@
             <div class="menu">
                 <h2>Menu</h2>
                 <div class="menu-content table-responsive">
-                    {{ restaurant['html_menu']|safe }}
+                    {{ restaurant['html_menu']|safe or "Menu is expected soon" }}
                 </div>
             </div>
         </div>
