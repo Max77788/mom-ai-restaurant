@@ -791,7 +791,7 @@ def assistant_demo_chat():
     if user_message:
         messages.append({'sender': 'user', 'content': user_message})
         # Simulate the assistant's response
-        messages.append({'sender': 'assistant', 'content': "I do not know yet what to say as I am not an AI yet. But in 10 seconds you will be redirected and magic will happen."})
+        messages.append({'sender': 'assistant', 'content': "I do not know yet what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen."})
     
     session['messages'] = messages
     print(messages)

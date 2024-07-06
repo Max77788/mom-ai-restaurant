@@ -21,6 +21,7 @@
     </div>
     <form action="/register" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+        {{ form.csrf_token }}
         <div class="form-group">
             <label for="restaurant_name">*Restaurant Name:</label>
             {{ form.restaurant_name }}
@@ -47,7 +48,12 @@
 <div class="form-group">
     <label for="location">*Restaurant Location:</label>
     <!-- Input for location search -->
-    <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location">
+    <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
+        <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
+            <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
+        </div>
+    </div>
     <!-- Hidden input for location data -->
     <input type="hidden" id="locationInput" name="location" required>
     <!-- Hidden input for location name -->

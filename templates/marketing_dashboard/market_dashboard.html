@@ -7,8 +7,11 @@
 
     <h3 style="text-align: center;">Filter by location</h3>
     <!-- Location Search Input -->
-    <div style="text-align: center; margin-bottom: 20px;">
-        <input id="location-input" type="text" placeholder="Enter a location" value="{{ search_query }}" style="width: 100%; max-width: 400px; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+    <div style="text-align: center; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-right: 10px;">
+            <input id="location-input" type="text" placeholder="Enter a location" value="{{ search_query }}" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
+        </div>
         <button onclick="searchRestaurants()" style="margin-top: 10px; padding: 10px 20px;">Search</button>
     </div>
 

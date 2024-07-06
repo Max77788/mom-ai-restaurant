@@ -31,7 +31,7 @@ class RestaurantForm(FlaskForm):
     
     # Add the field for image upload
     image = FileField('Upload Image', validators=[
-        FileAllowed(['jpg', 'png'], 'Images only!')  # Restricting the file types to images only
+        FileAllowed(['jpg', 'png'], 'Only images of .jpg and .png format')  # Restricting the file types to images only
     ])
     submit = SubmitField('Register')
 

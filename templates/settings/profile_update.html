@@ -11,6 +11,7 @@
     {% endwith %}
 <form method="POST" action="{{ url_for('update_profile', attribute=attribute) }}" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
+    {{ form.csrf_token }}
     <style>
         /* Target input and textarea elements inside the form */
         form input[type="text"],

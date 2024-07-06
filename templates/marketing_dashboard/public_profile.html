@@ -7,7 +7,7 @@
                 <img src="{{ url_for('serve_image', file_id=restaurant['res_logo']) }}" alt="{{ restaurant['name'] }} Logo" class="restaurant-logo" />
                 <h1>{{ restaurant['name'].replace("_", " ") }}</h1>
                 {% if restaurant.isOpen and restaurant.assistant_turned_on %}
-                <p style="color:#00ff00"><strong>Open</strong></p>
+                    <p style="color:#00ff00"><strong>Open</strong></p>
                 {% elif restaurant.isOpen and not restaurant.assistant_turned_on %}
                     <p style="color:brown"><strong>AI-Assistant Paused</strong></p>
                 {% else %}
@@ -25,6 +25,9 @@
                 <p>{{ restaurant.location_name }}</p>
                 <!-- Map container -->
                 <div id="map"></div>
+                <p style="margin-top: 7px;">
+                    <a href="/ai-restaurants" id="back-button"><u><- All AI-restaurants</u></a>
+                </p>
             </div>
         </div>
         <div class="profile-right">
@@ -155,5 +158,6 @@
             position: restik_coords
         });
     }
+
 </script>
 {% endblock %}
