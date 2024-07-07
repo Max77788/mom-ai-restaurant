@@ -134,8 +134,18 @@
                 // Disable the message input and send button
                 document.getElementById('userMessage').disabled = true;
                 document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
-            } else {
+                // document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
+            } else if (data.response_llm.includes("/payment_buffer")) {
+               // Display the final response and instructions for checkout
+               appendMessage(data.response_llm, 'assistant');  
+
+               // Disable the message input and send button
+               document.getElementById('userMessage').disabled = true;
+               document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+               document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
+            }
+            
+            else {
                 // Display the assistant's response when it is received
                 appendMessage(data.response_llm, 'assistant');
                 // Re-enable the message input and send button
@@ -158,63 +168,65 @@
     window.sendMessage = sendMessage;
 
     function appendMessage(message, sender) {
-        // Handle the /payment_buffer logic based on the iframe condition
-        if (message.includes("/payment_buffer")) {
-            const isIframeRaw = "{{ iframe }}";
-            let isIframe = isIframeRaw === "True";
+    
+        // Disable the message input and send button initially
 
-            console.log('Entered ')
+    // Handle the /payment_buffer logic based on the iframe condition
+    if (message.includes("/payment_buffer")) {
+        const isIframeRaw = "{{ iframe }}";
+        let isIframe = isIframeRaw === "True";
 
-            document.getElementById('userMessage').disabled = true;
-            document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+        console.log('Entered includes payment buffer loop');
 
-            if (isIframe) {
-                let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank">Press here to proceed.</a>`;
-                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
-            } else {
-                return window.location.href = message;
-            }
+        if (isIframe) {
+            let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank">Press here to proceed.</a>`;
+            message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
+        } else {
+            window.location.href = message;
+            return; // Exit function early after setting the window location
         }
-
-        const messageDiv = document.createElement('div');
-        messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
-        console.log("Opened appendMessage function");
-
-        // Convert markdown to HTML
-        try {
-            const htmlContent = marked.parse(message);  // Use marked.parse() function
-            messageDiv.innerHTML = htmlContent;
-        } catch (error) {
-            console.error("Marked conversion error:", error);
-            messageDiv.textContent = message;  // Fallback to plain text if marked fails
-        }
-
-        if (sender === 'user') {
-            messageDiv.style.backgroundColor = '#e5e5e5'; // Light grey for user messages
-            messageDiv.style.textAlign = 'left';
-        } else if (sender === 'assistant') {
-            messageDiv.style.backgroundColor = '#000000'; // Dark for assistant messages
-            messageDiv.style.color = 'white';
-            messageDiv.style.textAlign = 'right';
-        } else if (sender === 'system') {
-            messageDiv.style.backgroundColor = '#4CAF50'; // Green for system messages
-            messageDiv.style.color = 'white';
-            messageDiv.style.textAlign = 'center'; // Center system messages
-        }
-
-        document.getElementById('chatBox').appendChild(messageDiv);
-
-        // Scroll to the bottom of the chatBox
-        scrollToBottom();
     }
 
-    function scrollToBottom() {
-        const chatBox = document.getElementById('chatBox');
-        chatBox.scrollTop = chatBox.scrollHeight;
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
+    console.log("Opened appendMessage function");
+
+    // Convert markdown to HTML
+    try {
+        const htmlContent = marked.parse(message); // Use marked.parse() function
+        messageDiv.innerHTML = htmlContent;
+    } catch (error) {
+        console.error("Marked conversion error:", error);
+        messageDiv.textContent = message; // Fallback to plain text if marked fails
     }
 
-    window.appendMessage = appendMessage;
+    if (sender === 'user') {
+        messageDiv.style.backgroundColor = '#e5e5e5'; // Light grey for user messages
+        messageDiv.style.textAlign = 'left';
+    } else if (sender === 'assistant') {
+        messageDiv.style.backgroundColor = '#000000'; // Dark for assistant messages
+        messageDiv.style.color = 'white';
+        messageDiv.style.textAlign = 'right';
+    } else if (sender === 'system') {
+        messageDiv.style.backgroundColor = '#4CAF50'; // Green for system messages
+        messageDiv.style.color = 'white';
+        messageDiv.style.textAlign = 'center'; // Center system messages
+    }
+
+    document.getElementById('chatBox').appendChild(messageDiv);
+
+    // Scroll to the bottom of the chatBox
+    scrollToBottom();
+}
+
+function scrollToBottom() {
+    const chatBox = document.getElementById('chatBox');
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
     window.scrollToBottom = scrollToBottom;
+    window.appendMessage = appendMessage;
+    
 
     // Hide flash messages after 5 seconds
     var flashMessages = document.querySelector('.flash-messages');
