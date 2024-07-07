@@ -2,7 +2,6 @@
 
 {% block content %}
 
-
 {% with messages = get_flashed_messages() %}
     {% if messages %}
         <div class="flash-messages">
@@ -11,15 +10,14 @@
     {% endif %}
 {% endwith %}
 
-
 <!-- Existing Registration Form Section -->
-<div id="upper-part" style="margin-bottom: 15px;">
-    <div style="text-align: center;">
+<div id="upper-part" style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+    <div>
         <div id="registration-form"></div>
-        <h1>Register the restaurant on MOM AI Restaurant Assistant</h1>
+        <h1>Register</h1>
         <p style="margin-bottom: 10px; font-size: 25px;">Fill in the details below to get started.</p>
     </div>
-    <form action="/register" method="post" enctype="multipart/form-data">
+    <form action="/register" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; align-items: center;">
         {{ form.hidden_tag() }}
         {{ form.csrf_token }}
         <div class="form-group">
@@ -45,34 +43,45 @@
         </div>
         
         <!-- Map Container -->
-<div class="form-group">
-    <label for="location">*Restaurant Location:</label>
-    <!-- Input for location search -->
-    <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
-        <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
-            <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
+        <div class="form-group">
+            <label for="location">*Restaurant Location:</label>
+            <!-- Input for location search -->
+            <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
+                <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
+                    <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
+                </div>
+            </div>
+            <!-- Hidden input for location data -->
+            <input type="hidden" id="locationInput" name="location" required>
+            <!-- Hidden input for location name -->
+            <input type="hidden" id="locationName" name="locationName" required>
         </div>
-    </div>
-    <!-- Hidden input for location data -->
-    <input type="hidden" id="locationInput" name="location" required>
-    <!-- Hidden input for location name -->
-    <input type="hidden" id="locationName" name="locationName" required>
-</div>
-<div class="form-group">
-    <label for="password">*Password:</label>
-    {{ form.password }}
-    <p style="font-size: 14px;"><b><i>at least 8 characters</i></b></p>
-</div>
-<div class="form-group">
-    <label for="confirm_password">*Confirm Password:</label>
-    {{ form.confirm_password }}
-</div>
 
-<div class="form-group">
-    {{ form.submit }}
+        <div class="form-group">
+            <label for="password">*Password:</label>
+            <div class="input-container">
+                <input type="password" id="password" class="password-input">
+                <span class="toggle-password" onclick="togglePassword('password')">👁️</span>
+            </div>
+            <p style="font-size: 14px;"><b><i>at least 8 characters</i></b></p>
+        </div>
+        <div class="form-group">
+            <label for="confirm_password">*Confirm Password:</label>
+            <div class="input-container">
+                <input type="password" id="confirm_password" class="password-input">
+                <span class="toggle-password" onclick="togglePassword('confirm_password')">👁️</span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            {{ form.submit }}
+        </div>
+    </form>
+
+    <p style="font-size: 14px;">* - required fields</p>
+    <p>Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
 </div>
-</form>
 
 <!-- Include Google Maps JavaScript API with Places library -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
@@ -142,14 +151,35 @@
             document.getElementById('locationName').value = formattedAddress;
         }
     }
+
+    function togglePassword(fieldId) {
+        var passwordField = document.getElementById(fieldId);
+        var type = passwordField.type === "password" ? "text" : "password";
+        passwordField.type = type;
+    }
 </script>
 
-
-        
-    
-    <p style="font-size: 14px;">* - required fields</p>
-    <!-- <p style="font-size: 14px;">** - simply reach us on <a href="mailto:contact@mom-ai-agency.site" target="_blank">contact@mom-ai-agency.site</a></p> -->
-    <p>Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
-</div>
+<style>
+    .form-group {
+        margin-bottom: 15px;
+        max-width: 300px;
+        width: 100%;
+        text-align: left;
+    }
+    .input-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+    }
+    .password-input {
+        flex: 1;
+        padding-right: 10px;
+        box-sizing: border-box;
+    }
+    .toggle-password {
+        cursor: pointer;
+        padding: 0 10px;
+    }
+</style>
 
 {% endblock %}
