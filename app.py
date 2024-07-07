@@ -1224,6 +1224,7 @@ def payment_buffer(unique_azz_id, id):
         fees_amount = 0
 
     session["total"] = total_to_pay
+    total_to_pay_display = f"{float(total_to_pay):.2f}"
     # session["sum_of_order"] = sum_of_order
 
     session["unique_azz_id"] = unique_azz_id
@@ -1231,7 +1232,7 @@ def payment_buffer(unique_azz_id, id):
     session["items_ordered"] = items
     session['order_id'] = id
     
-    return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, addFees=addFees, fees_amount=fees_amount, title="Payment Buffer")
+    return render_template("payment_routes/payment_buffer.html", total_to_pay_display=total_to_pay_display, items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, addFees=addFees, fees_amount=fees_amount, title="Payment Buffer")
 
 
 @app.route("/create_payment", methods=['POST','GET'])

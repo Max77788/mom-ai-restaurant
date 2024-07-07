@@ -59,178 +59,171 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
     window.onload = function() {
-        console.log("Window loaded");
+    console.log("Window loaded");
 
-        let currentThreadId = null;  // This will be set when the user starts a new conversation
-        let currentAssistantId = null;  // This will be set with the assistant's ID when starting a new conversation
+    let currentThreadId = null;  // This will be set when the user starts a new conversation
+    let currentAssistantId = null;  // This will be set with the assistant's ID when starting a new conversation
 
-        function startConversation() {
-            const assistantId = "{{ assistant_id }}";
-            fetch(`/assistant_start/${assistantId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })  // Use assistant_id from the server
-            })
-            .then(response => response.json())
-            .then(data => {
-                currentThreadId = data.thread_id;
-                currentAssistantId = data.assistant_id;
-                
-                // Hide the logo, greeting message, and button
-                document.getElementById('restaurantLogo').style.display = 'none';
-                document.getElementById('welcomeMessage').style.display = 'none';
-                document.getElementById('startChatButton').style.display = 'none';
+    function startConversation() {
+        const assistantId = "{{ assistant_id }}";
+        fetch(`/assistant_start/${assistantId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })  // Use assistant_id from the server
+        })
+        .then(response => response.json())
+        .then(data => {
+            currentThreadId = data.thread_id;
+            currentAssistantId = data.assistant_id;
+            
+            // Hide the logo, greeting message, and button
+            document.getElementById('restaurantLogo').style.display = 'none';
+            document.getElementById('welcomeMessage').style.display = 'none';
+            document.getElementById('startChatButton').style.display = 'none';
 
-                // Display the initial message
-                const initialMessage = `Hello, welcome in {{ restaurant_name.replace('_', ' ') }}.<br><br> Please, type in the message to make the order, I will provide you with the best service possible.<br><br>Feel free to check out our restaurant's story and menu <a href="{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}" style="color:#e9e9e9" target="_blank"><u>here.</u></a>`;
-                appendMessage(initialMessage, 'assistant');
-                
-                // Enable the message input and send button
+            // Display the initial message
+            const initialMessage = `Hello, welcome in {{ restaurant_name.replace('_', ' ') }}.<br><br> Please, type in the message to make the order, I will provide you with the best service possible.<br><br>Feel free to check out our restaurant's story and menu <a href="{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}" style="color:#e9e9e9" target="_blank"><u>here.</u></a>`;
+            appendMessage(initialMessage, 'assistant');
+            
+            // Enable the message input and send button
+            document.getElementById('userMessage').disabled = false;
+            document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+        });
+    }
+
+    window.startConversation = startConversation;
+
+    function sendMessage() {
+        const userMessage = document.getElementById('userMessage').value;
+        console.log("Send button clicked");
+        console.log("User message:", userMessage);
+        if (userMessage.trim() === '') {
+            console.log("Empty message, not sending.");
+            return; // Prevent sending empty messages
+        }
+
+        // Display the user's message immediately in the chat
+        appendMessage(userMessage, 'user');
+
+        // Show the spinner and disable input
+        const spinner = document.getElementById('spinner');
+        const userMessageInput = document.getElementById('userMessage');
+        const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+
+        if (spinner) spinner.style.display = 'block';
+        if (userMessageInput) userMessageInput.disabled = true;
+        if (sendButton) sendButton.disabled = true;
+
+        const unique_azz_id = "{{ unique_azz_id }}";
+
+        fetch(`/generate_response/${unique_azz_id}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message: userMessage, thread_id: currentThreadId, assistant_id: currentAssistantId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.order_formed) {
+                // Display the final response and instructions for checkout
+                appendMessage(data.response_llm, 'assistant');
+                appendMessage("Press here to proceed", 'system');
+                // Disable the message input and send button
+                document.getElementById('userMessage').disabled = true;
+                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+                document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
+            } else {
+                // Display the assistant's response when it is received
+                appendMessage(data.response_llm, 'assistant');
+                // Re-enable the message input and send button
                 document.getElementById('userMessage').disabled = false;
                 document.querySelector('button[onclick="sendMessage()"]').disabled = false;
-            });
-        }
-
-        window.startConversation = startConversation;
-
-        function sendMessage() {
-            const userMessage = document.getElementById('userMessage').value;
-            console.log("Send button clicked");
-            console.log("User message:", userMessage);
-            if (userMessage.trim() === '') {
-                console.log("Empty message, not sending.");
-                return; // Prevent sending empty messages
             }
+            // Hide the spinner
+            if (spinner) spinner.style.display = 'none';
+            if (userMessageInput) userMessageInput.value = ''; // Clear input after sending
+        })
+        .catch(error => {
+            console.error("Error:", error);
+            // Hide the spinner in case of error
+            if (spinner) spinner.style.display = 'none';
+            if (userMessageInput) userMessageInput.disabled = false;
+            if (sendButton) sendButton.disabled = false;
+        });
+    }
 
-            // Display the user's message immediately in the chat
-            appendMessage(userMessage, 'user');
+    window.sendMessage = sendMessage;
 
-            // Show the spinner and disable input
-            const spinner = document.getElementById('spinner');
-            const userMessageInput = document.getElementById('userMessage');
-            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+    function appendMessage(message, sender) {
+        // Handle the /payment_buffer logic based on the iframe condition
+        if (message.includes("/payment_buffer")) {
+            const isIframeRaw = "{{ iframe }}";
+            let isIframe = isIframeRaw === "True";
 
-            console.log("Spinner element:", spinner); // Log spinner element
-            console.log("User Message Input:", userMessageInput); // Log user message input
-            console.log("Send button:", sendButton); // Log send button
+            console.log('Entered ')
 
-            if (spinner) spinner.style.display = 'block';
-            if (userMessageInput) userMessageInput.disabled = true;
-            if (sendButton) sendButton.disabled = true;
+            document.getElementById('userMessage').disabled = true;
+            document.querySelector('button[onclick="sendMessage()"]').disabled = true;
 
-            const unique_azz_id = "{{ unique_azz_id }}";
-
-            fetch(`/generate_response/${unique_azz_id}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userMessage, thread_id: currentThreadId, assistant_id: currentAssistantId })
-            })
-            .then(response => {
-                console.log("Response received:", response);
-                return response.json();
-            })
-            .then(data => {
-                console.log("Data received:", data);
-                if (data.order_formed) {
-                    // Display the final response and instructions for checkout
-                    appendMessage(data.response_llm, 'assistant');
-                    appendMessage("Press here to proceed", 'system');
-                    // Disable the message input and send button
-                    document.getElementById('userMessage').disabled = true;
-                    document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                    document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
-                } else {
-                    // Display the assistant's response when it is received
-                    appendMessage(data.response_llm, 'assistant');
-                    // Re-enable the message input and send button
-                    document.getElementById('userMessage').disabled = false;
-                    document.querySelector('button[onclick="sendMessage()"]').disabled = false;
-                }
-                // Hide the spinner
-                if (spinner) spinner.style.display = 'none';
-                if (userMessageInput) userMessageInput.value = ''; // Clear input after sending
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                // Hide the spinner in case of error
-                if (spinner) spinner.style.display = 'none';
-                if (userMessageInput) userMessageInput.disabled = false;
-                if (sendButton) sendButton.disabled = false;
-            });
-        }
-
-        window.sendMessage = sendMessage;
-
-        function appendMessage(message, sender) {
-            // Disable the input and send button if the message contains "Press here to proceed"
-            {% if not iframe %}
-            if (message.includes("/payment_buffer")) {
-                document.getElementById('userMessage').disabled = true;
-                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                
+            if (isIframe) {
+                let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank">Press here to proceed.</a>`;
+                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
+            } else {
                 return window.location.href = message;
             }
-            {% else %}
-            if (message.includes("/payment_buffer")) {
-                document.getElementById('userMessage').disabled = true;
-                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                let clickable_link = `<a href="${message}" style="color: #c0c0c0;" target="_blank">Press here to proceed.</a>`;
-                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
-            }
-            {% endif %}
-            const messageDiv = document.createElement('div');
-            messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
-            console.log("Opened appendMessage function");
-
-            // Convert markdown to HTML
-            try {
-                const htmlContent = marked.parse(message);  // Use marked.parse() function
-                console.log("Marked function called successfully");
-                messageDiv.innerHTML = htmlContent;
-            } catch (error) {
-                console.error("Marked conversion error:", error);
-                messageDiv.textContent = message;  // Fallback to plain text if marked fails
-            }
-
-            if (sender === 'user') {
-                messageDiv.style.backgroundColor = '#e5e5e5'; // Light grey for user messages
-                messageDiv.style.textAlign = 'left';
-            } else if (sender === 'assistant') {
-                messageDiv.style.backgroundColor = '#000000'; // Dark for assistant messages
-                messageDiv.style.color = 'white';
-                messageDiv.style.textAlign = 'right';
-            } else if (sender === 'system') {
-                messageDiv.style.backgroundColor = '#4CAF50'; // Green for system messages
-                messageDiv.style.color = 'white';
-                messageDiv.style.textAlign = 'center'; // Center system messages
-            }
-
-            document.getElementById('chatBox').appendChild(messageDiv);
-
-            // Scroll to the bottom of the chatBox
-            scrollToBottom();
         }
 
-        function scrollToBottom() {
-            const chatBox = document.getElementById('chatBox');
-            chatBox.scrollTop = chatBox.scrollHeight;
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
+        console.log("Opened appendMessage function");
+
+        // Convert markdown to HTML
+        try {
+            const htmlContent = marked.parse(message);  // Use marked.parse() function
+            messageDiv.innerHTML = htmlContent;
+        } catch (error) {
+            console.error("Marked conversion error:", error);
+            messageDiv.textContent = message;  // Fallback to plain text if marked fails
         }
 
-        window.appendMessage = appendMessage;
-        window.scrollToBottom = scrollToBottom;
-
-        // Hide flash messages after 5 seconds
-        var flashMessages = document.querySelector('.flash-messages');
-        if (flashMessages) {
-            setTimeout(function() {
-                flashMessages.style.display = 'none';
-            }, 5000);
+        if (sender === 'user') {
+            messageDiv.style.backgroundColor = '#e5e5e5'; // Light grey for user messages
+            messageDiv.style.textAlign = 'left';
+        } else if (sender === 'assistant') {
+            messageDiv.style.backgroundColor = '#000000'; // Dark for assistant messages
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'right';
+        } else if (sender === 'system') {
+            messageDiv.style.backgroundColor = '#4CAF50'; // Green for system messages
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'center'; // Center system messages
         }
-    };
+
+        document.getElementById('chatBox').appendChild(messageDiv);
+
+        // Scroll to the bottom of the chatBox
+        scrollToBottom();
+    }
+
+    function scrollToBottom() {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    window.appendMessage = appendMessage;
+    window.scrollToBottom = scrollToBottom;
+
+    // Hide flash messages after 5 seconds
+    var flashMessages = document.querySelector('.flash-messages');
+    if (flashMessages) {
+        setTimeout(function() {
+            flashMessages.style.display = 'none';
+        }, 5000);
+    }
+};
 </script>
 
 {% endblock %}

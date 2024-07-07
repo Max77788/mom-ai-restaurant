@@ -490,12 +490,14 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
     Confirm the order and trigger the action as fast as possible in the context of the particular order. 
     Make sure that the item you suggest are from this list(also, included in the vector store provided for you):
     {list_of_all_items}
-    Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items.
+    Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items. In case the user asks not in English 
+    present the dishes in the following way - original dish's name - dish's name in the user's identified language. E.g. SHAWARMA CHICKEN - Шаурма с курицей 
     
     Task: Here is the current user's message, respond to it:
     {user_message}      
     (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
     """
+
     '''
     user_message_is = f"""
     Hlutverk: Þú ert besti veitingastaðaþjónninn sem þjónar viðskiptavinum og skráir pantanir í kerfið.
