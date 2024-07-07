@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - MOM AI</title>
@@ -12,16 +11,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-
     <main>
         {% block content %}
         <!-- Content overridden in child templates -->
         {% endblock %}
     </main>
 
-    
     <footer>
         <div class="footer-content">
+            
             <div class="footer-left">
                 <p>© 2024 MOM AI. All rights reserved.<br>Contact us on <a href="mailto:contact@mom-ai-agency.site" style="color: grey"><u>contact@mom-ai-agency.site</u></a></p>
             </div>
@@ -68,7 +66,10 @@
         .social-icons a:hover {
             color: #3498db;
         }
-
+        .logo {
+            max-width: 150px; /* Set a maximum width for the logo */
+            height: auto; /* Maintain aspect ratio */
+        }
         /* Responsive design for footer */
         @media (max-width: 768px) {
             .footer-left {
@@ -87,6 +88,9 @@
             .footer-right {
                 text-align: center;
                 flex: 1 1 100%; /* Make each section take full width */
+            }
+            .logo {
+                max-width: 100px; /* Adjust the max-width for smaller screens */
             }
         }
     </style>
