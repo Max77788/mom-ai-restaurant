@@ -1219,7 +1219,7 @@ def payment_buffer(unique_azz_id, id):
     else:    
         addFees = False
         total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
-        # sum_of_order = total_to_pay
+        sum_of_order = total_to_pay
         total_to_pay = str(round(float(total_to_pay), 2))
         fees_amount = 0
 
@@ -1470,12 +1470,12 @@ def success_payment_backend(unique_azz_id):
     total_paid = session.get('total')
     order_id = session.get("order_id")
 
-    # sum_of_order = session.get('sum_of_order')
+    sum_of_order = session.get('sum_of_order')
 
     #total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
     
-    MOM_AI_FEE = float(round(float(round(float(total_paid),2))*0.01, 2))+0.10 # 1 percent retained for prOOOOOOfit
-    PAYPAL_FEE = 0.35+float(round(float(round(float(total_paid),2))*0.0349, 2))
+    MOM_AI_FEE = float(round(float(round(float(sum_of_order),2))*0.01, 2))+0.10 # 1 percent retained for prOOOOOOfit
+    PAYPAL_FEE = 0.35+float(round(float(round(float(sum_of_order),2))*0.0349, 2))
 
     print(f"MOM AI fee in the order: {MOM_AI_FEE}\n\n")
     print(f"PAYPAL fee in the order: {PAYPAL_FEE}\n\n")
