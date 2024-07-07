@@ -50,18 +50,14 @@
             align-items: center;
             max-width: 1200px;
             margin: 0 auto;
+            flex-wrap: wrap; /* Ensure the content wraps on smaller screens */
         }
-        .footer-left {
-            flex: 1;
-            text-align: left;
-        }
-        .footer-center {
-            flex: 1;
-            text-align: center;
-        }
+        .footer-left,
+        .footer-center,
         .footer-right {
             flex: 1;
-            text-align: right;
+            text-align: center; /* Center-align content by default */
+            margin-bottom: 10px; /* Add some space between sections on small screens */
         }
         .social-icons a {
             margin: 0 10px;
@@ -72,11 +68,26 @@
         .social-icons a:hover {
             color: #3498db;
         }
-        .logo {
-            max-width: 150px;
-            height: auto;
-            display: block;
-            margin: 0 auto;
+
+        /* Responsive design for footer */
+        @media (max-width: 768px) {
+            .footer-left {
+                order: 3; /* Move to last */
+                margin-bottom: 10px;
+            }
+            .footer-center {
+                order: 2; /* Move to middle */
+                margin-bottom: 10px;
+            }
+            .footer-right {
+                order: 1; /* Move to first */
+            }
+            .footer-left,
+            .footer-center,
+            .footer-right {
+                text-align: center;
+                flex: 1 1 100%; /* Make each section take full width */
+            }
         }
     </style>
 </body>
