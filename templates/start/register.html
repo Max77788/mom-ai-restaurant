@@ -16,6 +16,7 @@
         <div id="registration-form"></div>
         <h1>Register</h1>
         <p style="margin-bottom: 10px; font-size: 25px;">Fill in the details below to get started.</p>
+        <p style="font-size: 14px; margin-bottom: 5px;">* - required fields</p>
     </div>
     <form action="/register" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; align-items: center;">
         {{ form.hidden_tag() }}
@@ -79,8 +80,7 @@
         </div>
     </form>
 
-    <p style="font-size: 14px;">* - required fields</p>
-    <p>Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
+    <p style="margin-top: 5px;">Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
 </div>
 
 <!-- Include Google Maps JavaScript API with Places library -->
