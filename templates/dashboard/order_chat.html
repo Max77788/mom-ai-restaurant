@@ -134,7 +134,7 @@
                 // Disable the message input and send button
                 document.getElementById('userMessage').disabled = true;
                 document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                // document.getElementById('chatBox').innerHTML += '<p><strong>Order complete. Please proceed to checkout.</strong></p>';
+                document.getElementById('chatBox').innerHTML += '<p style="text-align: center"><strong>Order complete.<br>Please proceed to checkout.</strong></p>';
             } else if (data.response_llm.includes("/payment_buffer")) {
                // Display the final response and instructions for checkout
                appendMessage(data.response_llm, 'assistant');  
