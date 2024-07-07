@@ -978,7 +978,7 @@ def setup_working_hours():
                     {"unique_azz_id": res_instance.get("unique_azz_id")},
                     {"$set": {"isOpen": isWorkingHours}}
                 )
-                print("Set isOpen for ", res_instance.get("unique_azz_id"))
+                #print("Set isOpen for ", res_instance.get("unique_azz_id"))
             else:
                 # Spans to the next day
                 isWorkingHours = current_hour >= start or current_hour < end

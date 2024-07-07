@@ -1210,22 +1210,28 @@ def payment_buffer(unique_azz_id, id):
 
     #checkout_link = session.get("paypal_link")
     if restaurant['addFees']:
+        addFees = True
         sum_of_order = sum(float(float(item['amount'])*item['quantity']) for item in items)
-        total_to_pay = str(sum_of_order+0.45+0.049*sum_of_order)
-        total_to_pay = str(round(float(total_to_pay), 2)) 
+        total_to_pay_int = str(sum_of_order+0.45+0.049*sum_of_order)
+        total_to_pay = str(round(float(total_to_pay_int), 2))
+        fees_amount = round(float(total_to_pay) - sum_of_order,2) 
         print("Add fees on payment buffer")
     else:    
+        addFees = False
         total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
+        # sum_of_order = total_to_pay
         total_to_pay = str(round(float(total_to_pay), 2))
+        fees_amount = 0
 
     session["total"] = total_to_pay
+    # session["sum_of_order"] = sum_of_order
 
     session["unique_azz_id"] = unique_azz_id
 
     session["items_ordered"] = items
     session['order_id'] = id
     
-    return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, title="Payment Buffer")
+    return render_template("payment_routes/payment_buffer.html", items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, addFees=addFees, fees_amount=fees_amount, title="Payment Buffer")
 
 
 @app.route("/create_payment", methods=['POST','GET'])
@@ -1464,6 +1470,8 @@ def success_payment_backend(unique_azz_id):
     total_paid = session.get('total')
     order_id = session.get("order_id")
 
+    # sum_of_order = session.get('sum_of_order')
+
     #total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
     
     MOM_AI_FEE = float(round(float(round(float(total_paid),2))*0.01, 2))+0.10 # 1 percent retained for prOOOOOOfit
@@ -1504,8 +1512,12 @@ def success_payment_backend(unique_azz_id):
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
 
-    result = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": total_received}})
-    
+    if len(list(db_order_dashboard[order_dashboard_id].find())) == 1: 
+        result = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": total_received-3}})
+        print("Deducted initial 3 Euros")
+    else:
+        result = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": total_received}})
+
     all_ids_for_acc = current_restaurant_instance.get('notif_destin')
 
     restaurant_name = current_restaurant_instance.get("name")
@@ -1525,7 +1537,7 @@ def success_payment_backend(unique_azz_id):
     print(f"Current balance after updating: {current_balance}")
 
     print(f"Items: {items} on success payment route")
-    print(f"Total paid: {total_received} on success payment route")
+    print(f"Total paid: {total_paid} on success payment route")
 
 
     flash("Your Order was Successfully Placed!")

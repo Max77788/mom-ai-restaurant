@@ -12,6 +12,11 @@
                 <b>{{ item['amount']}} {{ restaurant.res_currency }} <u>per 1 item</u></b>
                 </li>
             {% endfor %}
+            {% if addFees %}
+            <li>
+                <b>MOM AI and PayPal fee</b> : <b>{{ fees_amount }} EUR</b>
+            </li>
+            {% endif %}
         </ul>
         
         <p style="margin-bottom: 10px;"><b>Total: {{ total_to_pay }} {{ restaurant.res_currency }}</b></p>
