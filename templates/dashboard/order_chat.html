@@ -14,7 +14,7 @@
     {% endif %}
 {% endwith %}
 
-<div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
+<div style="width: 100%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
     
     <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
         Make the Order in {{ restaurant_name.replace("_"," ") }}
@@ -142,7 +142,7 @@
                // Disable the message input and send button
                document.getElementById('userMessage').disabled = true;
                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-               document.getElementById('chatBox').innerHTML += '<p style="text-align: center; align-items: center"><strong>Order complete.<br>Please proceed to checkout.</strong></p>';
+               document.getElementById('chatBox').innerHTML += '<p style="text-align: center; align-items: center"><strong>Please, proceed to checkout☝️<br>⚡Order is completed⚡</strong></p>';
             }
             
             else {
@@ -179,7 +179,7 @@
         console.log('Entered includes payment buffer loop');
 
         if (isIframe) {
-            let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank">Press here to proceed.</a>`;
+            let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
             message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
         } else {
             window.location.href = message;
