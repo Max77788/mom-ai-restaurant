@@ -367,6 +367,10 @@ def landing_page():
                 flash(f"Error in field '{field}': {error}", 'error')
         print("Form not submitted or validation failed")
     """
+
+    if session.get("res_email"):
+        print("Found email in session")
+        return redirect(url_for("dashboard_display"))
     
     return render_template('start/landing.html', title="Restaurant Assistant")
 
