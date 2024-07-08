@@ -164,11 +164,11 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
         <span id="addFeeToPaymentStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
             {% if restaurant.addFees %}
-                Customer pays fee<br><p style="font-size:0.7em"><i>
-                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the payment</i></p>
+                <b>Customer</b> pays fee<br><p style="font-size:0.7em"><i>
+                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the customer payment</i></p>
             {% else %}
-                Customer DOES NOT pay fee<br><p style="font-size:0.7em"><i>
-                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the payment</i></p>
+                <b>Restaurant</b> pays fee<br><p style="font-size:0.7em"><i>
+                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the customer payment</i></p>
             {% endif %}
         </span>
         <label class="switch">
@@ -429,9 +429,9 @@
 
               // Update the status label
               if (addFeeToPayment) {
-                addFeeToPaymentStatus.innerHTML = 'Customer pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the payment</i></p>';
+                addFeeToPaymentStatus.innerHTML = '<b>Customer</b> pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the customer payment</i></p>';
               } else {
-                addFeeToPaymentStatus.innerHTML = 'Customer DOES NOT pay fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the payment</i></p>';
+                addFeeToPaymentStatus.innerHTML = '<b>Restaurant</b> pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the customer payment</i></p>';
               }
 
               // Send the profileVisible state to the server using AJAX

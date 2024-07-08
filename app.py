@@ -936,7 +936,7 @@ def payments_display():
     unique_azz_id = session.get("unique_azz_id")
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
-    print(restaurant)
+    #print(restaurant)
     
     order_dashboard_id = unique_azz_id
 
