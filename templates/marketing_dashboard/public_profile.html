@@ -39,7 +39,7 @@
                 <p>{{ restaurant['description'] or "The best restaurant embracing the future with AI-implementation and just serving an awesome food"}}</p>
             </div>
             <div class="assistant-section">
-                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Take the order with AI</button></a>
+                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Make the order with AI</button></a>
             </div>
             <div class="working-hours">
                 <h2 style="margin-top: 15px;">Working Hours (Timezone: <a id="timeLink" href="https://time.is/{{ restaurant.timezone.replace('Etc/', '').replace('+0', '') }}" target="_blank">{{ restaurant.timezone.replace("Etc/", "") }}</a>)</h2>
