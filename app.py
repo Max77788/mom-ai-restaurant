@@ -399,9 +399,12 @@ def landing_page():
         print("Form not submitted or validation failed")
     """
 
-    if session.get("res_email"):
-        print("Found email in session")
-        return redirect(url_for("dashboard_display"))
+    if session.get("res_email") and session.get("password"):
+        # Find the instance in MongoDB
+        restaurant_instance = collection.find_one({"email": session.get("res_email")}) 
+        if restaurant_instance:
+            print(f"Found email {session.get('res_email')} and password {session.get('password')} in session")
+            return redirect(url_for("dashboard_display"))
     
     return render_template('start/landing.html', title="Restaurant Assistant")
 
@@ -606,7 +609,8 @@ def register():
         for field, errors in form.errors.items():
             for error in errors[:1]:
                 print(f"Error in field '{field}': {error}")
-                flash(f"Error in field '{field}': {error}", 'error')
+                if "csrf" in error.lower():
+                    flash(f"Error in field '{field}': {error} - PLEASE, RELOAD THE PAGE!", 'error')
         print("Form not submitted or validation failed")
     return render_template('start/register.html', form=form, title="Register", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
@@ -893,7 +897,7 @@ def dashboard_display():
     print(f"hashed_res_password on dashboard {hashed_res_password}")
 
     # Find the instance in MongoDB
-    restaurant_instance = collection.find_one({"email": res_email})
+    restaurant_instance = collection.find_one({"email": res_email}) 
 
     # Check if the instance exists
     if restaurant_instance:

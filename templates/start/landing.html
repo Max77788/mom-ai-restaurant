@@ -54,6 +54,16 @@
     white-space: nowrap;
 }
 
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+.link {
+    margin: 0 10px;
+}
+
 @media (max-width: 700px) {
     .slogan {
         font-size: 2em;
@@ -89,9 +99,21 @@
         <div class="image-container">
             <img src="/static/images/bulls_logos/mom_ai_bull_logos.png" alt="MOM AI Ambassadors">
 </div>
-<div style="align-items: center; text-align: center;">
-<a href="https://www.producthunt.com/posts/mom-ai-restaurant-assistant?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-mom&#0045;ai&#0045;restaurant&#0045;assistant" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=467194&theme=dark" alt="MOM&#0032;AI&#0032;Restaurant&#0032;Assistant - Restaurant&#0032;Assistant | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" /></a>
+<div class="container">
+    <div class="link">
+        <a href="https://www.producthunt.com/posts/mom-ai-restaurant-assistant?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-mom&#0045;ai&#0045;restaurant&#0045;assistant" target="_blank">
+            <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=467194&theme=dark" alt="MOM&#0032;AI&#0032;Restaurant&#0032;Assistant - Restaurant&#0032;Assistant | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
+        </a>
+    </div>
+    <div class="link">
+        <a href="https://aitoolhub.tech/product/mom-ai-restaurant-assistant" target="_blank" style="text-align: center; align-items: center;">
+            <img src="https://aitoolhub.tech/assets/logo.svg" alt="Featured Embed | aitoolhub.tech" style="width: 400px; height: 100px;" width="400" height="100"/>
+        </a>
+    </div>
 </div>
+
+
+
 <!-- Benefits Section -->
 <div id="benefits-section" class="section">
     <div class="section-header">
