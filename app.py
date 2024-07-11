@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from utils.functions import InvalidMenuFormatError, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
+from utils.functions import InvalidMenuFormatError, CONTRACT_ABI, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -21,6 +21,7 @@ from openai import OpenAI, AzureOpenAI
 from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId  # Import ObjectId from bson
 import io
+from web3 import Web3
 import logging
 import pytz
 #from tools.stellar_payments.list_payments import list_received_payments
@@ -54,6 +55,36 @@ app.config['MAIL_USERNAME'] = 'contact@mom-ai-agency.site'
 app.config['MAIL_PASSWORD'] = os.environ.get("PRIVATEEMAIL_PASSWORD")
 FROM_EMAIL = app.config['MAIL_USERNAME']
 mail = Mail(app)
+
+
+
+# Connect to the Polygon node (you can use Infura, Alchemy, or a local node)
+url_base =  "https://polygon-mainnet.infura.io/v3/" if os.environ.get("POLYGON_MAINNET", "False") == "True" else "https://polygon-amoy.infura.io/v3/" 
+infura_project_id = os.environ.get("INFURA_PROJECT_ID")
+
+polygon_url = url_base + infura_project_id
+web3 = Web3(Web3.HTTPProvider(polygon_url))
+
+# Check connection
+if web3.isConnected():
+    print("Connected to Polygon node")
+else:
+    print("Failed to connect to Polygon node")
+
+# Address and ABI of your deployed contract
+contract_address = os.environ.get("MOM_TOKEN_CONTRACT_ADDRESS")
+if not contract_address:
+    raise ValueError("Contract address is not set in the environment variables")
+
+# Convert to checksum address
+contract_address = web3.toChecksumAddress(contract_address)
+print(f"Contract Address: {contract_address}")
+
+# Load the contract
+contract = web3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
+print("Contract loaded")
+
+
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.mkdir(app.config['UPLOAD_FOLDER'])
@@ -1171,6 +1202,41 @@ def update_menu():
         flash("Error updating menu. Please check the file for validity.", category="danger")
 
     return redirect(url_for("dashboard_display"))
+
+
+
+# Mint MOM token
+@app.route('/mint_tokens', methods=['POST'])
+def mint_tokens():
+    data = request.json
+    user_address = data['user_address']
+    amount = data['amount']
+
+    # Define the owner address and private key (never expose the private key in a real app)
+    owner_address = "0xYourOwnerAddressHere"
+    private_key = "YourOwnerPrivateKeyHere"
+
+    # Build the transaction
+    tx = contract.functions.mintForOrder(user_address, amount).buildTransaction({
+        'from': owner_address,
+        'nonce': web3.eth.getTransactionCount(owner_address),
+        'gas': 2000000,
+        'gasPrice': web3.toWei('50', 'gwei')
+    })
+
+    # Sign the transaction
+    signed_tx = web3.eth.account.sign_transaction(tx, private_key)
+
+    # Send the transaction
+    tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
+
+    # Wait for the transaction to be mined
+    receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+
+    return jsonify({
+        'status': 'Transaction sent',
+        'transaction_hash': tx_hash.hex()
+    })
 
 
 """
