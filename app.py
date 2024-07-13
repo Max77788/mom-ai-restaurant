@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from utils.functions import InvalidMenuFormatError, CONTRACT_ABI, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
+from utils.functions import InvalidMenuFormatError, CONTRACT_ABI, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -1499,7 +1499,7 @@ def generate_response(unique_azz_id):
 
     print(f"Charge for message: {charge_for_message} USD")
 
-    unique_azz_id = session.get("unique_azz_id")
+    #unique_azz_id = session.get("unique_azz_id")
 
     result_charge_for_message = collection.update_one({"unique_azz_id":unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
     # Check if the update was successful
@@ -1512,6 +1512,10 @@ def generate_response(unique_azz_id):
     
     print(f"LLM response: {response_llm}")
 
+    for_voice = remove_formatted_lines(response_llm)
+
+    print(for_voice)
+
     if isinstance(response_llm, Response):
         # Handle the Response object differently
         # For example, you might want to convert it to a string or extract its data
@@ -1519,7 +1523,7 @@ def generate_response(unique_azz_id):
         response_llm_dict = ast.literal_eval(response_llm_data)
         response_llm = response_llm_dict["response"]
 
-    return jsonify({"response_llm":response_llm})
+    return jsonify({"response_llm":response_llm, "for_voice": for_voice})
 
 '''
 @app.route('/setup_payments', methods=['POST', 'GET'])

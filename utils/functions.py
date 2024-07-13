@@ -746,6 +746,21 @@ And only after the user's confirmation does it IMMEDIATELY trigger the function 
         return assistant, "vector_is_not_yet", "menu_file_is_not_yet"
 
 
+def remove_formatted_lines(menu_text):
+    # Split the input text by lines
+    lines = menu_text.split('\n')
+    
+    # Filter out lines that contain formatted text (bold text in this case)
+    filtered_lines = [line for line in lines if '**' not in line and '#' not in line]
+    
+    # Join the remaining lines back into a single string
+    result = '\n'.join(filtered_lines)
+    
+    return result
+
+
+
+
 def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_name, mongo_restaurants, unique_azz_id, assistant_id, client=CLIENT_OPENAI):
     new_menu_txt_path, new_html = convert_xlsx_to_txt_and_menu_html(input_xlsx_path, output_menu_txt_path, currency)
     print(new_menu_txt_path, new_html)
