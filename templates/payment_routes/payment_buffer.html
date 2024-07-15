@@ -116,7 +116,7 @@ paypal.Button.render({
             }).then(function(res) {
                 return res.json()
             }).then(function(orderData) {
-                console.log(orderData)
+                // console.log(orderData)
                 return orderData.id;
             }).catch(function(error) {
                 console.error('Error:', error);  // Handle any errors
@@ -154,7 +154,7 @@ paypal.Button.render({
                 }
 
                 // Successful capture! For demo purposes:
-                console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
+                // console.log('Capture result', orderData, JSON.stringify(orderData, null, 2));
                 var transaction = orderData.purchase_units[0].payments.captures[0];
                 const unique_azz_id = "{{ unique_azz_id }}";
                 window.location.href = `/success_payment_backend/${unique_azz_id}`;
