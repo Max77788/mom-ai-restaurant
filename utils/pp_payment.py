@@ -30,6 +30,7 @@ def transform_items(input_data):
     transformed_items = []
      
     currency=session.get("res_currency") 
+    currency="EUR"
 
     for item in input_data:
         # Calculate the total price as quantity * amount, but amount should be per item already
@@ -58,6 +59,8 @@ def SetExpressCheckout(items, profile=None, sandbox=SANDBOX, client_id=CLIENT_ID
 
     items = transform_items(items)
     currency_of_order = items[0]["currency"]
+
+    currency_of_order = "EUR"
 
     print(items)
 
@@ -139,6 +142,8 @@ def createPayment(items, profile=None, sandbox=SANDBOX, client_id=CLIENT_ID, sec
 
     items = transform_items(items)
     currency_of_order = items[0]["currency"]
+
+    currency_of_order = "EUR"
 
     #print(items)
 
@@ -262,7 +267,8 @@ def createOrder(total_to_pay):
         'Authorization': f'Bearer {access_token}',
     }
  
-    currency_code = session.get("res_currency", "USD")
+    currency_code = session.get("res_currency", "EUR")
+    currency_code = "EUR"
     
     session_total = float(session.get('total', 10))
     
