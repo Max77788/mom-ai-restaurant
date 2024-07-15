@@ -1,9 +1,33 @@
 {% extends "layout_no_land.html" %}
 
+
+{% block head %}
+<title>Best AI-empowered Restaurants in {{ search_query }} | MOM AI Restaurant Search</title>
+<meta name="description" content="Discover the best AI-empowered restaurants in {{ search_query }} with MOM AI's search tool. Find locations, menus, and order food easily.">
+<link rel="canonical" href="https://mom-ai-restaurant.pro/ai-restaurants?location={{ search_query }}" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  "name": "MOM AI Restaurant Search",
+  "url": "https://mom-ai-restaurant.pro/ai-restaurants?location={{ search_query }}"
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div id="instructions" style="border-top: 1px solid black; font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
+    <h1 style="visibility: hidden; position: absolute; left: -9999px;">Discover Top AI Restaurants in {{ search_query }}</h1>
+    <p style="visibility: hidden; position: absolute; left: -9999px;">Welcome to MOM AI's comprehensive search tool for finding the best AI-powered restaurants in {{ search_query }}. Whether you're looking for fine dining, casual eateries, or takeout options, our platform helps you find and order from the top restaurants in {{ search_query }}.</p>
+    <h2 style="visibility: hidden; position: absolute; left: -9999px;">Search and Order from the Best Restaurants in {{ search_query }}</h2>
+    
+    {% if search_query %}
+    <h2 style="text-align: center; margin-top: 20px; color: #2c3e50;">The List of AI-Empowered Restaurants in<br>{{ search_query }}</h2>
+    {% else %}
     <h2 style="text-align: center; margin-top: 20px; color: #2c3e50;">The List of AI-Empowered Restaurants</h2>
-    <p style="text-align: center; color: #7f8c8d;">Learn more and click on 'Order Food Now' to make the order with AI:</p>
+    {% endif %}
+
+    <p style="text-align: center; color: #7f8c8d; margin-top: 3px;">Learn more and click on 'Order Food Now' to make the order with AI:</p>
 
     <h3 style="text-align: center;">Filter by location</h3>
     <!-- Location Search Input -->
@@ -35,16 +59,8 @@
             {% else %}
             <p>No URL Provided</p>
             {% endif %}
-            <!--
-            <p><b>Contact the restaurant:</b></p>
-            <p style="margin-bottom: 3px"><a href="mailto:{{ restaurant.email }}">{{ restaurant.email }}</a></p>
-            -->
             <p><b>Location:</b></p>
-            <p style="font-size: 13px;"><b>{{ restaurant.location_name }}</b></pp>
-            <!--
-            <p><b>Location:</b></p>
-            <p style="margin-bottom: 3px">{{ restaurant.get('location_name', 'Not provided') }}</p>
-            -->
+            <p style="font-size: 13px;"><b>{{ restaurant.location_name }}</b></p>
             <p><a href="https://www.google.com/maps/search/?api=1&query={{ restaurant.get('location_name') }}" target="_blank" style="color: #0000ff; margin-bottom: 10px;">View on the Map</a></p>
 
             <p style="padding-bottom: 7px"><a href="/restaurant/{{ restaurant.unique_azz_id }}" target="_blank"><button>Visit Profile</button></a></p>
@@ -111,3 +127,4 @@
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}
+
