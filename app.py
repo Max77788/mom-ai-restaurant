@@ -858,8 +858,12 @@ def market_dashboard():
     page = request.args.get('page', 1, type=int)
     per_page = 12  # 2 columns * 6 rows
     search_query = request.args.get('location', '')
+    if search_query:
+        title = f"Best AI-empowered restaurants in {search_query}"
+    else:
+        title = "Best AI-empowered restaurants search"
     restaurants, total = get_restaurants(page, per_page, search_query)  # Function to fetch paginated restaurant data
-    return render_template('marketing_dashboard/market_dashboard.html', restaurants=restaurants, page=page, per_page=per_page, total=total, title="AI Restaurants Market", search_query=search_query, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+    return render_template('marketing_dashboard/market_dashboard.html', restaurants=restaurants, page=page, per_page=per_page, total=total, title=title, search_query=search_query, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 def get_restaurants(page, per_page, search_query=''):
     skip = (page - 1) * per_page
@@ -1299,7 +1303,7 @@ def payment_buffer(unique_azz_id, id):
 
     session["total"] = total_to_pay
     total_to_pay_display = f"{float(total_to_pay):.2f}"
-    # session["sum_of_order"] = sum_of_order
+    session["sum_of_order"] = sum_of_order
 
     session["unique_azz_id"] = unique_azz_id
 
@@ -1514,7 +1518,7 @@ def generate_response(unique_azz_id):
 
     for_voice = remove_formatted_lines(response_llm)
 
-    print(for_voice)
+    print(f"For voice: {for_voice}")
 
     if isinstance(response_llm, Response):
         # Handle the Response object differently
