@@ -4,7 +4,7 @@ import os
 # from google.cloud import speech
 import qrcode
 #from io import BytesIO
-from flask_socketio import SocketIO, disconnect
+#from flask_socketio import SocketIO, disconnect
 import gridfs
 from pydub import AudioSegment
 import uuid

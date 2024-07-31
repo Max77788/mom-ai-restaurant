@@ -15,7 +15,7 @@ import string
 import re
 import os
 import base64
-from flask_socketio import SocketIO, emit, disconnect
+# from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
 import uuid
 from utils.pp_payment import SetExpressCheckout
