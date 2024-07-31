@@ -248,7 +248,8 @@ def landing_page():
 
     #if session.get("res_email"):
         #return redirect(url_for("notify_waitlist"))
-    return redirect("https://landing.mom-ai-restaurant.pro")
+    if os.environ.get("GO_TO_LAND_AT_START") == "True":
+        return redirect("https://landing.mom-ai-restaurant.pro")
     
     """
     form = RestaurantForm()
