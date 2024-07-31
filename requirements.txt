@@ -21,3 +21,5 @@ bcrypt
 apscheduler
 Flask-HTTPAuth
 qrcode
+pydub
+pytz
