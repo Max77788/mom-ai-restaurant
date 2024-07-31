@@ -39,6 +39,25 @@
         height: auto; /* Maintain the aspect ratio */
     }
 </style>
+<script>
+    function openTab(tabName) {
+        // Get all elements with class="tab-content" and hide them
+        var tabContents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
+        }
+
+        // Get all elements with class="tab" and remove the class "active"
+        var tabs = document.getElementsByClassName("tab");
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.remove("active");
+        }
+
+        // Show the current tab, and add an "active" class to the button that opened the tab
+        document.getElementById(tabName).classList.add("active");
+        event.currentTarget.classList.add("active");
+    }
+</script>
 </head>
 <body>
 
@@ -51,7 +70,13 @@
     </div>
 
     <div id="open-directly" class="tab-content active">
-        <p>Open this chat on a tablet and put it at the counter in the restaurant: <br>
+        <p>Put this qr-code besides your counter and let customers order in their native languages</p>
+        <div style="border: 1px solid black; padding: 10px;">
+            <img src="{{ url_for('serve_image', file_id=qr_code_id) }}" alt="{{ restaurant_name }} Assistant QR-code" class="restaurant-logo" />
+            <h4 style="text-align: center; margin-top: -20px; margin-bottom: 7px;">😋Order in your Native Language now with {{ restaurant_name }} AI-agent🥘</h4>
+        </div>
+        <h2 style="text-align: center; margin-top: 10px;">Or</h2>
+        <p>Open this chat on a tablet and put it at the counter in your restaurant: <br>
         <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name.replace("_"," ") }}'s AI-Assistant</u></b></a></p>
         <div class="image-container">
             <img src="/static/images/tablet_at_the_counter.jpg" alt="AI-Assistant tablet at restaurant counter">
@@ -83,3 +108,4 @@
 
 </body>
 </html>
+

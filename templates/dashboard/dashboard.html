@@ -5,513 +5,570 @@
 {% if show_popup %}
 <!-- Popup message container -->
 <div id="popup-message" class="popup">
-  <div class="popup-content">
-      <span class="close-button">&times;</span>
-      <h1>Congratulations!</h1>
-      <h2>✅Your Account Has Been Successfully Created✅</h2>
-      <h3>Next Steps:</h3>
+    <div class="popup-content">
+        <span class="close-button">&times;</span>
+        <h1>Congratulations!</h1>
+        <h2>✅Your Account Has Been Successfully Created✅</h2>
+        <h3>Next Steps:</h3>
         <h2 style="margin-top: 10px;">1. Setup Notifications in 30 seconds</h2>
-            <p>- Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
-            <!-- <img src="/static/images/notifications_setup/code_in_tg.png" style="width:auto; max-height: 250px"> -->
-            <p>- Go to Profile -> Notifications section and paste the obtained code</p>
-            <!-- <img src="/static/images/notifications_setup/insert_code.png" style="width:auto; max-height: 250px"> -->
-            <p>- Now you will be receiving the notification upon the incoming of the paid order</p>
-            <p><i>*you can set up notifications on the multiple devices(e.g. on your phone and the ones of employees)</i></p>
-        <h2 style="margin-top: 10px;">2. Set the working hours of your restaurant</h2>  
+        <p>- Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
+        <p>- Go to Profile -> Notifications section and paste the obtained code</p>
+        <p>- Now you will be receiving the notification upon the incoming of the paid order</p>
+        <p><i>*you can set up notifications on the multiple devices (e.g., on your phone and the ones of employees)</i></p>
+        <h2 style="margin-top: 10px;">2. Set the working hours of your restaurant</h2>
         <p>- Go to Profile -> <a href="/set-working-hours" target="_blank"><u>Set Working Hours</u></a> section and press 'Edit' button</p>
         <p>- Choose your restaurant's timezone and working hours, press 'Submit' button</p>
-        <h2 style="margin-top: 10px;">3. Activate the assistant in right upper corner<br>&<br>begin generating orders with MOM AI Restaurant Assistant</h2>  
-        <img src="/static/images/turn_on_ass.png">
+        <h2 style="margin-top: 10px;">3. Activate the assistant in right upper corner<br>&<br>begin generating orders with MOM AI Restaurant Assistant</h2>
+        <img src="/static/images/turn_on_ass.png" alt="Turn On Assistant" style="max-width: 100%; height: auto;">
         <p>*you can check out this guide anytime at the bottom of the dashboard page</p>
-        </div>
+    </div>
 </div>
 
 <!-- Add the CSS styles for the popup -->
 <style>
-  /* Popup container */
-  .popup {
-      display: none; /* Hidden by default */
-      position: fixed; /* Stay in place */
-      z-index: 1; /* Sit on top */
-      left: 0;
-      top: 0;
-      width: 100%; /* Full width */
-      height: 100%; /* Full height */
-      overflow: auto; /* Enable scroll if needed */
-      background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
-  }
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
 
-  /* Popup content */
-  .popup-content {
-      background-color: #fff;
-      margin: 7.7% auto; /* 15% from the top and centered */
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%; /* Could be more or less, depending on screen size */
-      border-radius: 8px;
-      text-align: center;
-  }
+.popup-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 90%;
+    max-width: 600px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
 
-  /* Close button */
-  .close-button {
-      color: #aaa;
-      float: right;
-      font-size: 28px;
-      font-weight: bold;
-  }
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
 
-  .close-button:hover,
-  .close-button:focus {
-      color: #000;
-      text-decoration: none;
-      cursor: pointer;
-  }
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+}
 </style>
 
 <!-- Add the JavaScript to control the popup -->
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-      // Get the popup
-      var popup = document.getElementById('popup-message');
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Check for 'show_popup' in the URL and remove it
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('show_popup')) {
+        url.searchParams.delete('show_popup');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+    
+    var popup = document.getElementById('popup-message');
+    var closeButton = document.getElementsByClassName('close-button')[0];
 
-      // Get the <span> element that closes the popup
-      var closeButton = document.getElementsByClassName('close-button')[0];
+    popup.style.display = 'block';
 
-      // Show the popup when the page loads
-      popup.style.display = 'block';
+    closeButton.onclick = function() {
+        popup.style.display = 'none';
+    };
 
-      // When the user clicks on <span> (x), close the popup
-      closeButton.onclick = function() {
-          popup.style.display = 'none';
-      };
-
-      // When the user clicks anywhere outside of the popup, close it
-      window.onclick = function(event) {
-          if (event.target == popup) {
-              popup.style.display = 'none';
-          }
-      };
-  });
+    window.onclick = function(event) {
+        if (event.target == popup) {
+            popup.style.display = 'none';
+        }
+    };
+});
 </script>
 {% endif %}
 
-<div class="dashboard"> 
-  <div class="dashboard-header">
-    <div class="total-earned">
-      <span><strong>Available Funds:</strong> {{ current_balance }} {{ res_currency }}</span>
-      <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}</span>
-      <br><a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
-      {% if awaiting_withdrawal > 0 %}
-          <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
-      {% endif %}
-      <br><i><a href="javascript:void(0);" onclick="toggleVisibilityAndConvert('currency-converter', '{{ res_currency }}');"><u>Show/Hide Currency Converter</u></a></i>
-      <div id="currency-converter" style="display: none;">
-          <p style="font-size: 18px;">Available Funds of <b>{{ current_balance }} {{ res_currency }}</b> in other currencies:</p>
-          <span id="available-funds" style="display: none;">{{ current_balance }}</span>
-
-          <div class="results">
-              <b><p>USD($): <span id="usd"></span></p></b>
-              <b><p>UAH(₴): <span id="uah"></span></p></b>
-              <b><p>ISK(kr): <span id="isk"></span></p></b>
-          </div>
-      </div>
-  </div>
-
-
-    <!-- <i style="font-size: 11px;">*the balance is automatically topped-up and subtracted<br>based on assistant usage and orders registered</i> -->
-    <div class="wallet-address">
-
-      <h1>Welcome to your dashboard, {{ restaurant_name.replace("_"," ") }}!</h1>
-      <!-- <span><strong>Wallet Address:</strong> {{ wallet_address }}</span> -->
-    </div>
-    <div class="restaurant-name">
-      <span><strong>Your Email: </strong>{{ restaurant_email }}</span>
-    
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
-        {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
-        <span id="assistantStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">   
-            {% if assistant_turned_on %} 
-                Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currrently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
-            {% else %}
-                Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+<div class="dashboard">
+    <div class="dashboard-header">
+        <div class="total-earned">
+            <span><strong>Available Funds:</strong> {{ current_balance }} {{ res_currency }}</span>
+            <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}</span>
+            <br><a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
+            {% if awaiting_withdrawal > 0 %}
+            <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
             {% endif %}
-        </span>
-        <label class="switch">
-            <input type="checkbox" id="assistantToggle" {% if assistant_turned_on %}checked{% endif %}>
-            <span class="slider round"></span>
-        </label>
-        {% else %}
-        <span id="assistantStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
-          Please, visit <b>Menu</b> tab to upload menu<br>and start using AI-assistant
-        </span>
-        {% endif %}
-      </div>
+            <br><i><a href="javascript:void(0);" onclick="toggleVisibilityAndConvert('currency-converter', '{{ res_currency }}');"><u>Show/Hide Currency Converter</u></a></i>
+            <div id="currency-converter" style="display: none;">
+                <p style="font-size: 18px;">Available Funds of <b>{{ current_balance }} {{ res_currency }}</b> in other currencies:</p>
+                <span id="available-funds" style="display: none;">{{ current_balance }}</span>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
-        <span id="profileVisibilityStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
-            {% if restaurant.profile_visible %}
-                Profile is VISIBLE<br><p style="font-size:0.7em"><i>*users currently <b>CAN</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>
-            {% else %}
-                Profile is HIDDEN<br><p style="font-size:0.7em"><i>*users currently <b>CANNOT</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>
-            {% endif %}
-        </span>
-        <label class="switch">
-            <input type="checkbox" id="profileVisibilityToggle" {% if restaurant.profile_visible %}checked{% endif %}>
-            <span class="slider round"></span>
-        </label>
-      </div>
-
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
-        <span id="addFeeToPaymentStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">
-            {% if restaurant.addFees %}
-                <b>Customer</b> pays fee<br><p style="font-size:0.7em"><i>
-                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the customer payment</i></p>
-            {% else %}
-                <b>Restaurant</b> pays fee<br><p style="font-size:0.7em"><i>
-                MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the customer payment</i></p>
-            {% endif %}
-        </span>
-        <label class="switch">
-            <input type="checkbox" id="addFeeToPaymentToggle" {% if restaurant.addFees %}checked{% endif %}>
-            <span class="slider round"></span>
-        </label>
-      </div>
-      
-      <!--
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 7px;">
-        <span id="paymentGatewayStatus" style="font-family: Arial, sans-serif; color: #000; margin-right: 10px;">   
-            {% if payment_gateway_turned_on %} 
-                Payment Gateway is ON
-            {% else %}
-                Payment Gateway is OFF
-            {% endif %}
-        </span>
-        <label class="switch">
-            <input type="checkbox" id="paymentGatewayToggle" {% if payment_gateway_turned_on %}checked{% endif %}>
-            <span class="slider round"></span>
-        </label>
-      </div>
-      <i id="paymentGatewayInfo" style="font-size: 11px;">
-        {% if payment_gateway_turned_on %}
-          currently the orders are being registered when the customer paid
-        {% else %}
-          currently customer DOES NOT pay right after taking the order,<br><b>recommended to switch the payment gateway on</b>
-        {% endif %}
-      </i>
-    -->
-
-    <hr>
-    
-    <div class="logout-section">
-        <form action="/logout" method="post">
-            <button type="submit">Logout</button>
-        </form>
-    </div>
-    </div>
-  </div>
-</div>
-  <nav class="dashboard-nav">
-    <a href="/payments" class="no-right-click-tab">Payments</a>
-    <!-- <a href="/settings" class="no-right-click-tab">Settings</a> -->
-    <a href="/menu" class="no-right-click-tab">Menu</a>
-    <a href="/assistant_dash" class="no-right-click-tab">Assistant</a>
-    <a href="/profile" class="no-right-click-tab">Profile</a>
-    <a href="/view_orders" class="tab" target="_blank">Orders Display</a>
-
-  </nav>
-  <section class="dynamic-content" id="dynamic-content">
-      <!-- Content will be dynamically loaded here based on the tab chosen -->
-  </section>
-  {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-messages">
-                    <div class="flash-message">{{ messages[-1] }}</div>
+                <div class="results">
+                    <b><p>USD($): <span id="usd"></span></p></b>
+                    <b><p>UAH(₴): <span id="uah"></span></p></b>
+                    <b><p>ISK(kr): <span id="isk"></span></p></b>
+                </div>
             </div>
-        {% endif %}
+        </div>
+
+        <div class="wallet-address">
+            <h1>Welcome to your dashboard, {{ restaurant_name.replace("_"," ") }}!</h1>
+        </div>
+        <div class="restaurant-name">
+            <span><strong>Your Email: </strong>{{ restaurant_email }}</span>
+            <div class="switch-container">
+                {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
+                <span id="assistantStatus">
+                    {% if assistant_turned_on %}
+                    Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
+                    {% else %}
+                    Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+                    {% endif %}
+                </span>
+                <label class="switch">
+                    <input type="checkbox" id="assistantToggle" {% if assistant_turned_on %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+                {% else %}
+                <span id="assistantStatus">
+                    Please, visit <b>Menu</b> tab to upload menu<br>and start using AI-assistant
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="switch-container">
+                <span id="profileVisibilityStatus">
+                    {% if restaurant.profile_visible %}
+                    Profile is VISIBLE<br><p style="font-size:0.7em"><i>*users currently <b>CAN</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>
+                    {% else %}
+                    Profile is HIDDEN<br><p style="font-size:0.7em"><i>*users currently <b>CANNOT</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>
+                    {% endif %}
+                </span>
+                <label class="switch">
+                    <input type="checkbox" id="profileVisibilityToggle" {% if restaurant.profile_visible %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="switch-container">
+                <span id="paymentGatewayStatus">
+                    {% if gateway_is_on %}
+                    Payment Gateway is ON<br><p style="font-size:0.7em"><i>*currently the orders are being registered when the customer paid</i></p>
+                    {% else %}
+                    Payment Gateway is OFF<br><p style="font-size:0.7em"><i>*currently customer DOES NOT pay right after taking the order,<br><b>recommended to switch the payment gateway on</b></i></p>
+                    {% endif %}
+                </span>
+                <label class="switch">
+                    <input type="checkbox" id="paymentGatewayToggle" {% if gateway_is_on %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            {% if gateway_is_on %}
+            <div id="addFeesSection" class="switch-container">
+                {% else %}
+                <div id="addFeesSection" class="switch-container" style="display: none;">
+                    {% endif %}
+                    <span id="addFeeToPaymentStatus">
+                        {% if restaurant.addFees %}
+                        <b>Customer</b> pays fee<br><p style="font-size:0.7em"><i>
+                            MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the customer payment</i></p>
+                        {% else %}
+                        <b>Restaurant</b> pays fee<br><p style="font-size:0.7em"><i>
+                            MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the customer payment. <u>YOU PAY FEE NOW</u></i></p>
+                        {% endif %}
+                    </span>
+                    <label class="switch">
+                        <input type="checkbox" id="addFeeToPaymentToggle" {% if restaurant.addFees %}checked{% endif %}>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+
+                <hr>
+
+                <div class="logout-section">
+                    <form action="/logout" method="post">
+                        <button type="submit">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="dashboard-nav">
+        <a href="/payments" class="no-right-click-tab">Payments</a>
+        <a href="/menu" class="no-right-click-tab">Menu</a>
+        <a href="/assistant_dash" class="no-right-click-tab">Assistant</a>
+        <a href="/profile" class="no-right-click-tab">Profile</a>
+        <a href="/view_orders" class="tab" target="_blank">Orders Display</a>
+    </nav>
+
+    <section class="dynamic-content" id="dynamic-content">
+        <!-- Content will be dynamically loaded here based on the tab chosen -->
+    </section>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flash-messages">
+        <div class="flash-message">{{ messages[-1] }}</div>
+    </div>
+    {% endif %}
     {% endwith %}
-    <div id="explanatoryInfo" style="padding: 20px; background-color: #f9f9f9; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); font-family: Arial, sans-serif;">
-        <h4 style="margin-top: 35px; color: #333;">What do you want?</h4>
-        <ol style="list-style-type: none; padding-left: 0;">
-            <li style="margin-bottom: 20px;">
+
+    <div id="explanatoryInfo">
+        <h4>What do you want?</h4>
+        <ol>
+            <li>
                 <i>"I want to SEE the HISTORY of MADE PAYMENTS"</i> - Click on the <b>Payments</b> tab
             </li>
-            <hr style="border: none; border-top: 1px solid #ccc;">
-            <li style="margin-bottom: 20px;">
+            <hr>
+            <li>
                 <i>"I want to know WHAT IS THE CURRENT MENU the assistant refers to and, probably, UPDATE it"</i> - Click on the <b>Menu</b> tab
             </li>
-            <hr style="border: none; border-top: 1px solid #ccc;">
-            <li style="margin-bottom: 20px;">
+            <hr>
+            <li>
                 <i>"I want to actually <b>start using assistant</b> and integrate it with my restaurant"</i> - Click on the <b>Assistant</b> tab
             </li>
-            <hr style="border: none; border-top: 1px solid #ccc;">
-            <li style="margin-bottom: 20px;">
+            <hr>
+            <li>
                 <i>"I want to MODIFY MY PROFILE and SETUP THE NOTIFICATIONS to receive on incoming orders"</i> - Click on the <b>Profile</b> tab
             </li>
-            <hr style="border: none; border-top: 1px solid #ccc;">
-            <li style="margin-bottom: 20px;">
+            <hr>
+            <li>
                 <i>"I want to OPEN THE DASHBOARD with taken orders displayed"</i> - Click on the <b>View Orders</b> tab
             </li>
         </ol>
-        <h3 style="margin-top: 30px;"><a href="/dashboard?show_popup=True" style="color: #007bff; text-decoration: underline;"><u>Check out the setup guide</u></a></h3>
+        <h3><a href="/dashboard?show_popup=True"><u>Check out the setup guide</u></a></h3>
     </div>
-    
 
-<script>
-
-  // Other currencies display
-  function toggleVisibilityAndConvert(id, baseCurrency) {
-        const element = document.getElementById(id);
-        if (element.style.display === "none") {
-            element.style.display = "block";
-            convertCurrency(baseCurrency);  // Perform conversion when showing
-        } else {
-            element.style.display = "none";
-        }
-    }
-
-    async function convertCurrency(baseCurrency) {
-        const amount = parseFloat(document.getElementById('available-funds').innerText);
-        const api_key = '{{ exchange_api_key }}';
-        
-          
-        if (isNaN(amount) || amount <= 0) {
-            alert('Invalid amount for available funds.');
-            return;
+    <style>
+        .dashboard-header, .dashboard-nav, .dynamic-content, .flash-messages, #explanatoryInfo {
+            padding: 15px;
+            margin-bottom: 20px;
         }
 
-        try {
-            const response = await fetch(`https://v6.exchangerate-api.com/v6/${api_key}/latest/${baseCurrency}`);
-            const data = await response.json();
+        .switch-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 7px;
+        }
 
-            if (data.result === "success") {
-                const rates = data.conversion_rates;
-                const amountInUAH = (amount * rates.UAH).toFixed(2);
-                const amountInISK = (amount * rates.ISK).toFixed(2);
-                const amountInUSD = (amount * rates.USD).toFixed(2);
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
 
-                document.getElementById('uah').innerText = amountInUAH+' (Ukrainian Hryvnias)';
-                document.getElementById('isk').innerText = amountInISK+' (Icelandic Kronas)';
-                document.getElementById('usd').innerText = amountInUSD+' (US Dollars)';
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+        #explanatoryInfo {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-family: Arial, sans-serif;
+        }
+
+        #explanatoryInfo h4 {
+            margin-top: 35px;
+            color: #333;
+        }
+
+        #explanatoryInfo ol {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        #explanatoryInfo li {
+            margin-bottom: 20px;
+        }
+
+        #explanatoryInfo hr {
+            border: none;
+            border-top: 1px solid #ccc;
+        }
+
+        #explanatoryInfo h3 a {
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header, .dashboard-nav, .dynamic-content, .flash-messages, #explanatoryInfo {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+
+            .popup-content {
+                width: 90%;
+                max-width: 400px;
+            }
+
+            .switch-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .switch {
+                margin-top: 10px;
+            }
+        }
+    </style>
+
+    <script>
+        // Other currencies display
+        function toggleVisibilityAndConvert(id, baseCurrency) {
+            const element = document.getElementById(id);
+            if (element.style.display === "none") {
+                element.style.display = "block";
+                convertCurrency(baseCurrency);
             } else {
+                element.style.display = "none";
+            }
+        }
+
+        async function convertCurrency(baseCurrency) {
+            const amount = parseFloat(document.getElementById('available-funds').innerText);
+            const api_key = '{{ exchange_api_key }}';
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('Invalid amount for available funds.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`https://v6.exchangerate-api.com/v6/${api_key}/latest/${baseCurrency}`);
+                const data = await response.json();
+
+                if (data.result === "success") {
+                    const rates = data.conversion_rates;
+                    const amountInUAH = (amount * rates.UAH).toFixed(2);
+                    const amountInISK = (amount * rates.ISK).toFixed(2);
+                    const amountInUSD = (amount * rates.USD).toFixed(2);
+
+                    document.getElementById('uah').innerText = amountInUAH + ' (Ukrainian Hryvnias)';
+                    document.getElementById('isk').innerText = amountInISK + ' (Icelandic Kronas)';
+                    document.getElementById('usd').innerText = amountInUSD + ' (US Dollars)';
+                } else {
+                    alert('Failed to fetch exchange rates. Please try again later.');
+                }
+            } catch (error) {
+                console.error('Error fetching exchange rates:', error);
                 alert('Failed to fetch exchange rates. Please try again later.');
             }
-        } catch (error) {
-            console.error('Error fetching exchange rates:', error);
-            alert('Failed to fetch exchange rates. Please try again later.');
         }
-    }
 
+        document.addEventListener('DOMContentLoaded', function() {
+            var tabs = document.querySelectorAll('.no-right-click-tab');
 
-  document.addEventListener('DOMContentLoaded', function() {
-    // Get all tab elements
-    var tabs = document.querySelectorAll('.no-right-click-tab'); // Updated class name
-  
-    // Function to handle tab click events
-    function loadTabContent(event) {
-      event.preventDefault(); // Prevent the default action
-  
-      var url = event.currentTarget.getAttribute('href'); // Get the href attribute of the clicked tab
-  
-      // Fetch the content from the server
-      fetch(url)
-        .then(response => response.text())
-        .then(html => {
-          // Insert the content into the <section> element
-          document.getElementById('dynamic-content').innerHTML = html;
-        })
-        .catch(error => {
-          // Handle errors if any
-          document.getElementById('dynamic-content').innerHTML = '<p>Error loading content...</p>';
+            function loadTabContent(event) {
+                event.preventDefault();
+
+                var url = event.currentTarget.getAttribute('href');
+
+                fetch(url)
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById('dynamic-content').innerHTML = html;
+                    })
+                    .catch(error => {
+                        document.getElementById('dynamic-content').innerHTML = '<p>Error loading content...</p>';
+                    });
+            }
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', loadTabContent);
+                tab.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                });
+            });
         });
-    }
-  
-    // Add event listeners to all tabs
-    tabs.forEach(tab => {
-      tab.addEventListener('click', loadTabContent);
-      tab.addEventListener('contextmenu', function (e) {
-          e.preventDefault(); // Disable right-click context menu
-      });
-    });
-  });
-  </script>
-      
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const paymentGatewayToggle = document.getElementById('paymentGatewayToggle');
+            const paymentGatewayStatus = document.getElementById('paymentGatewayStatus');
+            const addFeesSectionDiv = document.getElementById("addFeesSection")
+
+            if (paymentGatewayToggle) {
+                paymentGatewayToggle.addEventListener('change', function() {
+                    var paymentGatewayTurnedOn = this.checked;
+
+                    if (paymentGatewayTurnedOn) {
+                        paymentGatewayStatus.innerHTML = 'Payment Gateway is ON<br><p style="font-size:0.7em"><i>*currently the orders are being registered when the customer paid</i></p>';
+                        addFeesSectionDiv.style.display = 'flex';
+                    } else {
+                        paymentGatewayStatus.innerHTML = 'Payment Gateway is OFF<br><p style="font-size:0.7em"><i>*currently customer DOES NOT pay right after taking the order,<br><b>recommended to switch the payment gateway on</b></i></p>';
+                        addFeesSectionDiv.style.display = 'none';
+                    }
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/payment_gateway_toggler', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log('Payment Gateway state updated successfully.');
+                            } else {
+                                console.error('Error updating Payment Gateway state.');
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ payment_gateway_turned_on: paymentGatewayTurnedOn }));
+                });
+            }
+
+            const toggle = document.getElementById('assistantToggle');
+            const statusLabel = document.getElementById('assistantStatus');
+
+            if (toggle) {
+                toggle.addEventListener('change', function() {
+                    var assistantTurnedOn = this.checked;
+
+                    if (assistantTurnedOn) {
+                        statusLabel.innerHTML = 'Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>';
+                    } else {
+                        statusLabel.innerHTML = 'Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>';
+                    }
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/assistant_toggler', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log('Assistant state updated successfully.');
+                            } else {
+                                console.error('Error updating assistant state.');
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ assistant_turned_on: assistantTurnedOn }));
+                });
+            }
+
+            const profileVisibilityToggle = document.getElementById('profileVisibilityToggle');
+            const profileVisibilityStatus = document.getElementById('profileVisibilityStatus');
+
+            if (profileVisibilityToggle) {
+                profileVisibilityToggle.addEventListener('change', function() {
+                    var profileVisible = this.checked;
+
+                    if (profileVisible) {
+                        profileVisibilityStatus.innerHTML = 'Profile is VISIBLE<br><p style="font-size:0.7em"><i>*users currently <b>CAN</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>';
+                    } else {
+                        profileVisibilityStatus.innerHTML = 'Profile is HIDDEN<br><p style="font-size:0.7em"><i>*users currently <b>CANNOT</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>';
+                    }
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/profile_visibility_toggler', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log('Profile visibility state updated successfully.');
+                            } else {
+                                console.error('Error updating profile visibility state.');
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ profile_visible: profileVisible }));
+                });
+            }
+
+            const addFeeToPaymentToggle = document.getElementById('addFeeToPaymentToggle');
+            const addFeeToPaymentStatus = document.getElementById('addFeeToPaymentStatus');
+
+            if (addFeeToPaymentToggle) {
+                addFeeToPaymentToggle.addEventListener('change', function() {
+                    var addFeeToPayment = this.checked;
+
+                    if (addFeeToPayment) {
+                        addFeeToPaymentStatus.innerHTML = '<b>Customer</b> pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the customer payment</i></p>';
+                    } else {
+                        addFeeToPaymentStatus.innerHTML = '<b>Restaurant</b> pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the customer payment. <u>YOU PAY FEE NOW</u></i></p>';
+                    }
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/add_fee_payment_toggler', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log('Add fee to payment state updated successfully.');
+                            } else {
+                                console.error('Error updating add fee to payment state.');
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ add_fee_payment: addFeeToPayment }));
+                });
+            }
+        });
+    </script>
 
 <script>
-  // Hide flash messages after 5 seconds
-  var flashMessages = document.querySelector('.flash-messages');
-  if (flashMessages) {
-    setTimeout(function() {
-      flashMessages.style.display = 'none';
-    }, 7000);
-  }
-</script>
-
-
-<script>
-  document.addEventListener('DOMContentLoaded', (event) => {
-      const toggle = document.getElementById('assistantToggle');
-      const statusLabel = document.getElementById('assistantStatus');
-
-      if (toggle) {
-          toggle.addEventListener('change', function() {
-              var assistantTurnedOn = this.checked;
-              console.log('Toggle changed:', assistantTurnedOn); // Debugging: Check if the toggle is detected
-
-              // Update the status label
-              if (assistantTurnedOn) {
-                  statusLabel.innerHTML = 'Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currrently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>';
-              } else {
-                  statusLabel.innerHTML = 'Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>';
-              }
-
-              // Send the assistantTurnedOn state to the server using AJAX
-              var xhr = new XMLHttpRequest();
-              xhr.open('POST', '/assistant_toggler', true);
-              xhr.setRequestHeader('Content-Type', 'application/json');
-              xhr.onreadystatechange = function() {
-                  if (xhr.readyState === 4) {
-                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
-                      if (xhr.status === 200) {
-                          console.log('Assistant state updated successfully.');
-                      } else {
-                          console.error('Error updating assistant state.');
-                      }
-                  }
-              };
-              xhr.send(JSON.stringify({ assistant_turned_on: assistantTurnedOn }));
-          });
-      }
-
-      
-      
-      // Restaurant profile visibility toggle
-      const profileVisibilityToggle = document.getElementById('profileVisibilityToggle');
-      const profileVisibilityStatus = document.getElementById('profileVisibilityStatus');
-
-      if (profileVisibilityToggle) {
-          profileVisibilityToggle.addEventListener('change', function() {
-              var profileVisible = this.checked;
-              console.log('Profile visibility toggle changed:', profileVisible); // Debugging: Check if the toggle is detected
-
-              // Update the status label
-              if (profileVisible) {
-                  profileVisibilityStatus.innerHTML = 'Profile is VISIBLE<br><p style="font-size:0.7em"><i>*users currently <b>CAN</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>';
-              } else {
-                  profileVisibilityStatus.innerHTML = 'Profile is HIDDEN<br><p style="font-size:0.7em"><i>*users currently <b>CANNOT</b> find your profile<br>on <a href="/ai-restaurants" target="_blank"><u>AI-restaurants platform</u></a></i></p>';
-              }
-
-              // Send the profileVisible state to the server using AJAX
-              var xhr = new XMLHttpRequest();
-              xhr.open('POST', '/profile_visibility_toggler', true);
-              xhr.setRequestHeader('Content-Type', 'application/json');
-              xhr.onreadystatechange = function() {
-                  if (xhr.readyState === 4) {
-                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
-                      if (xhr.status === 200) {
-                          console.log('Profile visibility state updated successfully.');
-                      } else {
-                          console.error('Error updating profile visibility state.');
-                      }
-                  }
-              };
-              xhr.send(JSON.stringify({ profile_visible: profileVisible }));
-          });
-      }
-
-      // Restaurant add fee toggle
-      const addFeeToPaymentToggle = document.getElementById('addFeeToPaymentToggle');
-      const addFeeToPaymentStatus = document.getElementById('addFeeToPaymentStatus');
-
-      if (addFeeToPaymentToggle) {
-            addFeeToPaymentToggle.addEventListener('change', function() {
-              var addFeeToPayment = this.checked;
-              console.log('Add fee to payment toggle changed:', addFeeToPayment); // Debugging: Check if the toggle is detected
-
-              // Update the status label
-              if (addFeeToPayment) {
-                addFeeToPaymentStatus.innerHTML = '<b>Customer</b> pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are added to the customer payment</i></p>';
-              } else {
-                addFeeToPaymentStatus.innerHTML = '<b>Restaurant</b> pays fee<br><p style="font-size:0.7em"><i>MOM AI fee and PayPal fee (0.45€ + 4.49%)<br>are NOT added to the customer payment</i></p>';
-              }
-
-              // Send the profileVisible state to the server using AJAX
-              var xhr = new XMLHttpRequest();
-              xhr.open('POST', '/add_fee_payment_toggler', true);
-              xhr.setRequestHeader('Content-Type', 'application/json');
-              xhr.onreadystatechange = function() {
-                  if (xhr.readyState === 4) {
-                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
-                      if (xhr.status === 200) {
-                          console.log('Add fee to payment state updated successfully.');
-                      } else {
-                          console.error('Error updating add fee to payment state.');
-                      }
-                  }
-              };
-              xhr.send(JSON.stringify({ add_fee_payment: addFeeToPayment }));
-          });
-      }
-      
-      /*
-      const paymentGatewayToggle = document.getElementById('paymentGatewayToggle');
-      const paymentGatewayStatus = document.getElementById('paymentGatewayStatus');
-      const paymentGatewayInfo = document.getElementById('paymentGatewayInfo');
-
-      if (paymentGatewayToggle) {
-          paymentGatewayToggle.addEventListener('change', function() {
-              var paymentGatewayTurnedOn = this.checked;
-              console.log('Payment Gateway Toggle changed:', paymentGatewayTurnedOn); // Debugging: Check if the toggle is detected
-
-              // Update the status label
-              if (paymentGatewayTurnedOn) {
-                  paymentGatewayStatus.textContent = 'Payment Gateway is ON';
-                  paymentGatewayInfo.textContent = 'currently the orders are being registered when the customer paid';
-              } else {
-                  paymentGatewayStatus.textContent = 'Payment Gateway is OFF';
-                  paymentGatewayInfo.textContent = 'currently customer DOES NOT pay right after taking the order, recommended to switch the payment gateway on';
-              }
-
-              // Send the paymentGatewayTurnedOn state to the server using AJAX
-              var xhr = new XMLHttpRequest();
-              xhr.open('POST', '/payment_gateway_toggler', true);
-              xhr.setRequestHeader('Content-Type', 'application/json');
-              xhr.onreadystatechange = function() {
-                  if (xhr.readyState === 4) {
-                      console.log('Response received:', xhr.responseText); // Debugging: Check if the response is received
-                      if (xhr.status === 200) {
-                          console.log('Payment Gateway state updated successfully.');
-                      } else {
-                          console.error('Error updating Payment Gateway state.');
-                      }
-                  }
-              };
-              xhr.send(JSON.stringify({ payment_gateway_turned_on: paymentGatewayTurnedOn }));
-          });
-      }
-      */    
-  });
-
-  function openTab(tabName) {
-        var i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tab-content");
-        for (i = 0; i < tabcontent.length; i++) {
-            tabcontent[i].classList.remove("active");
+    function openTab(tabName) {
+        // Get all elements with class="tab-content" and hide them
+        var tabContents = document.getElementsByClassName("tab-content");
+        for (var i = 0; i < tabContents.length; i++) {
+            tabContents[i].classList.remove("active");
         }
-        tablinks = document.getElementsByClassName("tab");
-        for (i = 0; i < tablinks.length; i++) {
-            tablinks[i].classList.remove("active");
+
+        // Get all elements with class="tab" and remove the class "active"
+        var tabs = document.getElementsByClassName("tab");
+        for (var i = 0; i < tabs.length; i++) {
+            tabs[i].classList.remove("active");
         }
+
+        // Show the current tab, and add an "active" class to the button that opened the tab
         document.getElementById(tabName).classList.add("active");
-        document.querySelector(`[data-tab="${tabName}"]`).classList.add("active");
-    };
-
-    if (window.location.search.includes('show_popup=True')) {
-    const url = new URL(window.location);
-    url.searchParams.delete('show_popup');
-    window.history.pushState({}, document.title, url.pathname);
-}
-
+        event.currentTarget.classList.add("active");
+    }
 </script>
 
-{% endblock %}
+
+    {% endblock %}
+
 

@@ -1,13 +1,21 @@
 from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
 from werkzeug.utils import secure_filename
 import os
+from google.cloud import speech
+import qrcode
+from io import BytesIO
+from flask_socketio import SocketIO, disconnect
 import gridfs
+from pydub import AudioSegment
+import uuid
 import base64
 from bs4 import BeautifulSoup
+import azure.cognitiveservices.speech as speechsdk
+import markdown
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from utils.functions import InvalidMenuFormatError, CONTRACT_ABI, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered 
+from functions_to_use import app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered, convert_webm_to_wav 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -17,19 +25,21 @@ import ast
 from utils.pp_payment import createPayment, executePayment, get_subscription_status, createOrder, captureOrder
 #from utils.withdraw.pp_payout import send_payout_pp
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI, AzureOpenAI
 from apscheduler.schedulers.background import BackgroundScheduler
 from bson import ObjectId  # Import ObjectId from bson
 import io
 from web3 import Web3
+from flask_httpauth import HTTPBasicAuth
 import logging
 import pytz
 #from tools.stellar_payments.list_payments import list_received_payments
 #from tools.stellar_payments.create_account import create_stellar_account
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
-
-app = Flask(__name__)
+import threading
+import time
 
 """
 logging.basicConfig(level=logging.DEBUG,
@@ -46,6 +56,21 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 
 CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
 SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
+
+POSTS_DIR = 'posts'
+auth = HTTPBasicAuth()
+
+
+# Define users and passwords
+users = {
+    os.environ.get('BLOG_USERNAME'): generate_password_hash(os.environ.get('BLOG_PASSWORD'))
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and check_password_hash(users.get(username), password):
+        return username
+
 
 # Initialize Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.privateemail.com'
@@ -115,6 +140,7 @@ CLIENT_OPENAI = AzureOpenAI(
 
 EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
+AZURE_SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID")
 
 fs = gridfs.GridFS(db)
 
@@ -131,9 +157,15 @@ def handle_redirect():
 """
 
 
+clients = {}
+
 @app.errorhandler(403)
-def forbidden(error):
-    return make_response(jsonify({'error': 'Forbidden', 'message': error.description}), 403)
+def forbidden(e):
+    return render_template("errors/403_error_template.html", title="Error 403"), 403
+
+@app.errorhandler(404)
+def error_404(e):
+    return render_template("errors/404_error_template.html", title="Error 404"), 404
 
 
 # Define error handler for 500 internal server error
@@ -166,6 +198,27 @@ def add_header(response):
     return response
 
 """
+########### SocketIO Stuff #############
+
+@socketio.on('connect')
+def handle_connect():
+    clients[request.sid] = {}
+    print('Client connected:', request.sid)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    client_id = request.sid
+    if client_id in clients:
+        if 'thread' in clients[client_id] and clients[client_id]['thread'].is_alive():
+            clients[client_id]['cancel'] = True
+        del clients[client_id]
+    print('Client disconnected:', client_id)
+
+########### SocketIO Stuff #############
+        
+"""
+
+
 @app.route('/waitlist')
 def notify_waitlist():
     if session.get("res_email"):
@@ -183,7 +236,7 @@ def notify_waitlist():
     
     return render_template('wait_for_full_access/success.html', restaurant_email=restaurant_email, restaurant_name=restaurant_name, title="Waitlist Added")
     
-"""
+
 
 
 #################### Registration/Login Part Start ####################
@@ -195,7 +248,6 @@ def landing_page():
 
     #if session.get("res_email"):
         #return redirect(url_for("notify_waitlist"))
-    """
     form = RestaurantForm()
     print("Form Created")
 
@@ -397,7 +449,7 @@ def landing_page():
                 print(f"Error in field '{field}': {error}")
                 flash(f"Error in field '{field}': {error}", 'error')
         print("Form not submitted or validation failed")
-    """
+    
 
     if session.get("res_email") and session.get("password"):
         # Find the instance in MongoDB
@@ -410,6 +462,8 @@ def landing_page():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+    referral_id = request.args.get("referral_id")
+
     form = RestaurantForm()
     print("Form Created")
 
@@ -463,7 +517,9 @@ def register():
             print(f'Raw file id {file_id} and string file id {str(file_id)}')
             session["logo_id"] = str(file_id)
         
-
+        if form.referral_id.data:
+            session["referral_id"] = form.referral_id.data
+        
         if request.files['menu']:
             menu = request.files['menu']
             #script = request.files['script']
@@ -517,9 +573,13 @@ def register():
 
             assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_txt_path, client=CLIENT_OPENAI)
 
+            unique_azz_id = restaurant_name.replace(" ", "_")+"_"+assistant.id[-4:]
+
+            
             session['assistant_id'] = assistant.id
             session['menu_file_id'] = menu_file_id
             session['menu_vector_id'] = menu_vector_id
+            session['unique_azz_id'] = unique_azz_id
 
             messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
             session['messages'] = messages
@@ -564,6 +624,19 @@ def register():
         session['assistant_id'] = assistant.id
         session['menu_vector_id'] = menu_vector_id
         session['menu_file_id'] = menu_file_id
+
+        unique_azz_id = restaurant_name.lower().replace(" ", "_")+"_"+assistant.id[-4:]
+        session["unique_azz_id"] = unique_azz_id
+        
+        print("We are right before qr code generation")
+
+        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/assistant_order_chat/"+unique_azz_id) #assistant_code
+
+        print(f"Type of qr code id: {type(qr_code_id)}")
+        print("We are past qr code function")
+        qr_code_id = str(qr_code_id)
+
+        session["qr_code_id"] = qr_code_id
 
         # Optionally, you can insert these details into a database here
         # insert_document(collection, restaurant_name, menu_encoded, script_encoded, assistant.id)
@@ -642,6 +715,49 @@ def logout():
     return redirect(url_for('login'))  # Redirect to dashboard
 
 #################### Registration/Login Part End ####################
+
+#################### Blog Posts #########################
+@app.route('/post/<postname>')
+def post(postname):
+    try:
+        content, headline = get_post_content_and_headline(postname + '.md')
+        html_content = markdown.markdown(content)
+        return render_template('blog-posts/post.html', content=html_content, title=headline)
+    except FileNotFoundError:
+        return render_template('errors/404_error_template.html', message="Post not found", title="Error 404"), 404
+
+@app.route('/all_posts')
+def all_posts():
+    posts = get_post_filenames()
+    post_links = [url_for('post', postname=post[:-3]) for post in posts]
+    return render_template('blog-posts/all_posts.html', post_links=post_links)
+
+# Webhook for adding new posts
+@app.route('/add_post', methods=['POST'])
+@auth.login_required
+def add_post():
+    data = request.json
+    content = data.get('content')
+    
+    if not content:
+        return jsonify({'error': 'Content is required'}), 400
+    
+    # Extract the title from the first line of the content
+    lines = content.split('\n')
+    title = lines[0].strip('# ') if lines else 'no_title'
+    
+    # Join the remaining lines to form the rest of the content
+    content = '\n'.join(lines[0:]).strip()
+    
+    filename = title.replace(' ', '_').lower() + '.md'
+    filepath = os.path.join(POSTS_DIR, filename)
+    
+    with open(filepath, 'w', encoding='utf-8') as file:
+        file.write(content)
+    
+    return jsonify({'message': 'Post added successfully', 'title': title}), 201
+
+
 
 
 
@@ -723,6 +839,8 @@ def confirm_email(res_email):
 
     file_id = session.get("logo_id", "666af654dee400a1d635eb08")
 
+    qr_code_id = session.get("qr_code_id")
+
     hashed_res_password = hash_password(res_password)
 
     session["hashed_res_passord"] = hashed_res_password
@@ -730,7 +848,16 @@ def confirm_email(res_email):
     location_coord = session["location_coord"]
     location_name = session["location_name"]
 
-    insert_restaurant(collection, res_name, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, logo_id=file_id)
+    unique_azz_id = session.get("unique_azz_id")
+    print("Unique azz id we insert, ", unique_azz_id)
+    referral_id = session.get("referral_id")
+
+    # Add referee to the referees' list of the referral
+    if referral_id:
+        print("referral id found")
+        collection.update_one({"referral_id": referral_id}, {"$push":{"referees": unique_azz_id}})
+    
+    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code=qr_code_id, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, logo_id=file_id)
     send_confirmation_email_registered(mail, res_email, restaurant_name, FROM_EMAIL)
     print("Confirmation of registarion Email has been sent and the account created.\n\n")
     print(f"Setup hashed res password in session:{hashed_res_password}")
@@ -830,7 +957,7 @@ def assistant_demo_chat():
     if user_message:
         messages.append({'sender': 'user', 'content': user_message})
         # Simulate the assistant's response
-        messages.append({'sender': 'assistant', 'content': "I do not know yet what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen."})
+        messages.append({'sender': 'assistant', 'content': "I do not know what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen."})
     
     session['messages'] = messages
     print(messages)
@@ -892,7 +1019,6 @@ def dashboard_display():
     else:
         show_popup = False
       
-
     print("Jumped on display dashboard link")
     res_email = session.get("res_email")
     res_password = session.get("password")
@@ -918,6 +1044,8 @@ def dashboard_display():
         html_menu = restaurant_instance.get("html_menu")
         assistant_spent = restaurant_instance.get("assistant_fund")
         logo_id = restaurant_instance.get("res_logo", "666af654dee400a1d635eb08")
+        qr_code_id = restaurant_instance.get("qr_code", "666af654dee400a1d635eb08")
+        gateway_is_on = restaurant_instance.get("paymentGatewayTurnedOn")
         #subscription_number = restaurant_instance.get("subscription_number")
 
         #subscription_activated = True if get_subscription_status(subscription_number) == "ACTIVE" else False
@@ -937,6 +1065,7 @@ def dashboard_display():
         session["unique_azz_id"] = res_unique_azz_id
         session["res_currency"] = res_currency
         session["html_menu"] = html_menu
+        session["qr_code_id"] = qr_code_id
 
         print(f"Assistant ID added in session: {assistant_id}")
         print(f"Restaurant name added in session: {restaurant_name}")
@@ -963,6 +1092,7 @@ def dashboard_display():
                            logo_url=logo_url,
                            restaurant=restaurant_instance,
                            exchange_api_key=EXCHANGE_API_KEY,
+                           gateway_is_on=gateway_is_on,
                            show_popup=show_popup)
 
 ###################################### Dashboard Buttons ######################################
@@ -1014,6 +1144,20 @@ def toggle_assistant():
     
     # Respond with the new state
     return jsonify({'assistant_turned_on': assistant_turned_on})
+
+@app.route('/payment_gateway_toggler', methods=['POST'])
+def toggle_payment_gateway():
+    data = request.get_json()
+    print(data)
+    paymentGatewayTurnedOn = data.get('payment_gateway_turned_on')
+    print(f"Payment Gateway toggled: {paymentGatewayTurnedOn}")
+
+    unique_azz_id = session.get("unique_azz_id")
+    print(unique_azz_id)
+    collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"paymentGatewayTurnedOn":paymentGatewayTurnedOn}})
+    
+    # Respond with the new state
+    return jsonify({'paymentGatewayTurnedOn': paymentGatewayTurnedOn})
 
 @app.route('/profile_visibility_toggler', methods=['POST'])
 def toggle_profile_visibility():
@@ -1382,7 +1526,8 @@ def assistant_dashboard_route():
     sub_activated = session.get("subscription_activated")
     unique_azz_id = session.get("unique_azz_id")
     restaurant_name = session.get("restaurant_name")
-    return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, sub_activated=sub_activated) 
+    qr_code_id = session.get("qr_code_id")
+    return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, sub_activated=sub_activated, qr_code_id=qr_code_id) 
 
 #######################################################################################################
 
@@ -1401,10 +1546,10 @@ def start_conversation(assistant_id):
     # Create new assistant or load existing
     print("Returned id ", assistant_id) # Debugging line
     print("Starting a new conversation...")  # Debugging line
-    thread = CLIENT_OPENAI.beta.threads.create(tool_resources={"file_search": 
-                                                               {"vector_store_ids": [vector_store_id]}
-                                                               })
-    
+    thread = CLIENT_OPENAI.beta.threads.create(
+    #tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
+    )                                               
+                                                               
     
     # Get current UTC time and format it as dd.mm hh:mm
     # timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
@@ -1417,7 +1562,8 @@ def start_conversation(assistant_id):
 @app.route('/assistant_order_chat/<unique_azz_id>')
 def assistant_order_chat(unique_azz_id):
     # Retrieve the full assistant_id from the session
-    
+    lang = request.args.get('lang', 'en')
+
     iframe = True if request.args.get("iframe") else False
 
     res_instance = collection.find_one({"unique_azz_id":unique_azz_id})
@@ -1451,7 +1597,7 @@ def assistant_order_chat(unique_azz_id):
     # current_day = (current_day + 1) % 7
 
     # Check if the current time falls within the working hours
-    isWorkingHours = start_work[current_day] <= current_hour < end_work[current_day]
+    isWorkingHours = res_instance.get("isOpen")
     print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work[current_day]} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
 
 
@@ -1462,16 +1608,142 @@ def assistant_order_chat(unique_azz_id):
     session["res_currency"] = res_currency
     session["restaurant_name"] = restaurant_name
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant", assistant_turned_on=assistant_turned_on, restaurant=res_instance, iframe=iframe, isWorkingHours=isWorkingHours)
+    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, lang=lang, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant", assistant_turned_on=assistant_turned_on, restaurant=res_instance, iframe=iframe, isWorkingHours=isWorkingHours)
 
-# Generate response
+
+
+@app.route('/transcribe_voice', methods=['POST'])
+def transcribe_voice():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    try:
+        # Process audio file
+        data = request.form
+        language = data.get("language", "en-US")
+        print("Language captured: ", language)
+        audio_content = file.read()
+        print(f"Audio content (length {len(audio_content)} bytes): {audio_content[:100]}...")
+
+        # Convert webm to wav in-memory
+        webm_audio = AudioSegment.from_file(io.BytesIO(audio_content), format="webm")
+        wav_io = io.BytesIO()
+        webm_audio.export(wav_io, format="wav")
+        wav_io.seek(0)
+
+        # Save in-memory wav to a temporary file
+        with open("temp.wav", "wb") as temp_wav_file:
+            temp_wav_file.write(wav_io.read())
+            temp_wav_file.seek(0)
+
+            # Transcribe the audio file using Azure Speech-to-Text
+            subscription_key = AZURE_SUBSCRIPTION_ID
+            region = "eastus"  # Example region
+
+            speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
+            audio_input = speechsdk.AudioConfig(filename="temp.wav")
+            speech_config.speech_recognition_language = language
+
+            speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_input)
+            result = speech_recognizer.recognize_once()
+
+            if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+                transcription = result.text
+                print(f"Transcription result: {transcription}")
+                return jsonify({"transcription": transcription, "status": "success"})
+            elif result.reason == speechsdk.ResultReason.NoMatch:
+                print("No speech could be recognized")
+                return jsonify({"error": "No speech could be recognized", "status": "fail"})
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation_details = result.cancellation_details
+                print(f"Speech Recognition canceled: {cancellation_details.reason}")
+                if cancellation_details.reason == speechsdk.CancellationReason.Error:
+                    print(f"Error details: {cancellation_details.error_details}")
+                return jsonify({"error": "Speech recognition canceled", "details": cancellation_details.error_details, "status": "fail"})
+    except Exception as e:
+        print(f"Error during transcription: {e}")
+        return jsonify({"error": str(e), "status": "fail"})
+
+
+
+
+
+
+@app.route('/generate_response_thread/<unique_azz_id>', methods=['POST'])
+def generate_response_thread(unique_azz_id):
+    user_message = request.json.get('message', '')
+    thread_id = request.json.get('thread_id')
+    assistant_id = request.json.get('assistant_id')
+    client_id = request.sid
+
+    # Get other necessary data
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    html_menu = restaurant_instance.get('html_menu')
+    soup = BeautifulSoup(html_menu, 'html.parser')
+    rows = soup.find_all('tr')[1:]
+
+    list_of_all_items = []
+    list_of_image_links = []
+    for row in rows:
+        columns = row.find_all('td')
+        item = columns[0].text
+        ingredients = columns[1].text
+        price = columns[2].text
+        if columns[3]:
+            image_link = columns[3].text
+            list_of_image_links.append(image_link)
+        tuple_we_deserved = (item, ingredients, f"{price} EUR")
+        list_of_all_items.append(tuple_we_deserved)
+
+    # Start the assistant response generation in a separate thread
+    clients[client_id]['thread'] = threading.Thread(
+        target=get_assistants_response,
+        args=(client_id, user_message, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id)
+    )
+    clients[client_id]['cancel'] = False
+    clients[client_id]['thread'].start()
+
+    return jsonify({"status": "processing"})
+
+
+
+
+
+
+
+
+
+
+
+
 @app.route('/generate_response/<unique_azz_id>', methods=['POST', 'GET'])
 def generate_response(unique_azz_id):
-    data = request.json
+    # Set the environment variable for Google Cloud credentials
+    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r'C:\Users\mmatr\AppData\Roaming\gcloud\application_default_credentials.json'
+    
+
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    
+    # Process text input
+    if request.form:
+        data = request.form
+    elif request.json:
+        data = request.json  
+    print(f"Data: {data}")  
+    user_input = data.get('message', '')
     thread_id = data.get('thread_id')
     assistant_id = data.get('assistant_id')
-    user_input = data.get('message', '')
-    restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+    transcription = " "
+
+
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     menu_file_id = restaurant_instance.get("menu_file_id")
     res_currency = restaurant_instance.get("res_currency")
     print(f"Menu file ID on /generate_response: {menu_file_id}")
@@ -1480,54 +1752,59 @@ def generate_response(unique_azz_id):
     print(f"Thread ID: {thread_id}")
     print(f"Assistant ID: {assistant_id}")
 
-    html_menu  = restaurant_instance.get('html_menu')
-
+    html_menu = restaurant_instance.get('html_menu')
     soup = BeautifulSoup(html_menu, 'html.parser')
     rows = soup.find_all('tr')[1:]  # Skip the header row
 
     list_of_all_items = []
+    list_of_image_links = []
     for row in rows:
         columns = row.find_all('td')
         item = columns[0].text
+        ingredients = columns[1].text
         price = columns[2].text
-        tuple_we_deserved = (item, f"{price} {res_currency}")
+        if columns[3]:
+           image_link = columns[3].text
+           list_of_image_links.append(image_link)
+        tuple_we_deserved = (item, ingredients, f"{price} EUR")
         list_of_all_items.append(tuple_we_deserved)
 
-    print(f"\n\nList of all items formed: {list_of_all_items}\n\n") # debugging line
-
-    response_llm, tokens_used = get_assistants_response(user_input, thread_id, assistant_id, res_currency, menu_file_id, CLIENT_OPENAI, list_of_all_items=list_of_all_items, unique_azz_id=unique_azz_id)
+    print("List of image links formed: ", list_of_image_links)
     
-    PRICE_PER_1_TOKEN = 0.000005
+    #print(f"\n\nList of all items formed: {list_of_all_items}\n\n")  # Debugging line
 
-    charge_for_message = PRICE_PER_1_TOKEN*tokens_used
+    print("Thats what we sent to retrieve the gpts response, ", user_input)
+    response_llm, tokens_used = get_assistants_response(user_input, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=list_of_all_items, list_of_image_links=list_of_image_links, unique_azz_id=unique_azz_id)
 
+    PRICE_PER_1_TOKEN = 0.0000005
+    charge_for_message = PRICE_PER_1_TOKEN * tokens_used
     print(f"Charge for message: {charge_for_message} USD")
 
-    #unique_azz_id = session.get("unique_azz_id")
-
-    result_charge_for_message = collection.update_one({"unique_azz_id":unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
-    # Check if the update was successful
+    result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
     if result_charge_for_message.matched_count > 0:
-        print("Balances were successfully.")
+        print("Balances were successfully updated.")
     else:
         print("No matching document found.")
 
-
-    
     print(f"LLM response: {response_llm}")
 
-    for_voice = remove_formatted_lines(response_llm)
-
-    print(f"For voice: {for_voice}")
-
+    for_voice = ""
     if isinstance(response_llm, Response):
-        # Handle the Response object differently
-        # For example, you might want to convert it to a string or extract its data
         response_llm_data = response_llm.get_data(as_text=True)
         response_llm_dict = ast.literal_eval(response_llm_data)
         response_llm = response_llm_dict["response"]
+    else:
+        for_voice = remove_formatted_lines(response_llm)
+    
+    print(f"For voice: {for_voice}")
 
-    return jsonify({"response_llm":response_llm, "for_voice": for_voice})
+    #if "Come to the restaurant and pick up" in response_llm
+
+    return jsonify({"response_llm": response_llm, "for_voice": for_voice, "transcription":transcription, "payment_on":payment_on})
+
+
+
+
 
 '''
 @app.route('/setup_payments', methods=['POST', 'GET'])
@@ -1536,9 +1813,32 @@ def setup_payments():
     return render_template("setup_payments.html", title="Payment Setup", restaurant_name=restaurant_name)
 '''
 
-
+@app.route("/quick_registration", methods=["POST"])
+def quick_registration():
+    return
 
 ################## Payment routes/Order Posting ###################
+@app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])
+def no_payment_order_placed(unique_azz_id):
+    if not session.get('access_granted_no_payment_order'):
+        abort(403)  # Forbidden
+    # Find the instance in MongoDB
+    current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
+    
+    total_price = session.get("total_price")
+    order_id = session.get("order_id")
+    items_ordered = session.get("items_ordered")
+
+    restaurant_name = current_restaurant_instance.get("name")
+    MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
+    
+
+    # Get current UTC time and format it as dd.mm hh:mm
+    # timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+    return render_template("payment_routes/no_payment_order_finish.html", title="Ready Order", res_unique_azz_id=unique_azz_id, order_id=order_id, total_price=total_price, restaurant_name=restaurant_name.replace('_', ' '), items=items_ordered)
+
+
 
 
 @app.route('/success_payment_backend/<unique_azz_id>', methods=["POST", "GET"])
@@ -1586,11 +1886,19 @@ def success_payment_backend(unique_azz_id):
                         "total_paid": total_paid,
                         "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
                         "paypal_fee": float(round(PAYPAL_FEE, 2)),
+                        "paid":"PAID",
                         "published":True}
     
     order_dashboard_id = assistant_used
 
     db_order_dashboard[order_dashboard_id].insert_one(order_to_pass)
+
+    all_ids_for_acc = current_restaurant_instance.get('notif_destin')
+
+    if all_ids_for_acc is not None:
+        for chatId in all_ids_for_acc:
+            send_telegram_notification(chat_id=chatId, message=MEW_ORDER_MESSAGE)
+
 
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
@@ -1753,9 +2061,11 @@ def view_orders_ajax():
     for order in orders:
         order_info = {
             'foods': [item for item in order['items']],
-            'timestamp': order['timestamp'],
+            'timestamp': datetime.fromtimestamp(order['timestamp']).strftime('%Y-%m-%d %H:%M:%S'),
             'published': order['published'],
-            'orderID':order.get('orderID', 'no ID provided')
+            'orderID':order.get('orderID', 'no ID provided'),
+            'paid':order.get('paid')
+
         }
         orders_list.append(order_info)
 

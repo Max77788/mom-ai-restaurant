@@ -35,7 +35,7 @@
             <h1 style="background-color: #ddd;">The profile is not diplayed to the customers. To change it toggle profile visibility on the dashboard</h1>
             {% endif %}
             <div class="description">
-                <h2>Description</h2>
+                <h2>Description of AI-empowered Restaurant {{ restaurant['name'].replace("_", " ") }}</h2>
                 <p>{{ restaurant['description'] or "The best restaurant embracing the future with AI-implementation and just serving an awesome food"}}</p>
             </div>
             <div class="assistant-section">

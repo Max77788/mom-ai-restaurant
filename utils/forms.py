@@ -29,6 +29,8 @@ class RestaurantForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(), EqualTo('password', message='Passwords must match.')])
     
+    referral_id = StringField('Referral ID', validators=[Optional()])
+
     # Add the field for image upload
     image = FileField('Upload Image', validators=[
         FileAllowed(['jpg', 'png'], 'Only images of .jpg and .png format')  # Restricting the file types to images only

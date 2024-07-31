@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Socket.IO Chat</title>
+    <script src="https://cdn.socket.io/4.0.1/socket.io.min.js"></script>
+</head>
+<body>
+    <div id="chatBox"></div>
+    <input type="text" id="userMessage" placeholder="Type your message here...">
+    <button onclick="sendMessage()">Send</button>
+    <button id="micButton">🎤</button>
+
+    <script>
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+        });
+
+        socket.on('response_ready', (data) => {
+            console.log('Response received:', data.response);
+            // Handle the response (e.g., display it to the user)
+        });
+
+        function sendMessage() {
+            const userMessage = document.getElementById('userMessage').value;
+            const unique_azz_id = "asst_5FQabi9oyxOupwO9a9XKtgz7";
+
+            fetch(`/generate_response/${unique_azz_id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: userMessage, thread_id: "your_thread_id_here", assistant_id: "your_assistant_id_here" })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                // Wait for the response from the WebSocket
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                // Handle error
+            });
+        }
+    </script>
+</body>
+</html>

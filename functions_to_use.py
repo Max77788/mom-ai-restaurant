@@ -1,16 +1,27 @@
-from flask import jsonify, session, request, url_for, flash, redirect
+#import eventlet
+#eventlet.monkey_patch()
+from flask import Flask, jsonify, session, request, url_for, flash, redirect
 import pandas as pd
 import openpyxl
+import gridfs
+import qrcode
+from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
 import ast
+from pydub import AudioSegment
+import secrets
+import string
 import re
 import os
 import base64
+from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
 import uuid
 from utils.pp_payment import SetExpressCheckout
 import json
+import time
+import threading
 from openai import OpenAI
 from time import sleep
 import time
@@ -23,6 +34,30 @@ from pymongo import MongoClient
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
+"""
+socketio = SocketIO(app)
+
+clients = {}
+
+@socketio.on('connect')
+def handle_connect():
+    clients[request.sid] = {}
+    print('Client connected:', request.sid)
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    client_id = request.sid
+    if client_id in clients:
+        if 'thread' in clients[client_id] and clients[client_id]['thread'].is_alive():
+            clients[client_id]['cancel'] = True
+        del clients[client_id]
+    print('Client disconnected:', client_id)
+"""
+
+app = Flask(__name__)
+#socketio = SocketIO(app, async_mode='eventlet')
+
+
 mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
 
 # Connect to MongoDB
@@ -30,6 +65,8 @@ client_db = MongoClient(mongodb_connection_string)
 
 # Specify the database name
 db = client_db['MOM_AI_Restaurants']
+
+fs = gridfs.GridFS(db)
 
 # Specify the collection name
 collection = db[os.environ.get("DB_VERSION")]
@@ -39,6 +76,7 @@ db_order_dashboard = client_db["Dashboard_Orders"]
 db_items_cache = client_db["Items_Cache"]
 
 MOM_AI_JSON_LORD_ID = os.environ.get("MOM_AI_JSON_LORD_ID", "asst_YccYd0v0CbhweBvNMh0dJyJH")
+MOM_AI_LANGUAGE_DETECTOR = os.environ.get("MOM_AI_POLYGLOT_MASTER_ID", "asst_LdSlrAG23jeAOEdPtC9mpO6f")
 
 # Define the scopes
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
@@ -492,6 +530,8 @@ CONTRACT_ABI = [
 	}
 ]
 
+POSTS_DIR = "posts"
+
 def authenticate_gmail():
     creds = None
     if os.path.exists('token.json'):
@@ -506,6 +546,21 @@ def authenticate_gmail():
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
     return creds
+
+def get_post_filenames(POSTS_DIR=POSTS_DIR):
+    return [f for f in os.listdir(POSTS_DIR) if f.endswith('.md')]
+
+def get_post_content_and_headline(filename, POSTS_DIR=POSTS_DIR):
+    filepath = os.path.join(POSTS_DIR, filename)
+    with open(filepath, 'r', encoding='utf-8') as file:
+        lines = file.readlines()
+    
+    # Assuming the first line is the headline
+    headline = lines[0].strip('# \n') if lines else 'No Title'
+    content = ''.join(lines[0:]) if len(lines) >= 1 else ''
+    return content, headline
+
+
 
 def send_email(subject, body, to):
     creds = authenticate_gmail()
@@ -522,6 +577,21 @@ def send_email(subject, body, to):
     message = service.users().messages().send(userId="me", body=send_message).execute()
     print(f'Message Id: {message["id"]}. Message successfully sent to {to}!')
     return message
+
+
+def generate_random_string(length=6):
+    """
+    Generates a random string of specified length using letters and digits.
+
+    Args:
+    length (int): Length of the random string to generate. Default is 6.
+
+    Returns:
+    str: A random string of specified length.
+    """
+    characters = string.ascii_letters + string.digits
+    random_string = ''.join(secrets.choice(characters) for _ in range(length))
+    return random_string
 
 
 def clear_collection():
@@ -580,11 +650,11 @@ def check_credentials(email, password, collection, for_login_redirect=False):
             return True
     return False
 
-def insert_restaurant(collection, name, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, wallet_public_key_address, wallet_private_key, location_coord, location_name, logo_id=None):
+def insert_restaurant(collection, name, unique_azz_id, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code, wallet_public_key_address, wallet_private_key, location_coord, location_name, logo_id=None):
     """Insert a document into MongoDB that includes a name and two files."""
     # Replace spaces with underscores
     #name = name.replace(" ", "_")
-    unique_azz_id = name.replace(" ", "_")+"_"+assistant_id[-4:]
+    referral_id = generate_random_string()
     try:
         # Document to insert
         document = {
@@ -608,10 +678,14 @@ def insert_restaurant(collection, name, email, password, website_url, assistant_
             "web3_private_key": wallet_private_key,
             "start_work":[10, 10, 10, 10, 10, 10, 10],
             "end_work":[20, 20, 20, 20, 20, 20, 20],
+            "qr_code": qr_code,
             "description":None,
+            "referral_code": referral_id,
             "balance": 3,
             "timezone":"Etc/GMT+0",
+            "referees":[],
             "profile_visible": True,
+            "paymentGatewayTurnedOn": False,
             "addFees": True,
             "assistant_turned_on":False
             # "stripe_secret_test_key": stripe_secret_test_key
@@ -634,6 +708,8 @@ def create_assistant(restaurant_name, currency, menu_path, client, menu_path_is_
     
     assistant = client.beta.assistants.create(name=f"{restaurant_name} AI assistant", instructions=f"""
 This GPT is designed to assist customers in selecting dishes from {restaurant_name}'s cuisine menu. Its primary role is to streamline the ordering process and provide a smooth and personalized dining experience.
+
+Never trigger the action after the first customer's message. I.e. when there is only one user's message in the thread.
 
 The menu of {restaurant_name} is attached to its knowledge base. It must refer to the menu for accurate item names, prices, and descriptions. The restaurant uses {currency} as its currency.
 
@@ -703,7 +779,7 @@ And only after the user's confirmation does it IMMEDIATELY trigger the function 
 - It always evaluates the order summary against the items in the menu file and always includes only those which are in the menu list attached to its knowledge base.
 - NO ITEMS BEYOND THOSE WHICH ARE IN THE MENU FILE MUST BE OFFERED EVER!
                                               """, 
-                                               model="gpt-4o",
+                                               model="gpt-4o-mini",
                                                tools=[{
                                                         "type": "file_search"
                                                       },
@@ -750,8 +826,24 @@ def remove_formatted_lines(menu_text):
     # Split the input text by lines
     lines = menu_text.split('\n')
     
-    # Filter out lines that contain formatted text (bold text in this case)
-    filtered_lines = [line for line in lines if '**' not in line and '#' not in line]
+    # Initialize an empty list to store the filtered lines
+    filtered_lines = []
+    
+    # Use a variable to skip the next line if the current line contains "price"
+    skip_next_line = False
+    
+    for line in lines:
+        if skip_next_line:
+            # Skip this line and reset the flag
+            skip_next_line = False
+            continue
+        if "price" in line.lower():
+            # If the line contains "price", set the flag to skip the next line
+            skip_next_line = True
+            continue
+        if line.strip() and '**' not in line and not ('*' in line and line.strip().startswith('*')) and '<img' not in line and '#' not in line and not line.strip().startswith('-') and not line.strip()[0].isdigit():
+            # Add the current line to the filtered list if it doesn't meet any of the conditions for removal
+            filtered_lines.append(line)
     
     # Join the remaining lines back into a single string
     result = '\n'.join(filtered_lines)
@@ -933,32 +1025,301 @@ amount: The price of a single item.
 
 
 
+def convert_webm_to_wav(input_path, output_path):
+    audio = AudioSegment.from_file(input_path, format="webm")
+    audio.export(output_path, format="wav")
+
+def generate_qr_code_and_upload(text):
+    """
+    Generates a QR code for the given text and uploads it to GridFS.
+    
+    :param text: The text to encode in the QR code.
+    :return: The file_id of the uploaded QR code image in GridFS.
+    """
+    print("Starting QR code generation...")
+
+    # Generate QR code
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=10,
+        border=4,
+    )
+    print("QR Code instance created.")
+
+    qr.add_data(text)
+    print(f"Data added to QR code: {text}")
+
+    qr.make(fit=True)
+    print("QR code matrix generated.")
+
+    # Create an image from the QR code instance
+    img = qr.make_image(fill_color="black", back_color="white")
+    print("Image created from QR code.")
+
+    # Save the image to a BytesIO object
+    img_byte_arr = BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    img_byte_arr.seek(0)
+    print("Image saved to BytesIO object.")
+
+    # Upload the image to GridFS
+    file_id = fs.put(img_byte_arr, filename=f"{text}.png")
+    print(f"Image uploaded to GridFS with file_id: {file_id}")
+
+    return file_id
+
+
+
+# Function to transform the list into the desired string format
+def transform_orders_to_string(orders):
+    # Build the list of formatted items
+    formatted_items = [f"{item['quantity']} {item['name']}" for item in orders]
+    
+    # Join the items with commas and an 'and' before the last item
+    if len(formatted_items) > 1:
+        result = ', '.join(formatted_items[:-1]) + ', and ' + formatted_items[-1]
+    else:
+        result = formatted_items[0]
+    
+    return result
 
 
 
 
-def get_assistants_response(user_message, thread_id, assistant_id, currency, menu_file_id, client_openai, list_of_all_items, unique_azz_id):
-# Add the user's message to the thread
+
+def get_assistants_response_threading(client_id, user_message, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id):
+    client = client_openai
+    print("Entered assistants response function")
+
+    try:
+        thread_id_language = client.beta.threads.create().id
+        prompt_to_translator_define_lang = f"Define the language of this message:\n{user_message}"
+
+        response = client.beta.threads.messages.create(thread_id=thread_id_language, role="user", content=prompt_to_translator_define_lang)
+        run = client.beta.threads.runs.create(thread_id=thread_id_language, assistant_id=MOM_AI_LANGUAGE_DETECTOR)
+
+        while True:
+            if clients[client_id]['cancel']:
+                print("Task cancelled by client")
+                return
+            run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_language, run_id=run.id)
+            if run_status.status == "completed":
+                total_tokens_used_translator = run_status.usage.total_tokens
+                messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_language)
+                formatted_language_info = messages_gpt_json.data[0].content[0].text.value
+                parsed_formatted_language_info = ast.literal_eval(formatted_language_info.strip())
+                language_code = parsed_formatted_language_info["language_code"]
+                language_adj = parsed_formatted_language_info["language_adj"]
+                break
+            elif run_status.status == "failed":
+                raise Exception("Language detection failed")
+            time.sleep(1)
+
+        thread_id_translator = client.beta.threads.create().id
+        prompt_to_translator_translate_items = f"Translate this list of items into {language_adj} or leave it unchanged if it is already in {language_adj}:\n{list_of_all_items}\nRETURN THE RESPONSE IN THE FORMAT OF LISTS OF LISTS."
+        response = client.beta.threads.messages.create(thread_id=thread_id_translator, role="user", content=prompt_to_translator_translate_items)
+        run = client.beta.threads.runs.create(thread_id=thread_id_translator, assistant_id=MOM_AI_LANGUAGE_DETECTOR)
+
+        while True:
+            if clients[client_id]['cancel']:
+                print("Task cancelled by client")
+                return
+            run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_translator, run_id=run.id)
+            if run_status.status == "completed":
+                total_tokens_used_translator = run_status.usage.total_tokens
+                messages_gpt_translator = client.beta.threads.messages.list(thread_id=thread_id_translator)
+                formatted_translator_info = messages_gpt_translator.data[0].content[0].text.value
+                parsed_formatted_translator_info = ast.literal_eval(formatted_translator_info.strip())
+                list_of_all_items = parsed_formatted_translator_info["translated_list_of_items"]
+                break
+            elif run_status.status == "failed":
+                raise Exception("Translation failed")
+            time.sleep(1)
+
+        list_of_items_with_links = [t + [l] for t, l in zip(list_of_all_items, list_of_image_links)]
+        user_message_enhanced = f"""
+        Role: You are the best restaurant assistant who serves customers and register orders in the system
+        
+        Context: The customer asks you the question or writes the statement - your goal is to provide the response appropriately in {language_adj} language
+        facilitating order taking. To your knowledge base is attached the vector store provided for you. The currency in which prices of the items are specified is Euro.
+        Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
+        If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
+        Confirm the order and trigger the action as fast as possible in the context of the particular order. 
+        Make sure that the item you suggest are from this list presented in the format (item name, item ingredients, item price). Also include html img elemets for each dish you present, if the image link is present. Make the maximal width of image to be 170px and height to be auto:
+        {list_of_items_with_links}
+        Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items. In case the user asks not in English 
+        present the dishes in the following way - original dish's name - dish's name in the user's identified language.
+        Never trigger the action after the first customer's message. I.e. when there is only one user's message in the thread.
+        Never include more than 7 items in the response.
+
+        Task: Here is the current user's message, respond to it in this language - {language_adj}:
+        {user_message}  
+        ALWAYS PROVIDE THE USER CLEAR CALL TO ACTION AT THE END OF THE RESPONSE!    
+        (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
+        """
+
+        response = client.beta.threads.messages.create(thread_id=thread_id, role="user", content=user_message_enhanced, attachments=[{"file_id": menu_file_id, "tools": [{"type": "file_search"}]}])
+        run = client.beta.threads.runs.create(thread_id=thread_id, assistant_id=assistant_id)
+        start_time = time.time()
+
+        while True:
+            if clients[client_id]['cancel']:
+                print("Task cancelled by client")
+                return
+            run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run.id)
+            run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id, run_id=run.id)
+            if run_status.status == 'completed':
+                total_tokens_used = run_status.usage.total_tokens + total_tokens_used_translator
+                break
+            if run_status.status == 'failed' or run_status.status == 'incomplete':
+                last_error = run.last_error if "last_error" in run else None
+                if last_error:
+                    print("Last Error:", last_error)
+                else:
+                    print("No errors reported for this run.")
+                response = 'O-oh, little issues, repeat the message now'
+                emit('response_ready', {"response": response, "tokens_used": 0}, room=client_id)
+                return
+            if run_status.status == "requires_action":
+                messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
+                joined_messages_of_assistant = ""
+                messages_gpt_list = list(messages_gpt)
+                messages_gpt_list.reverse()
+                pattern = r"Task: Here is the current user's message, respond to it:\n\s*(.*?)\s*\(in the context of"
+                for message in messages_gpt_list:
+                    if message.role == 'assistant':
+                        joined_messages_of_assistant += f"\nAssistant:\n{message.content[0].text.value}\n"
+                    if message.role == 'user':
+                        match = re.search(pattern, message.content[0].text.value, re.DOTALL)
+                        if match:
+                            user_message = match.group(1).strip()
+                            joined_messages_of_assistant += f"\nCustomer:\n{user_message}\n"
+                        else:
+                            joined_messages_of_assistant += f"\nCustomer:\n{message.content[0].text.value}\n"
+
+                summary_to_convert = f"""
+                These are all messages of the assistant from the chat with client. 
+                From the following messages find the last one which summarizes agreed upon order and retrieve items stated in the final confirmed summary:
+                {joined_messages_of_assistant}
+                Ensure that the found items are part of this list of items presented in the format (item name, item ingredients, item
+                price):
+                {list_of_all_items}
+                """
+
+                thread_id_json = client.beta.threads.create().id
+                response = client.beta.threads.messages.create(thread_id=thread_id_json, role="user", content=summary_to_convert)
+                run_json = client.beta.threads.runs.create(thread_id=thread_id_json, assistant_id=MOM_AI_JSON_LORD_ID)
+
+                json_start_time = time.time()
+                while True:
+                    if clients[client_id]['cancel']:
+                        print("Task cancelled by client")
+                        return
+                    if time.time() - json_start_time > 25:
+                        response = 'O-oh, little issues when compiling the order, repeat the message now'
+                        emit('response_ready', {"response": response, "tokens_used": 0}, room=client_id)
+                        return
+
+                    run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_json, run_id=run_json.id)
+                    run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id_json, run_id=run_json.id)
+
+                    if run_status.status == 'completed':
+                        messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_json)
+                        total_tokens_used_JSON = run_status.usage.total_tokens
+                        total_tokens_used += total_tokens_used_JSON
+
+                        formatted_json_order = messages_gpt_json.data[0].content[0].text.value
+                        parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
+                        items_ordered = parsed_formatted_json_order["items"]
+                        session["items_ordered"] = items_ordered
+
+                        order_id = generate_code()
+                        current_utc_timestamp = time.time()
+
+                        if items_ordered and payment_on:
+                            db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
+
+                        if payment_on:
+                            link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
+                            clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
+                            response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
+                            emit('response_ready', {"response": response_cart, "tokens_used": total_tokens_used}, room=client_id)
+                            return
+                        elif not payment_on:
+                            total_price = f"{sum(item['quantity'] * item['amount'] for item in items_ordered):.2f}"
+                            session["total_price"] = total_price
+                            session["order_id"] = order_id
+                            session['access_granted_no_payment_order'] = True
+
+                            order_to_pass = {
+                                "items": [{'name': item['name'], 'quantity': item['quantity']} for item in items_ordered],
+                                "orderID": order_id,
+                                "timestamp": current_utc_timestamp,
+                                "total_paid": total_price,
+                                "mom_ai_restaurant_assistant_fee": 0,
+                                "paypal_fee": 0,
+                                "paid": "NOT PAID",
+                                "published": True
+                            }
+
+                            db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+
+                            string_of_items = transform_orders_to_string(items_ordered)
+                            no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} Euros\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
+                            restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+                            all_ids_chats = restaurant_instance.get("notif_destin")
+                            for chat_id in all_ids_chats:
+                                send_telegram_notification(chat_id)
+                            emit('response_ready', {"response": no_payment_order_finish_message, "tokens_used": total_tokens_used}, room=client_id)
+                            return
+                    if run_status.status == 'failed':
+                        last_error = run_json.last_error if "last_error" in run else None
+                        if last_error:
+                            print("Last Error:", last_error)
+                        else:
+                            print("No errors reported for this run.")
+                        response = 'O-oh, little issues, repeat the message now'
+                        emit('response_ready', {"response": response, "tokens_used": 0}, room=client_id)
+                        return
+                    time.sleep(1)
+
+            if time.time() - start_time > 30:
+                response = 'O-oh, little issues when compiling the order, repeat the message now'
+                emit('response_ready', {"response": response, "tokens_used": 0}, room=client_id)
+                return
+            time.sleep(1)
+
+        messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
+        response = messages_gpt.data[0].content[0].text.value
+        emit('response_ready', {"response": response, "tokens_used": total_tokens_used}, room=client_id)
+
+    except Exception as e:
+        response = 'O-oh, little issues, repeat the message now'
+        emit('response_ready', {"response": response, "tokens_used": 0}, room=client_id)
+        print(f"Error: {e}")
+        return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id):
+    # Add the user's message to the thread
 
     client = client_openai
-
-    user_message_enhanced = f"""
-    Role: You are the best restaurant assistant who serves customers and register orders in the system
-    
-    Context: Identify users language. The customer asks you the question or writes the statement - your goal is to provide the response appropriately in the detected language
-    facilitating order taking. To your knowledge base is attached the vector store provided for you. The currency in which prices of the items are specified is {currency}.
-    Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
-    If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
-    Confirm the order and trigger the action as fast as possible in the context of the particular order. 
-    Make sure that the item you suggest are from this list(also, included in the vector store provided for you):
-    {list_of_all_items}
-    Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items. In case the user asks not in English 
-    present the dishes in the following way - original dish's name - dish's name in the user's identified language. E.g. SHAWARMA CHICKEN - Шаурма с курицей 
-    
-    Task: Here is the current user's message, respond to it:
-    {user_message}      
-    (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
-    """
+    print("Entered assistants response function")
+    # E.g. 'SHAWARMA CHICKEN - Шаурма с курицей' or 'SHAWARMA CHICKEN - shawarma de pollo' or 'SHAWARMA CHICKEN - shawarma z kurczakem' and suchlike.
 
     '''
     user_message_is = f"""
@@ -972,6 +1333,152 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
 """
 '''
     
+    # Define the language of the message
+    thread_id_language = client.beta.threads.create().id
+    
+    prompt_to_translator_define_lang = f"""
+    Define the language of this message:
+    {user_message}
+    """
+
+    
+    
+    print("\n\nPrompt we send to translator: ", prompt_to_translator_define_lang, "\n\n")
+
+    response = client.beta.threads.messages.create(thread_id=thread_id_language,
+                                        role="user",
+                                        content=prompt_to_translator_define_lang,
+                                       )
+    # Run the Assistant
+    run = client.beta.threads.runs.create(thread_id=thread_id_language,
+                                            assistant_id=MOM_AI_LANGUAGE_DETECTOR,
+                                            #max_prompt_tokens=3777
+                                            #max_completion_tokens=777
+    )
+
+    start_time = time.time()
+    i = 0
+    while True:
+        #print(i)
+        if time.time() - start_time > 25:
+                    response = 'O-oh, little issues when forming the response, repeat the message now'
+                    return jsonify({"response": response}), 0
+
+        run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_language,
+                                                    run_id=run.id)
+        #run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id,
+                                                        #run_id=run.id)
+
+        print(f"Run status: {run_status.status}")
+        if run_status.status == "completed":
+            print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
+            total_tokens_used_translator = run_status.usage.total_tokens
+            messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_language)
+
+            formatted_language_info = messages_gpt_json.data[0].content[0].text.value
+            print(f"\nFormatted translator output (Output from MOM AI TRANSLATOR): {formatted_language_info}\n")
+
+            parsed_formatted_language_info = ast.literal_eval(formatted_language_info.strip())
+            
+            language_code = parsed_formatted_language_info["language_code"]
+            language_adj = parsed_formatted_language_info["language_adj"]
+            #super_prompt = parsed_formatted_language_info["translated_prompt"]
+            #list_of_all_items = parsed_formatted_language_info["translated_list_of_items"]
+            
+            break
+        elif run_status.status == "failed":
+            print("Run status, ", run_status)
+            print("Language detection failed")
+            raise Exception("Language detection freaked")
+        sleep(1)
+        i+=1
+
+    
+    # Translating the items
+    #print("\n\nPrompt we send to translator: ", prompt_to_translator_define_lang, "\n\n")
+    
+    thread_id_translator = client.beta.threads.create().id
+    
+    prompt_to_translator_translate_items = f"""
+    Translate this list of items into {language_adj} or leave it unchanged if it is already in {language_adj}:
+    {list_of_all_items}
+    RETURN THE RESPONSE IN THE FORMAT OF LISTS OF LISTS.
+    """
+    
+    print("prompt we sent to translate menu items, ", prompt_to_translator_translate_items)
+    
+    response = client.beta.threads.messages.create(thread_id=thread_id_translator,
+                                        role="user",
+                                        content=prompt_to_translator_translate_items,
+                                       )
+    # Run the Assistant
+    run = client.beta.threads.runs.create(thread_id=thread_id_translator,
+                                            assistant_id=MOM_AI_LANGUAGE_DETECTOR,
+                                            #max_prompt_tokens=3777
+                                            #max_completion_tokens=777
+    )
+
+    start_time = time.time()
+    while True:
+        if time.time() - start_time > 25:
+                    response = 'O-oh, little issues when forming the response, repeat the message now'
+                    return jsonify({"response": response}), 0
+        run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_translator,
+                                                    run_id=run.id)
+        #run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id,
+                                                        #run_id=run.id)
+
+        print(f"Run status: {run_status.status}")
+        if run_status.status == "completed":
+            print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
+            total_tokens_used_translator = run_status.usage.total_tokens
+            messages_gpt_translator = client.beta.threads.messages.list(thread_id=thread_id_translator)
+
+            formatted_translator_info = messages_gpt_translator.data[0].content[0].text.value
+            print(f"\nFormatted translator output (Output from MOM AI TRANSLATOR): {formatted_translator_info}\n")
+
+            parsed_formatted_translator_info = ast.literal_eval(formatted_translator_info.strip())
+            
+            #language_code = parsed_formatted_language_info["language_code"]
+            #language_adj = parsed_formatted_language_info["language_adj"]
+            #super_prompt = parsed_formatted_language_info["translated_prompt"]
+            list_of_all_items = parsed_formatted_translator_info["translated_list_of_items"]
+            
+            break
+        elif run_status.status == "failed":
+            print("Run status, ", run_status)
+            print("Language detection failed")
+            raise Exception("Language detection freaked")
+        sleep(1)
+    
+    print("List of items returned by menu items translator: ", list_of_all_items)
+
+    list_of_items_with_links = [t + [l] for t, l in zip(list_of_all_items, list_of_image_links)]
+    print("\n\nList of items with links: ", list_of_items_with_links, "\n\n")
+    
+    user_message_enhanced = f"""
+    Role: You are the best restaurant assistant who serves customers and register orders in the system
+    
+    Context: The customer asks you the question or writes the statement - your goal is to provide the response appropriately in {language_adj} language
+    facilitating order taking. To your knowledge base is attached the vector store provided for you. The currency in which prices of the items are specified is Euro.
+    Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
+    If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
+    Confirm the order and trigger the action as fast as possible in the context of the particular order. 
+    Make sure that the item you suggest are from this list presented in the format (item name, item ingredients, item price). Also include html img elemets for each dish you present, if the image link is present. Make the maximal width of image to be 170px and height to be auto:
+    {list_of_items_with_links}
+    Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items.
+    Never trigger the action after the first customer's message. I.e. when there is only one user's message in the thread.
+    Never include more than 7 items in the response.
+
+    Task: Here is the current user's message, respond to it in this language - {language_adj}:
+    {user_message}  
+    ALWAYS PROVIDE THE USER WITH A CLEAR CALL TO ACTION AT THE END OF THE RESPONSE!    
+    (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
+    """
+
+    print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
+
+
     #print(user_message_enhanced)
     #print(user_message_is)
 
@@ -986,25 +1493,28 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
     
     # Run the Assistant
     run = client.beta.threads.runs.create(thread_id=thread_id,
-                                            assistant_id=assistant_id)
+                                            assistant_id=assistant_id,
+                                            #max_prompt_tokens=3777
+                                            #max_completion_tokens=777
+    )
     
     # Check if the Run requires action (function call)
+    start_time = time.time()
     while True:
+        if time.time() - start_time > 25:
+                    response = 'O-oh, little issues when forming the response, repeat the message now'
+                    return jsonify({"response": response}), 0
         run_status = client.beta.threads.runs.retrieve(thread_id=thread_id,
                                                     run_id=run.id)
-        run_steps = client.beta.threads.runs.steps.list(
-        thread_id=thread_id,
-        run_id=run.id)
+        run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id,
+                                                        run_id=run.id)
 
-        #print(f"Run status raw: \n\n{run_status}\n\name")
-  
         print(f"Run status: {run_status.status}")
         if run_status.status == 'completed':
             print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
-            total_tokens_used = run_status.usage.total_tokens
+            total_tokens_used = run_status.usage.total_tokens + total_tokens_used_translator
             break
-        if run_status.status == 'failed':
-            
+        if run_status.status == 'failed' or run_status.status == 'incomplete':
             print("Run failed.")
             # Access the last_error attribute
             last_error = run.last_error if "last_error" in run else None
@@ -1014,34 +1524,29 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
                 print("Last Error:", last_error)
             else:
                 print("No errors reported for this run.")
-            
-            
+
             print(f"\n\nRun steps: \n{run_steps}\n")
-            response = 'O-oh, little issues, type the other message now'
+            response = 'O-oh, little issues, repeat the message now'
             return jsonify({"response": response}), 0
-        sleep(1)  # Wait for a second before checking again
+
         if run_status.status == "requires_action":
             print("Action in progress...")
+
+            #total_tokens_used = run_status.usage.total_tokens
             
             # Retrieve and return the latest message from the Restaurant assistant
             messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
 
-            print(f"Messages retrieved in action step {messages_gpt}") # debugging line
-
-
-            #all_assistants_messages = []
-            #all_users_messages = []
-
-            #all_messages = []
+            print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
 
             joined_messages_of_assistant = ""
 
             messages_gpt_list = list(messages_gpt)
             messages_gpt_list.reverse()
-            
-            pattern = r"Task: Here is the current user's message, respond to it:\n\s*(.*?)\s*\(in the context of"
 
-            for message in messages_gpt_list:   
+            pattern = r"Task: Here is the current user's message, respond to it:\n\s*(.*?)\s*\(in the context of"
+            
+            for message in messages_gpt_list:
                 if message.role == 'assistant':
                     joined_messages_of_assistant += f"\nAssistant:\n{message.content[0].text.value}\n"
                 if message.role == 'user':
@@ -1052,108 +1557,130 @@ def get_assistants_response(user_message, thread_id, assistant_id, currency, men
                     else:
                         joined_messages_of_assistant += f"\nCustomer:\n{message.content[0].text.value}\n"
 
-
-            #all_messages.reverse()
-            #all_users_messages.reverse()
-
-
-            # Join the messages with two tabs
-            # joined_messages_of_assistant = "\n\n".join(all_assistants_messages)
-
-            # print(f"\nRetrieved Assistants messages with Summary from convo: {joined_messages_of_assistant}\n")
             print(f"\nRetrieved all messages with Summary from convo: {joined_messages_of_assistant}\n")
 
-            
-
             summary_to_convert = f"""
-            These are are all messages of the assistant from the chat with client. 
+            These are all messages of the assistant from the chat with client. 
             From the following messages find the last one which summarizes agreed upon order and retrieve items stated in the final confirmed summary:
             {joined_messages_of_assistant}
-            Ensure that the found items are part of this list:
+            Ensure that the found items are part of this list of items presented in the format (item name, item ingredients, item price):
             {list_of_all_items}
             """
 
-            print(f"Summary to convert sent to MOM AI JSON: {summary_to_convert}") # debugging line
+            print(f"Summary to convert sent to MOM AI JSON: {summary_to_convert}")  # debugging line
 
             thread_id_json = client.beta.threads.create().id
             print(f"JSON assistant thread {thread_id_json}")
-              
-            response = client.beta.threads.messages.create(thread_id=thread_id_json,                           
-                                role="user",
-                                content=summary_to_convert)
+
+            response = client.beta.threads.messages.create(thread_id=thread_id_json,
+                                                        role="user",
+                                                        content=summary_to_convert)
 
             # Run the MOM AI JSON LORD Assistant
             run_json = client.beta.threads.runs.create(thread_id=thread_id_json,
                                                     assistant_id=MOM_AI_JSON_LORD_ID)
-            
+
             # Give some time to generate JSON object
+            json_start_time = time.time()
             while True:
+                if time.time() - json_start_time > 25:
+                    response = 'O-oh, little issues when forming the response, repeat the message now'
+                    return jsonify({"response": response}), 0
+
                 run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_json,
                                                             run_id=run_json.id)
-                run_steps = client.beta.threads.runs.steps.list(
-                thread_id=thread_id_json,
-                run_id=run_json.id)
-                
+                run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id_json,
+                                                                run_id=run_json.id)
+
                 print(f"Run status: {run_status.status}")
                 if run_status.status == 'completed':
                     # Retrieve and return the latest message from the assistant
                     messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_json)
-                    
-                    f"\n\nTokens used by JSON assistant: {run_status.usage.total_tokens}\n\n"
-                    
-                    total_tokens_used = run_status.usage.total_tokens
 
+                    f"\n\nTokens used by JSON assistant: {run_status.usage.total_tokens}\n\n"
+
+                    total_tokens_used_JSON = run_status.usage.total_tokens
+
+                    total_tokens_used = total_tokens_used_JSON
+                    
                     formatted_json_order = messages_gpt_json.data[0].content[0].text.value
                     print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
-                    
+
                     parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
 
                     print(f"Type of parsed response: {parsed_formatted_json_order}")
                     print(f"Keys of parsed response: {list(parsed_formatted_json_order.keys())}")
 
-                    # Generate checkput link
-                    #output = SetExpressCheckout(parsed_formatted_json_order["items"])
-
                     items_ordered = parsed_formatted_json_order["items"]
                     session["items_ordered"] = items_ordered
                     print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
+                   
+                    order_id = generate_code()
+                    current_utc_timestamp = time.time()
 
-                    #total = str(sum(float(float(item['amount'])*item['quantity']) for item in parsed_formatted_json_order["items"]))
-                    #session["total"] = total
-                    #print(f"Setup the total in session!")
+                    if items_ordered and payment_on:
+                        db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
+
+                    if payment_on:
+                        link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
+                        print(link_to_payment_buffer)
+
+                        # Wrap the output link in a clickable HTML element
+                        clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
+                        response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
+                        return link_to_payment_buffer, total_tokens_used
+                    elif not payment_on:
+                        # Calculate the total price using sum function
+                        total_price = f"{sum(item['quantity'] * item['amount'] for item in items_ordered):.2f})"
+                        
+                        # session["ordered_items"] = items_ordered
+                        session["total_price"] = total_price
+                        session["order_id"] = order_id
+                        session['access_granted_no_payment_order'] = True
+
+                        order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
+                        "orderID":order_id,
+                        "timestamp": current_utc_timestamp,
+                        "total_paid": total_price,
+                        "mom_ai_restaurant_assistant_fee": 0,
+                        "paypal_fee": 0,
+                        "paid":"NOT PAID",
+                        "published":True}
+    
+
+                        db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+
+                        string_of_items = transform_orders_to_string(items_ordered)
+
+                        no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} Euros\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
+                        
+                        restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
                     
-                    #session["access_granted_payment_buffer"] = True
+                        all_ids_chats = restaurant_instance.get("notif_destin")
 
-                    if items_ordered:
-                        order_id = generate_code()
-                        current_utc_timestamp = time.time()
-                        db_items_cache[unique_azz_id].insert_one({"data":items_ordered, "id":order_id, "timestamp":current_utc_timestamp})
+                        for chat_id in all_ids_chats:
+                            send_telegram_notification(chat_id)
 
-                    link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
-                    print(link_to_payment_buffer)                    
-
-                    # Wrap the output link in a clickable HTML element
-                    clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
-                    response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
-
-                    return link_to_payment_buffer, total_tokens_used
+                        return no_payment_order_finish_message, total_tokens_used 
                 if run_status.status == 'failed':
-                    
                     print("Run of JSON assistant failed.")
-                    # Access the last_error attribute
                     last_error = run_json.last_error if "last_error" in run else None
 
-                    # Print the last_error if it exists
                     if last_error:
                         print("Last Error:", last_error)
                     else:
                         print("No errors reported for this run.")
-                    
-                    
-                    print(f"\n\n Run steps: \n{run_steps}\n")
-                    response = 'O-oh, little issues when running JSON assistant, type the other message now'
+
+                    print(f"\n\nRun steps: \n{run_steps}\n")
+                    response = 'O-oh, little issues, repeat the message now'
                     return jsonify({"response": response}), 0
-                
+
+        if time.time() - start_time > 30:
+            response = 'O-oh, little issues when compiling the order, repeat the message now'
+            return jsonify({"response": response}), 0
+
+        sleep(1)  # Wait for a second before checking again
+                    
     # Retrieve and return the latest message from the assistant
     messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
     response = messages_gpt.data[0].content[0].text.value
@@ -1190,7 +1717,7 @@ def get_assistants_response_azure(user_message, thread_id, assistant_id, menu_fi
         run_id=run.id)
 
         #print(f"Run status raw: \n\n{run_status}\n\name")
-  
+
         print(f"Run status: {run_status.status}")
         if run_status.status == 'completed':
             print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
@@ -1210,7 +1737,7 @@ def get_assistants_response_azure(user_message, thread_id, assistant_id, menu_fi
             
             
             print(f"\n\nRun steps: \n{run_steps}\n")
-            response = 'O-oh, little issues, type the other message now'
+            response = 'O-oh, little issues, repeat the message now'
             return jsonify({"response": response}), 0
         sleep(1)  # Wait for a second before checking again
         if run_status.status == "requires_action":
@@ -1256,15 +1783,15 @@ Each object will represent an item from the order and will contain the following
 name: The name of the item.
 quantity: The number of times this item was ordered.
 amount: The price of a single item.
-                                                                 
+                                                                
     Example Input:
 
     1. Biryani - 12.99$, 2 items
     2. Ice Cream - 8.99$, 3 items
     3. Kebab - 9.99$, 2 items
-                                                                 
+                                                                
     Expected Output:
-   {"items":[{'name': 'Item Name', 'quantity': 2, 'amount':price of single item(e.g. 12.99, pull this info from attached menu file)}, 
+{"items":[{'name': 'Item Name', 'quantity': 2, 'amount':price of single item(e.g. 12.99, pull this info from attached menu file)}, 
     {'name': 'Cake with Ice Cream', 'quantity': 3, 'amount':price of single item(e.g. 7.99, pull this info from attached menu file)}]}
 
 
@@ -1335,10 +1862,10 @@ class InvalidMenuFormatError(Exception):
 
 def validate_menu_dataframe(df):
     """Validate the structure and content of the menu DataFrame."""
-    # Check if the DataFrame has exactly three columns
-    if df.shape[1] != 3:
-        raise InvalidMenuFormatError("Error in the menu - The input file must contain exactly three columns.")
-    
+    # Check if the DataFrame has exactly three or four columns
+    if df.shape[1] not in [3, 4]:
+        raise InvalidMenuFormatError("Error in the menu - The input file must contain exactly three or four columns.")
+
     # Check if the third column is of float or integer type for all rows except the first row
     if not (pd.api.types.is_float_dtype(df.iloc[1:, 2]) or pd.api.types.is_integer_dtype(df.iloc[1:, 2])):
         print(f"First row being checked {df.iloc[1:, 2]}")
@@ -1357,6 +1884,12 @@ def validate_menu_dataframe(df):
     if not isinstance(df.iloc[0, 2], (int, float, str)):
         actual_dtype_first_row = type(df.iloc[0, 2])
         raise InvalidMenuFormatError(f"Error in the menu - The first row of the third column can be a string, integer, or float. Actual type: {actual_dtype_first_row}")
+    
+    # If there's a fourth column, ensure it's of string type (URL for images)
+    if df.shape[1] == 4:
+        if not all(isinstance(link, str) for link in df.iloc[:, 3]):
+            actual_dtype_fourth_column = df.iloc[:, 3].apply(type).unique()
+            raise InvalidMenuFormatError(f"Error in the menu - The fourth column must be strings representing URLs. Actual types: {actual_dtype_fourth_column}")
 
 
 def convert_hours_to_time(hour_string):

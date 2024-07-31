@@ -19,3 +19,4 @@ email-validator
 bs4
 bcrypt
 apscheduler
+Flask-HTTPAuth

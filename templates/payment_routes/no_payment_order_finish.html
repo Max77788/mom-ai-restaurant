@@ -1,0 +1,38 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+    <div class="success-order-message">
+        <h1>✅Your order in {{ restaurant_name }} has been successfully placed.</h1>
+        <h2>These are your items:</h2>
+        <ul>
+            {% for item in items %}
+                <li>
+                <b>{{ item['name'] }}</b> : <b>{{ item['quantity'] }} serving(s)</b><br>
+                <b>{{ item['amount']}} EUR <u>per 1 item</u></b>
+                </li>
+            {% endfor %}
+        </ul>
+        <h2>Visit <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=res_unique_azz_id) }}' target="_blank">{{ restaurant_name.replace("_", " ") }}</a> to pick up your food shortly.</h2>
+        <h3>Here is your order id - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>. Please, either remember, note down or screenshot this number - you will be asked to provide it in the restaurant.</h2>
+        
+        <p>You can make another order by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color:darkred">this link</a>.</p>
+        
+        <!-- <p>You will be redirected to the AI-assistant page automatically in <span id="countdown">60</span> seconds.</p> -->
+    </div>
+    <!--
+    <script>
+        // Countdown and redirect script
+        let countdown = 60;
+        const countdownElement = document.getElementById('countdown');
+
+        const interval = setInterval(() => {
+            countdown--;
+            countdownElement.textContent = countdown;
+            if (countdown === 0) {
+                clearInterval(interval);
+                window.location.href = "{{ url_for('assistant_order_chat', unique_azz_id=res_unique_azz_id) }}";
+            }
+        }, 1000);
+    </script>
+    -->
+{% endblock %}
