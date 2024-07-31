@@ -27,5 +27,4 @@ azure-cognitiveservices-speech
 markdown
 werkzeug
 #flask-socketio  # Uncomment if using Flask-SocketIO
-gridfs
 beautifulsoup4
