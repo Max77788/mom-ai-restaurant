@@ -248,6 +248,9 @@ def landing_page():
 
     #if session.get("res_email"):
         #return redirect(url_for("notify_waitlist"))
+    return redirect("https://landing.mom-ai-restaurant.pro")
+    
+    """
     form = RestaurantForm()
     print("Form Created")
 
@@ -457,7 +460,9 @@ def landing_page():
         if restaurant_instance:
             print(f"Found email {session.get('res_email')} and password {session.get('password')} in session")
             return redirect(url_for("dashboard_display"))
+    """
     
+            
     return render_template('start/landing.html', title="Restaurant Assistant")
 
 @app.route('/register', methods=['GET', 'POST'])
