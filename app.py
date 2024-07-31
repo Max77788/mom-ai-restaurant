@@ -579,7 +579,7 @@ def register():
 
             assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_txt_path, client=CLIENT_OPENAI)
 
-            unique_azz_id = restaurant_name.strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
+            unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
 
             
             session['assistant_id'] = assistant.id
@@ -631,7 +631,7 @@ def register():
         session['menu_vector_id'] = menu_vector_id
         session['menu_file_id'] = menu_file_id
 
-        unique_azz_id = restaurant_name.lower().replace(" ", "_")+"_"+assistant.id[-4:]
+        unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
         session["unique_azz_id"] = unique_azz_id
         
         print("We are right before qr code generation")
