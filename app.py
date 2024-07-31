@@ -1,9 +1,9 @@
 from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
 from werkzeug.utils import secure_filename
 import os
-from google.cloud import speech
+# from google.cloud import speech
 import qrcode
-from io import BytesIO
+#from io import BytesIO
 from flask_socketio import SocketIO, disconnect
 import gridfs
 from pydub import AudioSegment
