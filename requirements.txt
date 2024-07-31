@@ -21,4 +21,3 @@ bcrypt
 apscheduler
 Flask-HTTPAuth
 qrcode
-io
