@@ -1029,6 +1029,8 @@ def convert_webm_to_wav(input_path, output_path):
     audio = AudioSegment.from_file(input_path, format="webm")
     audio.export(output_path, format="wav")
 
+
+
 def generate_qr_code_and_upload(text):
     """
     Generates a QR code for the given text and uploads it to GridFS.
@@ -1059,7 +1061,7 @@ def generate_qr_code_and_upload(text):
 
     # Save the image to a BytesIO object
     img_byte_arr = BytesIO()
-    img.save(img_byte_arr, format='PNG')
+    img.save(img_byte_arr)  # No 'format' argument needed
     img_byte_arr.seek(0)
     print("Image saved to BytesIO object.")
 
@@ -1068,6 +1070,7 @@ def generate_qr_code_and_upload(text):
     print(f"Image uploaded to GridFS with file_id: {file_id}")
 
     return file_id
+
 
 
 
