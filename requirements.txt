@@ -20,7 +20,7 @@ bs4
 bcrypt
 apscheduler
 Flask-HTTPAuth
-qrcode
+qrcode==7.4.2
 pydub
 pytz
 azure-cognitiveservices-speech
@@ -28,3 +28,6 @@ markdown
 werkzeug
 #flask-socketio  # Uncomment if using Flask-SocketIO
 beautifulsoup4
+colorama
+pypng
+typing-extensions
