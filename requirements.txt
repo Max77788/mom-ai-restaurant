@@ -35,3 +35,4 @@ pypng
 typing-extensions
 pathlib
 deep-translator
+langdetect
