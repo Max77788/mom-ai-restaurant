@@ -33,4 +33,4 @@ beautifulsoup4
 colorama
 pypng
 typing-extensions
-зфердши
+pathlib
