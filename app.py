@@ -1,8 +1,11 @@
 from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
+from flask_sqlalchemy import SQLAlchemy
+from pathlib import Path
 from werkzeug.utils import secure_filename
 import os
 # from google.cloud import speech
 import qrcode
+import bcrypt
 #from io import BytesIO
 #from flask_socketio import SocketIO, disconnect
 import gridfs
@@ -12,16 +15,21 @@ import base64
 from bs4 import BeautifulSoup
 import azure.cognitiveservices.speech as speechsdk
 import markdown
+import json
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
-from utils.forms import RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from functions_to_use import app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered, convert_webm_to_wav 
+from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
+from functions_to_use import send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
 import base64
 #from utils.hyperwallet import create_user, create_bank_account, make_payment
 import ast
+import markdown2
 from utils.pp_payment import createPayment, executePayment, get_subscription_status, createOrder, captureOrder
 #from utils.withdraw.pp_payout import send_payout_pp
 from datetime import datetime
@@ -40,6 +48,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 import threading
 import time
+import asyncio
 
 """
 logging.basicConfig(level=logging.DEBUG,
@@ -53,6 +62,18 @@ scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///blog.db')
+db = SQLAlchemy(app)
+
+# Define the Post model
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+
+# Ensure the tables are created
+with app.app_context():
+    db.create_all()
 
 CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
 SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
@@ -524,7 +545,7 @@ def register():
             session["logo_id"] = str(file_id)
         
         if form.referral_id.data:
-            session["referral_id"] = form.referral_id.data
+            session["id_of_who_referred"] = form.referral_id.data
         
         if request.files['menu']:
             menu = request.files['menu']
@@ -723,20 +744,17 @@ def logout():
 #################### Registration/Login Part End ####################
 
 #################### Blog Posts #########################
-@app.route('/post/<postname>')
-def post(postname):
-    try:
-        content, headline = get_post_content_and_headline(postname + '.md')
-        html_content = markdown.markdown(content)
-        return render_template('blog-posts/post.html', content=html_content, title=headline)
-    except FileNotFoundError:
-        return render_template('errors/404_error_template.html', message="Post not found", title="Error 404"), 404
+@app.route('/post/<int:post_id>')
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    html_content = markdown(post.content, extras=["break-on-newline", "cuddled-lists", "pyshell"])
+    return render_template('blog-posts/post.html', content=html_content, title=post.title)
 
 @app.route('/all_posts')
 def all_posts():
-    posts = get_post_filenames()
-    post_links = [url_for('post', postname=post[:-3]) for post in posts]
-    return render_template('blog-posts/all_posts.html', post_links=post_links)
+    posts = Post.query.all()
+    post_links = [url_for('post', post_id=post.id) for post in posts]
+    return render_template('blog-posts/all_posts.html', post_links=post_links, title="Blog Posts")
 
 # Webhook for adding new posts
 @app.route('/add_post', methods=['POST'])
@@ -753,13 +771,11 @@ def add_post():
     title = lines[0].strip('# ') if lines else 'no_title'
     
     # Join the remaining lines to form the rest of the content
-    content = '\n'.join(lines[0:]).strip()
+    content = '\n'.join(lines[1:]).strip()
     
-    filename = title.replace(' ', '_').lower() + '.md'
-    filepath = os.path.join(POSTS_DIR, filename)
-    
-    with open(filepath, 'w', encoding='utf-8') as file:
-        file.write(content)
+    new_post = Post(title=title, content=content)
+    db.session.add(new_post)
+    db.session.commit()
     
     return jsonify({'message': 'Post added successfully', 'title': title}), 201
 
@@ -780,6 +796,133 @@ def serve_image(file_id):
 
 
 #################### Email Confirmation Part Start ####################
+
+@app.route('/set_session_and_redirect')
+def set_session_and_redirect():
+    # Set the session variable
+    session['access_granted_email_enter_code_full'] = True
+    generated_confirmation_code = generate_code()
+    session["expected_code"] = generated_confirmation_code
+    print("Setup expected code in session")
+    # Redirect to the target URL
+    return redirect(url_for('enter_code_full', initial_sending='yeaaah'))
+
+@app.route('/enter_code_full', methods=['GET', 'POST'])
+def enter_code_full():
+    # Check if the session variable is set
+    if not session.get('access_granted_email_enter_code_full'):
+        abort(403)  # Forbidden
+    
+    res_email = session.get("restaurant_email")
+    
+    generated_confirmation_code = session.get("expected_code")
+    
+    send_confirmation_email(mail, res_email, generated_confirmation_code, FROM_EMAIL)
+    form = ConfirmationForm()  # Assume you have a simple form for this
+    if form.validate_on_submit():
+        user_code = form.confirmation_code.data
+        if session.get('expected_code'):
+            if user_code == session.get('expected_code'):
+                # Clear the session variable after access
+                session.pop('access_granted_email_enter_code', None)
+                session['access_granted_change_credentials'] = True
+                return redirect(url_for('change_credentials', res_email=res_email))
+            else:
+                flash('Invalid confirmation code. Please try again.', 'error')
+
+    return render_template('email_confirm/enter_code_full.html', form=form, res_email=res_email, title="Enter Confirmation Code")
+
+
+@app.route('/enter_code_full2', methods=['GET', 'POST'])
+def enter_code_full2():
+    # Check if the session variable is set
+    if not session.get('access_granted_email_enter_code_full'):
+        abort(403)  # Forbidden
+    
+    res_email = session.get("restaurant_email")
+
+    
+    generated_confirmation_code = session.get("expected_code")
+    
+    send_confirmation_email(mail, res_email, generated_confirmation_code, FROM_EMAIL)
+    form = ConfirmationForm()  # Assume you have a simple form for this
+    if form.validate_on_submit():
+        user_code = form.confirmation_code.data
+        if session.get('expected_code'):
+            if user_code == session.get('expected_code'):
+                # Clear the session variable after access
+                session.pop('access_granted_email_enter_code', None)
+                session.pop("access_granted_email_password_change_page")
+                session.pop('access_granted_change_credentials')
+                return redirect(url_for('dashboard_display'))
+            else:
+                flash('Invalid confirmation code. Please try again.', 'error')
+
+    return render_template('email_confirm/enter_code_full2.html', form=form, res_email=res_email, title="Enter Confirmation Code")
+
+
+@app.route('/change_credentials', methods=['GET', 'POST'])
+def change_credentials():
+    
+    # Check if the session variable is set
+    if not session.get('access_granted_change_credentials'):
+        abort(403)  # Forbidden
+    
+    form = ChangeCredentialsForm()
+    if form.validate_on_submit():
+        current_password = form.current_password.data
+        new_email = form.new_email.data
+        new_password = form.new_password.data
+
+        user = collection.find_one({"unique_azz_id":session.get("unique_azz_id")})
+        
+        stored_password = user["password"]
+
+        # Decode the stored password from bytes to string if necessary
+        #if isinstance(stored_password, bytes):
+            #stored_password = stored_password.decode("utf-8")
+            #print(f"Decoded stored password: {stored_password}")
+
+        # Ensure stored_password is in the correct format
+        #if not stored_password.startswith('$2b$'):
+            #raise ValueError("Stored password is not in the correct format.")
+        
+        if bcrypt.checkpw(current_password.encode("utf-8"), stored_password):
+            updates = {}
+            if not new_email:
+                go_next = "dashboard_display"
+            else:
+                go_next = "enter_code_full2"
+            if new_email:
+                # Query the database and project only the 'email' field
+                emails_cursor = collection.find({}, {"email": 1, "_id": 0})
+
+                # Collect emails in a list
+                emails = [doc["email"] for doc in emails_cursor]
+                if new_email in emails:
+                    flash("Oops, your email address is popular! Some other account is registered on it. Use the other one.")
+                    return redirect(url_for("change_credentials"))
+                updates['email'] = new_email
+                session["restaurant_email"] = new_email
+            if new_password:
+                updates['password'] = hash_password(new_password)
+
+            if updates:
+                collection.update_one({"unique_azz_id":session.get("unique_azz_id")}, {"$set": updates})  
+                flash('Credentials updated successfully!', 'success')
+                return redirect(url_for(go_next))
+            else:
+                flash('No changes were made.', 'info')
+                return redirect(url_for("dashboard_display"))
+        else:
+            flash('Current password is incorrect.', 'danger')
+
+        return redirect(url_for('change_credentials'))
+    
+    return render_template('settings/change_credentials.html', form=form, title="Change Credentials")
+
+
+
 
 
 @app.route('/enter_code', methods=['GET', 'POST'])
@@ -803,6 +946,7 @@ def enter_code():
                 flash('Invalid confirmation code. Please try again.', 'error')
 
     return render_template('email_confirm/enter_code.html', form=form, res_email=res_email, title="Enter Confirmation Code")
+
 
 
 @app.route('/confirm_email/<res_email>')
@@ -841,7 +985,7 @@ def confirm_email(res_email):
     menu_vector_id = session.get("menu_vector_id")
 
     currency = session.get("currency")
-    html_menu = session.get("html_menu")
+    html_menu = session.get("html_menu", MOM_AI_EXEMPLARY_MENU_HTML)
 
     file_id = session.get("logo_id", "666af654dee400a1d635eb08")
 
@@ -856,14 +1000,14 @@ def confirm_email(res_email):
 
     unique_azz_id = session.get("unique_azz_id")
     print("Unique azz id we insert, ", unique_azz_id)
-    referral_id = session.get("referral_id")
+    id_of_who_referred = session.get("id_of_who_referred")
 
     # Add referee to the referees' list of the referral
-    if referral_id:
-        print("referral id found")
-        collection.update_one({"referral_id": referral_id}, {"$push":{"referees": unique_azz_id}})
+    if id_of_who_referred:
+        print("id of who referred found")
+        collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
     
-    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code=qr_code_id, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, logo_id=file_id)
+    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code=qr_code_id, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, id_of_who_referred=id_of_who_referred, logo_id=file_id)
     send_confirmation_email_registered(mail, res_email, restaurant_name, FROM_EMAIL)
     print("Confirmation of registarion Email has been sent and the account created.\n\n")
     print(f"Setup hashed res password in session:{hashed_res_password}")
@@ -1025,6 +1169,8 @@ def dashboard_display():
     else:
         show_popup = False
       
+    PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID")
+
     print("Jumped on display dashboard link")
     res_email = session.get("res_email")
     res_password = session.get("password")
@@ -1080,8 +1226,8 @@ def dashboard_display():
 
     else:
         # Handle the case when the instance is not found
-        flash("Restaurant not found.")
-        return redirect(url_for("landing_page"))
+        flash("Restaurant not found. Please, login with the right credentials.")
+        return redirect(url_for("login"))
     return render_template("dashboard/dashboard.html", title=f"{restaurant_name}\'s Dashboard", 
                            restaurant_name=restaurant_name, 
                            current_balance=f"{round(float(current_balance),2):.2f}", 
@@ -1099,7 +1245,8 @@ def dashboard_display():
                            restaurant=restaurant_instance,
                            exchange_api_key=EXCHANGE_API_KEY,
                            gateway_is_on=gateway_is_on,
-                           show_popup=show_popup)
+                           show_popup=show_popup,
+                           PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -1118,6 +1265,9 @@ def payments_display():
     orders = db_order_dashboard[order_dashboard_id].find()
 
     payments = list(orders)
+
+    print("Payments passed: ", payments)
+
     there_are_payments = True if len(payments)>=1 else False
 
     print(f"\n\nPayments Retrieved\n\n")
@@ -1515,14 +1665,34 @@ def create_order():
 
 @app.route('/capture_order/<orderID>', methods=['POST'])
 def capture_order(orderID):
+    top_up_balance = request.args.get("top-up-balance")
     unique_azz_id = request.args.get("unique_azz_id")
+    amount = request.args.get('amount', default=0, type=int)
+    topped_up_balance = False
+    if top_up_balance:
+        id_of_who_referred = collection.find_one({'unique_azz_id': unique_azz_id})["id_of_who_referred"]
+
+        result_main = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": amount}})
+
+        result_add_to_referral = collection.update_one({"referral_code":id_of_who_referred}, {"$inc": {"balance": amount*0.01}})
+        
+        """
+        if result_main.matched_count > 0:
+            print("Successfully topped up the balance of the restaurant")
+        if result_add_to_referral.matched_count > 1:
+            print("Successfully topped up the balance of the REFERRAL restaurant")
+        """
+        
+        flash("You topped up the balance successfully✅")
+        
+        topped_up_balance = True
     # Now you can use the orderID variable in your function
     print(f"Received orderID: {orderID}")
     captured_order = captureOrder(orderID).json()
-    print(captured_order)
+    print("Captured Order: ", captured_order)
 
     if captured_order["status"] == "COMPLETED":
-        return captured_order
+        return jsonify({"captured_order":captured_order, "topped_up_balance_manual":topped_up_balance})
     else:
         return jsonify({"error":True})
 
@@ -1663,7 +1833,7 @@ def transcribe_voice():
                 return jsonify({"transcription": transcription, "status": "success"})
             elif result.reason == speechsdk.ResultReason.NoMatch:
                 print("No speech could be recognized")
-                return jsonify({"error": "No speech could be recognized", "status": "fail"})
+                return jsonify({"error": f"No speech could be recognized. Please, speak clearer in the language you chosen: {language}", "status": "fail"})
             elif result.reason == speechsdk.ResultReason.Canceled:
                 cancellation_details = result.cancellation_details
                 print(f"Speech Recognition canceled: {cancellation_details.reason}")
@@ -1685,6 +1855,8 @@ def generate_response_thread(unique_azz_id):
     thread_id = request.json.get('thread_id')
     assistant_id = request.json.get('assistant_id')
     client_id = request.sid
+   
+
 
     # Get other necessary data
     restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
@@ -1722,9 +1894,38 @@ def generate_response_thread(unique_azz_id):
 
 
 
+@app.route('/generate_voice_output/<unique_azz_id>', methods=["POST", "GET"])
+def generate_voice_output(unique_azz_id):
+    client = CLIENT_OPENAI
+    
+    data = request.form
+    full_gpts_response = data.get("full_gpts_response")
+    language_to_translate_into = data.get("language")
 
+    # list_of_all_items = []
+    # list_of_image_links = []
 
+    _, tokens_used = generate_short_voice_output(full_gpts_response, language_to_translate_into)
+    
+    speech_file_path = Path(__file__).parent / "speech.mp3"
 
+    PRICE_PER_1_TOKEN = 0.0000005
+    charge_for_message = PRICE_PER_1_TOKEN * tokens_used
+    print(f"Charge for message: {charge_for_message} USD")
+
+    result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
+    if result_charge_for_message.matched_count > 0:
+        print("Balances were successfully updated.")
+    else:
+        print("No matching document found.")
+
+    
+    return send_file(
+        speech_file_path,
+        mimetype='audio/mpeg',
+        as_attachment=True,
+        download_name='speech.mp3'
+    )
 
 
 
@@ -1746,6 +1947,10 @@ def generate_response(unique_azz_id):
     user_input = data.get('message', '')
     thread_id = data.get('thread_id')
     assistant_id = data.get('assistant_id')
+    language = data.get("language", "en-US")[:2]
+    
+    print("\n\nlanguage we received on /generate_response: ", language, "\n\n")
+    
     transcription = " "
 
 
@@ -1775,12 +1980,12 @@ def generate_response(unique_azz_id):
         tuple_we_deserved = (item, ingredients, f"{price} EUR")
         list_of_all_items.append(tuple_we_deserved)
 
-    print("List of image links formed: ", list_of_image_links)
+    # print("List of image links formed: ", list_of_image_links)
     
     #print(f"\n\nList of all items formed: {list_of_all_items}\n\n")  # Debugging line
 
     print("Thats what we sent to retrieve the gpts response, ", user_input)
-    response_llm, tokens_used = get_assistants_response(user_input, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=list_of_all_items, list_of_image_links=list_of_image_links, unique_azz_id=unique_azz_id)
+    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=list_of_all_items, list_of_image_links=list_of_image_links, unique_azz_id=unique_azz_id)
 
     PRICE_PER_1_TOKEN = 0.0000005
     charge_for_message = PRICE_PER_1_TOKEN * tokens_used
@@ -1795,6 +2000,7 @@ def generate_response(unique_azz_id):
     print(f"LLM response: {response_llm}")
 
     for_voice = ""
+    '''
     if isinstance(response_llm, Response):
         response_llm_data = response_llm.get_data(as_text=True)
         response_llm_dict = ast.literal_eval(response_llm_data)
@@ -1803,10 +2009,12 @@ def generate_response(unique_azz_id):
         for_voice = remove_formatted_lines(response_llm)
     
     print(f"For voice: {for_voice}")
-
+    '''
+    
     #if "Come to the restaurant and pick up" in response_llm
 
-    return jsonify({"response_llm": response_llm, "for_voice": for_voice, "transcription":transcription, "payment_on":payment_on})
+    # Send the multipart response
+    return jsonify({"response_llm":response_llm})
 
 
 
@@ -1819,9 +2027,55 @@ def setup_payments():
     return render_template("setup_payments.html", title="Payment Setup", restaurant_name=restaurant_name)
 '''
 
+
+@app.route("/change_email", methods=["POST", "GET"])
+def change_email():
+    unique_azz_id = session.get("unique_azz_id")
+    if not unique_azz_id:
+        flash("You need to be logged in to change your email.", "error")
+        return redirect(url_for('login'))
+
+    if request.method == "POST":
+        new_email = request.form.get("new_email")
+        if new_email:
+            collection.update_one({"unique_azz_id": unique_azz_id}, {"set": {"res_email": new_email}})
+            flash("Email updated successfully!", "success")
+            return redirect(url_for('profile'))  # Redirect to a profile page or wherever appropriate
+        else:
+            flash("Please enter a valid email address.", "error")
+    
+    # GET request
+    res_email = collection.find_one({"unique_azz_id": unique_azz_id}).get("res_email")
+    return render_template("change_email.html", current_email=res_email)
+
+@app.route("/change_password", methods=["POST", "GET"])
+def change_password():
+    unique_azz_id = session.get("unique_azz_id")
+
+    res_email = collection.find_one({"unique_azz_id":unique_azz_id}).get("res_email")
+    return
+
 @app.route("/quick_registration", methods=["POST"])
 def quick_registration():
-    return
+    data = request.json
+    res_name = data.get("res_name")
+    restaurant_url = data.get("restaurant_url", None)
+    res_email = data.get("res_email")
+    assistant_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False).id
+    
+    quick_reg = {
+        "quick_reg": True
+    }
+
+    unique_azz_id = res_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant_id[-4:]
+
+    password = generate_random_string(10)
+    hashed_password = hash_password(password)
+    
+    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_password, restaurant_url, assistant_id, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, "EUR", MOM_AI_EXEMPLARY_MENU_HTML, None, None, None, None, None, **quick_reg)
+    send_confirmation_email_quick_registered(mail, res_email, password, res_name, FROM_EMAIL)
+
+    return jsonify({"success":True})
 
 ################## Payment routes/Order Posting ###################
 @app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])

@@ -24,6 +24,8 @@
     </div>
 </div>
 
+
+
 <!-- Add the CSS styles for the popup -->
 <style>
 .popup {
@@ -64,6 +66,8 @@
 }
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
+
 <!-- Add the JavaScript to control the popup -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -90,6 +94,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 });
+
+function downloadImage() {
+        html2canvas(document.getElementById('qr-code-container')).then(canvas => {
+            var link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'qr-code.png';
+            link.click();
+        });
+    }
 </script>
 {% endif %}
 
@@ -106,20 +119,164 @@ document.addEventListener('DOMContentLoaded', function() {
             <div id="currency-converter" style="display: none;">
                 <p style="font-size: 18px;">Available Funds of <b>{{ current_balance }} {{ res_currency }}</b> in other currencies:</p>
                 <span id="available-funds" style="display: none;">{{ current_balance }}</span>
-
+        
                 <div class="results">
                     <b><p>USD($): <span id="usd"></span></p></b>
                     <b><p>UAH(₴): <span id="uah"></span></p></b>
                     <b><p>ISK(kr): <span id="isk"></span></p></b>
                 </div>
             </div>
+            <!-- Custom button to activate PayPal button and input field -->
+            <div style="margin-top: 10px;">
+                <button id="activate-paypal-button" class="btn btn-primary">Top Up the Balance📈</button>
+            </div>
         </div>
+        
+        <!-- Modal container -->
+        <div id="paypal-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div>
+                    <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
+                    <input type="number" id="top-up-amount" value="50" min="10" step="1" style="width: 200px;">
+                </div>
+                <div id="paypal-button-container" style="margin-top: 10px;"></div>
+            </div>
+        </div>
+        
+        <!-- Include the PayPal JavaScript SDK -->
+        <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=EUR"></script>
+        
+        <!-- Styles for the modal -->
+        <style>
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgb(0,0,0);
+                background-color: rgba(0,0,0,0.4);
+            }
+        
+            .modal-content {
+                background-color: #fefefe;
+                margin: 15% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+                max-width: 600px;
+            }
+        
+            .close {
+                color: #aaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+            }
+        
+            .close:hover,
+            .close:focus {
+                color: black;
+                text-decoration: none;
+                cursor: pointer;
+            }
+        </style>
+        
+        <script>
+            document.getElementById('activate-paypal-button').addEventListener('click', function() {
+                // Display the modal
+                var modal = document.getElementById('paypal-modal');
+                modal.style.display = 'block';
+        
+                // Clear any previously rendered PayPal buttons
+                var paypalButtonContainer = document.getElementById('paypal-button-container');
+                paypalButtonContainer.innerHTML = '';
+        
+                paypal.Buttons({
+                    style: {
+                        size: 'small', // small | medium | large | responsive
+                        shape: 'pill', // rect | pill
+                        color: 'silver', // gold | blue | silver | black
+                        label: 'paypal', // paypal | checkout | buynow | pay | installment
+                        tagline: false // Show the tagline text at the bottom
+                    },
+                    // Call your server to set up the transaction
+                    createOrder: function(data, actions) {
+                        const totalToPay = document.getElementById('top-up-amount').value;
+                        return fetch('/create_order', {
+                            method: 'post',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ total_to_pay: totalToPay })
+                        }).then(function(res) {
+                            return res.json();
+                        }).then(function(orderData) {
+                            return orderData.id;
+                        }).catch(function(error) {
+                            console.error('Error:', error);  // Handle any errors
+                        });
+                    },
+                    // Call your server to finalize the transaction
+                    onApprove: function(data, actions) {
+                        const totalToPay = document.getElementById('top-up-amount').value;
+                        const unique_azz_id = "{{ res_unique_azz_id }}";
+
+                        return fetch(`/capture_order/${data.orderID}?top-up-balance=yes&unique_azz_id=${unique_azz_id}&amount=${totalToPay}`, {
+                            method: 'post'
+                        }).then(function(res) {
+                            console.log("1")
+                            return res.json();
+                        }).then(function(orderData) {
+                            console.log("2")
+                            var errorDetail = Array.isArray(orderData.details) && orderData.details[0];
+                            if (errorDetail && errorDetail.issue === 'INSTRUMENT_DECLINED') {
+                                return actions.restart(); // Recoverable state
+                            }
+                            console.log("3")
+                            if (errorDetail) {
+                                var msg = 'Sorry, your transaction could not be processed.';
+                                if (errorDetail.description) msg += '\n\n' + errorDetail.description;
+                                if (orderData.debug_id) msg += ' (' + orderData.debug_id + ')';
+                                return alert(msg); // Show a failure message
+                            }
+                            console.log("4")
+                            // var transaction = orderData.purchase_units[0].payments.captures[0];
+                            // const unique_azz_id = "{{ unique_azz_id }}";
+                            console.log("5")
+                            console.log("Order Data itself: ", orderData)
+                            if (orderData.topped_up_balance_manual){
+                                console.log("6")
+                                // This will reload the current page
+                                location.reload();
+                                return;
+                            } 
+                            // window.location.href = `/success_payment_backend/${unique_azz_id}`;
+                            // alert('Transaction '+ transaction.status + ': ' + transaction.id + '\n\nSee console for all available details');
+                        });
+                    }
+                }).render('#paypal-button-container');
+            });
+        
+            // Close the modal
+            document.querySelector('.close').addEventListener('click', function() {
+                document.getElementById('paypal-modal').style.display = 'none';
+            });
+        </script>
+
 
         <div class="wallet-address">
             <h1>Welcome to your dashboard, {{ restaurant_name.replace("_"," ") }}!</h1>
         </div>
         <div class="restaurant-name">
             <span><strong>Your Email: </strong>{{ restaurant_email }}</span>
+            <div>
+            <a href="/set_session_and_redirect"><u>Change Email or Password</u></a>
+            </div>
             <div class="switch-container">
                 {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
                 <span id="assistantStatus">
@@ -200,11 +357,11 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 
     <nav class="dashboard-nav">
-        <a href="/payments" class="no-right-click-tab">Payments</a>
-        <a href="/menu" class="no-right-click-tab">Menu</a>
-        <a href="/assistant_dash" class="no-right-click-tab">Assistant</a>
-        <a href="/profile" class="no-right-click-tab">Profile</a>
-        <a href="/view_orders" class="tab" target="_blank">Orders Display</a>
+        <a href="/payments" class="no-right-click-tab">Payments💰</a>
+        <a href="/menu" class="no-right-click-tab">Menu📖</a>
+        <a href="/assistant_dash" class="no-right-click-tab">Assistant🤖</a>
+        <a href="/profile" class="no-right-click-tab">Profile🚢</a>
+        <a href="/view_orders" class="tab" target="_blank">Orders Display📺</a>
     </nav>
 
     <section class="dynamic-content" id="dynamic-content">
@@ -566,6 +723,15 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById(tabName).classList.add("active");
         event.currentTarget.classList.add("active");
     }
+
+    window.addEventListener('load', function() {
+            setTimeout(function() {
+                var flashMessage = document.querySelector('.flash-message');
+                if (flashMessage) {
+                    flashMessage.classList.add('hidden');
+                }
+            }, 7000); // 7000 milliseconds = 7 seconds
+        });
 </script>
 
 

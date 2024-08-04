@@ -79,3 +79,10 @@ class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     submit = SubmitField('Log In')
+
+
+class ChangeCredentialsForm(FlaskForm):
+    current_password = PasswordField('Current Password', validators=[DataRequired()])
+    new_email = StringField('New Email', validators=[Email(), Optional()])
+    new_password = PasswordField('New Password', validators=[Optional(), Length(min=8, message='Password must be at least 8 characters long')])
+    submit = SubmitField('Change Credentials')

@@ -18,6 +18,8 @@ openpyxl
 email-validator
 bs4
 bcrypt
+Flask-SQLAlchemy
+psycopg2-binary
 apscheduler
 Flask-HTTPAuth
 qrcode==7.4.2
@@ -31,3 +33,4 @@ beautifulsoup4
 colorama
 pypng
 typing-extensions
+зфердши

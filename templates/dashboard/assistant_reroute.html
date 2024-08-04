@@ -6,6 +6,7 @@
 <style></style>
 <title>Assistant Usage</title>
 <link rel="stylesheet" href="/static/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js"></script>
 <style>
     .tab {
         display: inline-block;
@@ -57,6 +58,15 @@
         document.getElementById(tabName).classList.add("active");
         event.currentTarget.classList.add("active");
     }
+
+    function downloadImage() {
+        html2canvas(document.getElementById('qr-code-container')).then(canvas => {
+            var link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'qr-code.png';
+            link.click();
+        });
+    }
 </script>
 </head>
 <body>
@@ -67,14 +77,16 @@
         <div class="tab active" data-tab="open-directly" onclick="openTab('open-directly')">Open Directly</div>
         <div class="tab" data-tab="get-link" onclick="openTab('get-link')">Get the Link</div>
         <div class="tab" data-tab="get-code" onclick="openTab('get-code')">Get the Code</div>
+        <div class="tab" data-tab="via-phone" onclick="openTab('via-phone')">Via Phone</div>
     </div>
 
     <div id="open-directly" class="tab-content active">
         <p>Put this qr-code besides your counter and let customers order in their native languages</p>
-        <div style="border: 1px solid black; padding: 10px;">
+        <div id="qr-code-container" style="border: 1px solid black; padding: 10px;">
             <img src="{{ url_for('serve_image', file_id=qr_code_id) }}" alt="{{ restaurant_name }} Assistant QR-code" class="restaurant-logo" />
             <h4 style="text-align: center; margin-top: -20px; margin-bottom: 7px;">😋Order in your Native Language now with {{ restaurant_name }} AI-agent🥘</h4>
         </div>
+        <button onclick="downloadImage()" style="margin-top: 7px">Download QR Code as Image</button>
         <h2 style="text-align: center; margin-top: 10px;">Or</h2>
         <p>Open this chat on a tablet and put it at the counter in your restaurant: <br>
         <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name.replace("_"," ") }}'s AI-Assistant</u></b></a></p>
@@ -104,8 +116,11 @@
             Your browser does not support the video tag.
         </video>
     </div>
+
+    <div id="via-phone" class="tab-content">
+        <p>Reach us and we will set it up for you.</p>
+    </div>
 </div>
 
 </body>
 </html>
-

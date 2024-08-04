@@ -4,17 +4,23 @@ from flask import Flask, jsonify, session, request, url_for, flash, redirect
 import pandas as pd
 import openpyxl
 import gridfs
+from pathlib import Path
 import qrcode
+import asyncio
 from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
 import ast
 from pydub import AudioSegment
 import secrets
+from deep_translator import GoogleTranslator
+from langdetect import detect, detect_langs
 import string
 import re
 import os
 import base64
+from translate import Translator
+import langid
 # from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
 import uuid
@@ -77,6 +83,86 @@ db_items_cache = client_db["Items_Cache"]
 
 MOM_AI_JSON_LORD_ID = os.environ.get("MOM_AI_JSON_LORD_ID", "asst_YccYd0v0CbhweBvNMh0dJyJH")
 MOM_AI_LANGUAGE_DETECTOR = os.environ.get("MOM_AI_POLYGLOT_MASTER_ID", "asst_LdSlrAG23jeAOEdPtC9mpO6f")
+
+MOM_AI_EXEMPLARY_MENU_VECTOR_ID = "vs_fszfiVR3qO7DDHNSkTQn8fYH"
+MOM_AI_EXEMPLARY_MENU_FILE_ID = "file-FON6GkHWdj1c4xioGCpje05N"
+
+
+MOM_AI_EXEMPLARY_MENU_HTML = """
+<table border="1" class="dataframe table table-striped">
+  <thead>
+    <tr style="text-align: right;">
+      <th>Item Name</th>
+      <th>Item Ingredients</th>
+      <th>Item Price</th>
+      <th>Image Link</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Pizza Margherita</td>
+      <td>Tomato, Mozzarella, Basil</td>
+      <td>12.99</td>
+      <td>https://i.ibb.co/vxNk9BC/download-20.jpg</td>
+    </tr>
+    <tr>
+      <td>Caesar Salad</td>
+      <td>Romaine Lettuce, Parmesan, Croutons, Caesar Dressing</td>
+      <td>9.99</td>
+      <td>https://i.ibb.co/mR3K7Gh/download-21.jpg</td>
+    </tr>
+    <tr>
+      <td>Grilled Chicken Sandwich</td>
+      <td>Grilled Chicken, Lettuce, Tomato, Mayo, Bun</td>       
+      <td>11.49</td>
+      <td>https://i.ibb.co/0svPn5H/images-14.jpg</td>
+    </tr>
+    <tr>
+      <td>Spaghetti Carbonara</td>
+      <td>Spaghetti, Eggs, Parmesan, Pancetta</td>
+      <td>14.99</td>
+      <td>https://i.ibb.co/C2qM3Zb/download-22.jpg</td>
+    </tr>
+    <tr>
+      <td>Beef Burger</td>
+      <td>Beef Patty, Lettuce, Tomato, Cheese, Bun</td>
+      <td>10.99</td>
+      <td>https://i.ibb.co/LhdLmDd/download-23.jpg</td>
+    </tr>
+    <tr>
+      <td>Fish Tacos</td>
+      <td>Fish, Cabbage, Pico de Gallo, Tortilla</td>
+      <td>13.49</td>
+      <td>https://i.ibb.co/RN90dRh/images-15.jpg</td>
+    </tr>
+    <tr>
+      <td>Chicken Wings</td>
+      <td>Chicken, BBQ Sauce, Spices</td>
+      <td>8.99</td>
+      <td>https://i.ibb.co/Yp20mNP/download-24.jpg</td>
+    </tr>
+    <tr>
+      <td>Vegetable Stir Fry</td>
+      <td>Mixed Vegetables, Soy Sauce, Garlic</td>
+      <td>10.49</td>
+      <td>https://i.ibb.co/p0dbJm7/download-25.jpg</td>
+    </tr>
+    <tr>
+      <td>Margarita Cocktail</td>
+      <td>Tequila, Triple Sec, Lime Juice</td>
+      <td>7.99</td>
+      <td>https://i.ibb.co/VgmvH4D/download-26.jpg</td>
+    </tr>
+    <tr>
+      <td>Chocolate Cake</td>
+      <td>Chocolate, Flour, Sugar, Eggs, Butter</td>
+      <td>6.99</td>
+      <td>https://i.ibb.co/zmxY0V5/download-27.jpg</td>
+    </tr>
+  </tbody>
+</table>
+"""
+
 
 # Define the scopes
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
@@ -650,7 +736,7 @@ def check_credentials(email, password, collection, for_login_redirect=False):
             return True
     return False
 
-def insert_restaurant(collection, name, unique_azz_id, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code, wallet_public_key_address, wallet_private_key, location_coord, location_name, logo_id=None):
+def insert_restaurant(collection, name, unique_azz_id, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code, wallet_public_key_address, wallet_private_key, location_coord, location_name, id_of_who_referred=None, logo_id=None, **kwargs):
     """Insert a document into MongoDB that includes a name and two files."""
     # Replace spaces with underscores
     #name = name.replace(" ", "_")
@@ -681,6 +767,7 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "qr_code": qr_code,
             "description":None,
             "referral_code": referral_id,
+            "id_of_who_referred": id_of_who_referred,
             "balance": 3,
             "timezone":"Etc/GMT+0",
             "referees":[],
@@ -690,6 +777,9 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "assistant_turned_on":False
             # "stripe_secret_test_key": stripe_secret_test_key
         }
+
+        # Add additional kwargs to the document
+        document.update(kwargs)
 
         # Insert document
         collection.insert_one(document)
@@ -800,7 +890,6 @@ And only after the user's confirmation does it IMMEDIATELY trigger the function 
                 purpose='assistants')
         menu_file_id = menu_file.id   
         
-        # Create a vector store called "Financial Statements"
         vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
         
         # Ready the files for upload to OpenAI
@@ -819,7 +908,12 @@ And only after the user's confirmation does it IMMEDIATELY trigger the function 
         )
         return assistant, vector_store.id, menu_file_id
     else:
-        return assistant, "vector_is_not_yet", "menu_file_is_not_yet"
+        assistant = client.beta.assistants.update(
+        assistant_id=assistant.id,
+        tool_resources={"file_search": {"vector_store_ids": [MOM_AI_EXEMPLARY_MENU_VECTOR_ID]}},
+        )
+
+        return assistant, "default_vector", "default_menu"
 
 
 def remove_formatted_lines(menu_text):
@@ -1304,161 +1398,167 @@ def get_assistants_response_threading(client_id, user_message, thread_id, assist
         return
 
 
+def generate_short_voice_output(full_gpts_response, language_to_translate_into, client=CLIENT_OPENAI):
+    
+    '''
+    system_context = f"""
+    Role: You are the best restaurant assistant who serves customers and provides them with the short 3-4 sentences long to the point answers to their inquiries.
+    
+    Context: There is an ongoing order and the customer addressed you with the request.
+
+    there is the menu which you can refer to (format item name, item ingredients, item price):
+    {list_of_items}
+
+    Task: provide short human-like casual 3-4 sentences long response to the user's message
+    '''
+
+    system_context = f"""
+    Your task is to condense the long message you are provided with into the shortened 3-4 sentences long phrase 
+    which clearly communicates the message to the customer ordering food in a restaurant. 
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_context},
+            {"role": "user", "content": full_gpts_response},
+            
+        ]
+        )
+    
+    print(response)
+    
+    response_text = response.choices[0].message.content
+    tokens_used = response.usage.total_tokens
+
+    if language_to_translate_into != "en":
+        translator = GoogleTranslator(source='auto', target=language_to_translate_into[:2])
+        response_text = translator.translate(response_text)
+
+    speech_file_path = Path(__file__).parent / "speech.mp3"
+    response = client.audio.speech.create(
+    model="tts-1-hd",
+    voice="nova",
+    input=response_text
+    )
+
+    print(response)
+
+    response.stream_to_file(speech_file_path)
+    
+    
+    return None, tokens_used
 
 
 
 
-
-
-
-
-
-
-
-
-
-def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id):
-    # Add the user's message to the thread
-
+def get_assistants_response(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id):
     client = client_openai
     print("Entered assistants response function")
-    # E.g. 'SHAWARMA CHICKEN - Шаурма с курицей' or 'SHAWARMA CHICKEN - shawarma de pollo' or 'SHAWARMA CHICKEN - shawarma z kurczakem' and suchlike.
 
-    '''
-    user_message_is = f"""
-    Hlutverk: Þú ert besti veitingastaðaþjónninn sem þjónar viðskiptavinum og skráir pantanir í kerfið.
-
-    Samantekt: Viðskiptavinurinn spyr þig spurningu eða skrifar yfirlýsingu - markmið þitt er að svara viðeigandi til að auðvelda pöntunarferlið. Í þekkingargrunn þínum er skráin menu_file.txt. Gjaldmiðillinn sem verðið á réttunum er gefið upp í er {currency}. Mæltu með, stingdu upp á og notaðu einungis rétti sem eru tilgreindir í þessari skrá. Ekki nefna aðra rétti! Ekki innihalda uppruna í lokaupplýsingunum. Ef notandinn staðfestir pöntunina, settu stöðu skilaboðanna sem 'þarf aðgerðir'.
-
-    Verkefni: Hér eru núverandi skilaboð notandans, svaraðu þeim:
-    {user_message}
-    (í samhengi við áframhaldandi pöntunarferli og meðfylgjandi skrá sem er menu_file)
-"""
-'''
+    # Initialize the GoogleTranslator
+    translator = GoogleTranslator(source='auto', target='en')
     
+    if language != "en":
+        # Translate the user input to English
+        translated_user_message = translator.translate(user_message)
+        print("Translated user message in English: ", translated_user_message)  # Should output the translated text in English
+        print("--------------------------------------------------------")
+    else:
+        translated_user_message = user_message
+
+    """
     # Define the language of the message
     thread_id_language = client.beta.threads.create().id
     
-    prompt_to_translator_define_lang = f"""
+    prompt_to_translator_define_lang = f'''
     Define the language of this message:
     {user_message}
-    """
+    '''
 
-    
-    
     print("\n\nPrompt we send to translator: ", prompt_to_translator_define_lang, "\n\n")
 
     response = client.beta.threads.messages.create(thread_id=thread_id_language,
-                                        role="user",
-                                        content=prompt_to_translator_define_lang,
-                                       )
-    # Run the Assistant
+                                                   role="user",
+                                                   content=prompt_to_translator_define_lang)
+
     run = client.beta.threads.runs.create(thread_id=thread_id_language,
-                                            assistant_id=MOM_AI_LANGUAGE_DETECTOR,
-                                            #max_prompt_tokens=3777
-                                            #max_completion_tokens=777
-    )
+                                          assistant_id=MOM_AI_LANGUAGE_DETECTOR)
 
     start_time = time.time()
-    i = 0
     while True:
-        #print(i)
         if time.time() - start_time > 25:
-                    response = 'O-oh, little issues when forming the response, repeat the message now'
-                    return jsonify({"response": response}), 0
+            response = 'O-oh, little issues when forming the response, repeat the message now'
+            return jsonify({"response": response}), 0
 
         run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_language,
-                                                    run_id=run.id)
-        #run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id,
-                                                        #run_id=run.id)
-
-        print(f"Run status: {run_status.status}")
+                                                       run_id=run.id)
         if run_status.status == "completed":
             print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
-            total_tokens_used_translator = run_status.usage.total_tokens
             messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_language)
-
             formatted_language_info = messages_gpt_json.data[0].content[0].text.value
             print(f"\nFormatted translator output (Output from MOM AI TRANSLATOR): {formatted_language_info}\n")
 
             parsed_formatted_language_info = ast.literal_eval(formatted_language_info.strip())
-            
             language_code = parsed_formatted_language_info["language_code"]
             language_adj = parsed_formatted_language_info["language_adj"]
-            #super_prompt = parsed_formatted_language_info["translated_prompt"]
-            #list_of_all_items = parsed_formatted_language_info["translated_list_of_items"]
-            
             break
         elif run_status.status == "failed":
             print("Run status, ", run_status)
             print("Language detection failed")
-            raise Exception("Language detection freaked")
-        sleep(1)
-        i+=1
+            raise Exception("Language detection failed")
+        sleep(0.5)  # Reduce sleep duration
 
     
     # Translating the items
-    #print("\n\nPrompt we send to translator: ", prompt_to_translator_define_lang, "\n\n")
-    
     thread_id_translator = client.beta.threads.create().id
     
-    prompt_to_translator_translate_items = f"""
+    prompt_to_translator_translate_items = f'''
     Translate this list of items into {language_adj} or leave it unchanged if it is already in {language_adj}:
     {list_of_all_items}
     RETURN THE RESPONSE IN THE FORMAT OF LISTS OF LISTS.
-    """
-    
+    '''
+
     print("prompt we sent to translate menu items, ", prompt_to_translator_translate_items)
-    
+
     response = client.beta.threads.messages.create(thread_id=thread_id_translator,
-                                        role="user",
-                                        content=prompt_to_translator_translate_items,
-                                       )
-    # Run the Assistant
+                                                   role="user",
+                                                   content=prompt_to_translator_translate_items)
     run = client.beta.threads.runs.create(thread_id=thread_id_translator,
-                                            assistant_id=MOM_AI_LANGUAGE_DETECTOR,
-                                            #max_prompt_tokens=3777
-                                            #max_completion_tokens=777
-    )
+                                          assistant_id=MOM_AI_LANGUAGE_DETECTOR)
 
     start_time = time.time()
     while True:
-        if time.time() - start_time > 25:
-                    response = 'O-oh, little issues when forming the response, repeat the message now'
-                    return jsonify({"response": response}), 0
+        if time.time() - start_time > 45:
+            response = 'O-oh, little issues when forming the response, repeat the message now'
+            return jsonify({"response": response}), 0
         run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_translator,
-                                                    run_id=run.id)
-        #run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id,
-                                                        #run_id=run.id)
-
-        print(f"Run status: {run_status.status}")
+                                                       run_id=run.id)
         if run_status.status == "completed":
             print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
-            total_tokens_used_translator = run_status.usage.total_tokens
             messages_gpt_translator = client.beta.threads.messages.list(thread_id=thread_id_translator)
-
             formatted_translator_info = messages_gpt_translator.data[0].content[0].text.value
             print(f"\nFormatted translator output (Output from MOM AI TRANSLATOR): {formatted_translator_info}\n")
 
             parsed_formatted_translator_info = ast.literal_eval(formatted_translator_info.strip())
-            
-            #language_code = parsed_formatted_language_info["language_code"]
-            #language_adj = parsed_formatted_language_info["language_adj"]
-            #super_prompt = parsed_formatted_language_info["translated_prompt"]
             list_of_all_items = parsed_formatted_translator_info["translated_list_of_items"]
-            
             break
         elif run_status.status == "failed":
             print("Run status, ", run_status)
             print("Language detection failed")
-            raise Exception("Language detection freaked")
-        sleep(1)
-    
-    print("List of items returned by menu items translator: ", list_of_all_items)
+            raise Exception("Language detection failed")
+        sleep(0.5)  # Reduce sleep duration
+    print("translated with GPT in: ", time.time()-start_time)
+
+    #print("List of items returned by menu items translator: ", list_of_all_items)
 
     list_of_items_with_links = [t + [l] for t, l in zip(list_of_all_items, list_of_image_links)]
-    print("\n\nList of items with links: ", list_of_items_with_links, "\n\n")
-    
+    #print("\n\nList of items with links: ", list_of_items_with_links, "\n\n")
+    """
+
+    language_adj = "English"
+    list_of_items_with_links = [t + (l,) for t, l in zip(list_of_all_items, list_of_image_links)]
+
     user_message_enhanced = f"""
     Role: You are the best restaurant assistant who serves customers and register orders in the system
     
@@ -1467,83 +1567,63 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
     Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
     If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
     Confirm the order and trigger the action as fast as possible in the context of the particular order. 
-    Make sure that the item you suggest are from this list presented in the format (item name, item ingredients, item price). Also include html img elemets for each dish you present, if the image link is present. Make the maximal width of image to be 170px and height to be auto:
+    Make sure that the item you suggest are from this list presented in the format (item name, item ingredients, item price). Also include html img elemets for each dish you present, if the image link is present. 
+    Make the maximal width of image to be 170px and height to be auto. URGENT! PRESENT THE IMAGE ONLY USING HTML IMG ELEMENTS WITH THE MAXIMAL WIDTH OF 170px:
     {list_of_items_with_links}
     Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items.
     Never trigger the action after the first customer's message. I.e. when there is only one user's message in the thread.
     Never include more than 7 items in the response.
 
     Task: Here is the current user's message, respond to it in this language - {language_adj}:
-    {user_message}  
+    {translated_user_message}  
     ALWAYS PROVIDE THE USER WITH A CLEAR CALL TO ACTION AT THE END OF THE RESPONSE!    
     (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
     """
 
-    print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
-
-
-    #print(user_message_enhanced)
-    #print(user_message_is)
+    #print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
 
     response = client.beta.threads.messages.create(thread_id=thread_id,
-                                        role="user",
-                                        content=user_message_enhanced,
-                                        attachments=[{
-                                            "file_id":menu_file_id,
-                                            "tools":[{"type":"file_search"}]
-                                        }]
-    )
+                                                   role="user",
+                                                   content=user_message_enhanced,
+                                                   attachments=[{
+                                                       "file_id":menu_file_id,
+                                                       "tools":[{"type":"file_search"}]
+                                                   }])
     
-    # Run the Assistant
     run = client.beta.threads.runs.create(thread_id=thread_id,
-                                            assistant_id=assistant_id,
-                                            #max_prompt_tokens=3777
-                                            #max_completion_tokens=777
-    )
+                                          assistant_id=assistant_id)
     
-    # Check if the Run requires action (function call)
     start_time = time.time()
     while True:
         if time.time() - start_time > 25:
-                    response = 'O-oh, little issues when forming the response, repeat the message now'
-                    return jsonify({"response": response}), 0
+            response = 'O-oh, little issues when forming the response, repeat the message now'
+            return jsonify({"response": response}), 0
         run_status = client.beta.threads.runs.retrieve(thread_id=thread_id,
-                                                    run_id=run.id)
-        run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id,
-                                                        run_id=run.id)
-
-        print(f"Run status: {run_status.status}")
+                                                       run_id=run.id)
         if run_status.status == 'completed':
             print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
-            total_tokens_used = run_status.usage.total_tokens + total_tokens_used_translator
-            break
-        if run_status.status == 'failed' or run_status.status == 'incomplete':
-            print("Run failed.")
-            # Access the last_error attribute
-            last_error = run.last_error if "last_error" in run else None
+            print("--------------------------------------------------------")
 
-            # Print the last_error if it exists
+            total_tokens_used = run_status.usage.total_tokens
+            break
+        elif run_status.status == 'failed' or run_status.status == 'incomplete':
+            print("Run failed.")
+            last_error = run.last_error if "last_error" in run else None
             if last_error:
                 print("Last Error:", last_error)
             else:
                 print("No errors reported for this run.")
 
-            print(f"\n\nRun steps: \n{run_steps}\n")
+            #print(f"\n\nRun steps: \n{run_steps}\n")
             response = 'O-oh, little issues, repeat the message now'
             return jsonify({"response": response}), 0
-
-        if run_status.status == "requires_action":
+        elif run_status.status == "requires_action":
             print("Action in progress...")
 
-            #total_tokens_used = run_status.usage.total_tokens
-            
-            # Retrieve and return the latest message from the Restaurant assistant
             messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
-
             print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
 
             joined_messages_of_assistant = ""
-
             messages_gpt_list = list(messages_gpt)
             messages_gpt_list.reverse()
 
@@ -1571,19 +1651,18 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
             """
 
             print(f"Summary to convert sent to MOM AI JSON: {summary_to_convert}")  # debugging line
+            
 
             thread_id_json = client.beta.threads.create().id
             print(f"JSON assistant thread {thread_id_json}")
 
             response = client.beta.threads.messages.create(thread_id=thread_id_json,
-                                                        role="user",
-                                                        content=summary_to_convert)
+                                                           role="user",
+                                                           content=summary_to_convert)
 
-            # Run the MOM AI JSON LORD Assistant
             run_json = client.beta.threads.runs.create(thread_id=thread_id_json,
-                                                    assistant_id=MOM_AI_JSON_LORD_ID)
+                                                       assistant_id='MOM_AI_JSON_LORD_ID')
 
-            # Give some time to generate JSON object
             json_start_time = time.time()
             while True:
                 if time.time() - json_start_time > 25:
@@ -1591,35 +1670,30 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
                     return jsonify({"response": response}), 0
 
                 run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_json,
-                                                            run_id=run_json.id)
-                run_steps = client.beta.threads.runs.steps.list(thread_id=thread_id_json,
-                                                                run_id=run_json.id)
-
-                print(f"Run status: {run_status.status}")
+                                                               run_id=run_json.id)
                 if run_status.status == 'completed':
-                    # Retrieve and return the latest message from the assistant
                     messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_json)
-
-                    f"\n\nTokens used by JSON assistant: {run_status.usage.total_tokens}\n\n"
-
+                    print(f"\n\nTokens used by JSON assistant: {run_status.usage.total_tokens}\n\n")
                     total_tokens_used_JSON = run_status.usage.total_tokens
-
-                    total_tokens_used = total_tokens_used_JSON
+                    total_tokens_used += total_tokens_used_JSON
                     
                     formatted_json_order = messages_gpt_json.data[0].content[0].text.value
                     print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
 
                     parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
-
-                    print(f"Type of parsed response: {parsed_formatted_json_order}")
-                    print(f"Keys of parsed response: {list(parsed_formatted_json_order.keys())}")
-
                     items_ordered = parsed_formatted_json_order["items"]
                     session["items_ordered"] = items_ordered
                     print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
                    
                     order_id = generate_code()
                     current_utc_timestamp = time.time()
+
+                    # Convert the timestamp to a datetime object
+                    utc_datetime = datetime.datetime.utcfromtimestamp(current_utc_timestamp)
+
+                    # Format the datetime object to a human-readable string
+                    human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
+
 
                     if items_ordered and payment_on:
                         db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
@@ -1628,37 +1702,30 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
                         link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
                         print(link_to_payment_buffer)
 
-                        # Wrap the output link in a clickable HTML element
                         clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
                         response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
                         return link_to_payment_buffer, total_tokens_used
-                    elif not payment_on:
-                        # Calculate the total price using sum function
-                        total_price = f"{sum(item['quantity'] * item['amount'] for item in items_ordered):.2f})"
-                        
-                        # session["ordered_items"] = items_ordered
+                    else:
+                        total_price = f"{sum(item['quantity'] * item['amount'] for item in items_ordered):.2f}"
                         session["total_price"] = total_price
                         session["order_id"] = order_id
                         session['access_granted_no_payment_order'] = True
 
                         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                         "orderID":order_id,
-                        "timestamp": current_utc_timestamp,
+                        "timestamp": human_readable_time_format,
                         "total_paid": total_price,
                         "mom_ai_restaurant_assistant_fee": 0,
                         "paypal_fee": 0,
                         "paid":"NOT PAID",
                         "published":True}
     
-
                         db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
-
                         string_of_items = transform_orders_to_string(items_ordered)
 
                         no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} Euros\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
                         
                         restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
-                    
                         all_ids_chats = restaurant_instance.get("notif_destin")
 
                         for chat_id in all_ids_chats:
@@ -1668,26 +1735,64 @@ def get_assistants_response(user_message, thread_id, assistant_id, menu_file_id,
                 if run_status.status == 'failed':
                     print("Run of JSON assistant failed.")
                     last_error = run_json.last_error if "last_error" in run else None
-
                     if last_error:
                         print("Last Error:", last_error)
                     else:
                         print("No errors reported for this run.")
 
-                    print(f"\n\nRun steps: \n{run_steps}\n")
+                    #print(f"\n\nRun steps: \n{run_steps}\n")
                     response = 'O-oh, little issues, repeat the message now'
                     return jsonify({"response": response}), 0
 
-        if time.time() - start_time > 30:
-            response = 'O-oh, little issues when compiling the order, repeat the message now'
-            return jsonify({"response": response}), 0
-
-        sleep(1)  # Wait for a second before checking again
+        sleep(0.5)  # Reduce sleep duration
                     
-    # Retrieve and return the latest message from the assistant
     messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
     response = messages_gpt.data[0].content[0].text.value
 
+    # _, voice_tokens_used = generate_short_voice_output(response, language)
+    
+    # total_tokens_used += voice_tokens_used
+
+    """
+    joined_messages_of_user = ""
+    messages_gpt_list = list(messages_gpt)
+    messages_gpt_list.reverse()
+
+    pattern = r"Task: Here is the current user's message, respond to it:\n\s*(.*?)\s*\(in the context of"
+    
+    for message in messages_gpt_list:
+        #if message.role == 'assistant':
+            #joined_messages_of_assistant += f"\nAssistant:\n{message.content[0].text.value}\n"
+        if message.role == 'user':
+            match = re.search(pattern, message.content[0].text.value, re.DOTALL)
+            if match:
+                user_message = match.group(1).strip()
+                joined_messages_of_user += f"{user_message}\n"
+            else:
+                joined_messages_of_user += f"{message.content[0].text.value}"
+
+    print("Joined messages of user: ", joined_messages_of_user)
+    print("--------------------------------------------------------")
+
+    
+    language_of_user_message = detect(joined_messages_of_user)
+    """
+      
+    print("Raw message output from gpt: ", response)
+    print("--------------------------------------------------------")
+    print(f"Language into which we will, probably, translate the message: {language}")
+    print("--------------------------------------------------------")
+    if not language == "en":
+        # Initialize the GoogleTranslator
+        translator = GoogleTranslator(source='auto', target=language)
+
+        # Translate the user input to English
+        response = translator.translate(response)
+        print("Translated GPTs message in user message language in English: ", response)
+        print("--------------------------------------------------------")
+    
+    
+        
     return response, total_tokens_used
 
 
@@ -2055,6 +2160,43 @@ def send_confirmation_email(mail, email, confirmation_code, from_email):
     '''
     mail.send(msg)
 
+
+
+# Function to send the confirmation email
+def send_confirmation_email_change(mail, email, confirmation_code, from_email):
+    msg = Message('MOM AI Restaurant Email Confirmation', recipients=[email], sender=from_email)
+    # HTML content with bold and centered confirmation code
+    msg.html = f'''
+    <html>
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #444;">MOM AI Restaurant Assistant</h2>
+            <p style="font-size: 16px; line-height: 1.5;">
+                You have requested account registration on MOM AI Restaurant Assistant.
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Please confirm your email by inserting the following code:
+            </p>
+            <div style="text-align: center; font-size: 24px; margin: 20px 0;">
+                <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">{confirmation_code}</strong>
+            </div>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Kind Regards,<br>
+                <strong>MOM AI Team</strong>
+            </p>
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    mail.send(msg)
+
+
+
+
+
 def send_confirmation_email_request_withdrawal(mail, email, restaurant_name, withdraw_amount, withdrawal_description, from_email):
     withdraw_amount = f'{withdraw_amount:.2f}'
     msg = Message('MOM AI Withdrawal Confirmation', recipients=[email], sender=from_email)
@@ -2120,6 +2262,46 @@ def send_confirmation_email_registered(mail, email, restaurant_name, from_email)
     </html>
     '''
     mail.send(msg)
+
+
+def send_confirmation_email_quick_registered(mail, email, password, restaurant_name, from_email):
+    msg = Message(f'{restaurant_name} is in MOM AI Family!', recipients=[email], sender=from_email)
+    msg_for_mom_ai =  Message('MOM AI New Restaurant Registered', recipients=["contact@mom-ai-agency.site"], sender=from_email)
+    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been registered. Awesome!\n\nI love ya!'
+
+    mail.send(msg_for_mom_ai)
+
+    msg.html = f'''
+    <html>
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #444;">Welcome to MOM AI Restaurant Assistant!</h2>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Hi, {restaurant_name}'s restaurant representative.
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Your account has been successfully registered!
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Use this password to login now: {password}
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Go to <a href="https://mom-ai-restaurant.pro/login" target="_blank" style="color: #1a73e8; text-decoration: none;">mom-ai-restaurant.pro</a> and start earning with AI.
+            </p>
+            <p style="font-size: 16px; line-height: 1.5;">
+                Kind Regards,<br>
+                <strong>MOM AI Team</strong>
+            </p>
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    mail.send(msg)
+
+
 
 
 def upload_image_to_imgbb(image_path, expiration=600):

@@ -45,7 +45,29 @@
 </style>
 
 <div style="width: 100%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
-    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
+    
+    <div id="overlay" style="position: fixed; width: 100%; height: 100%; top: 0; left: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 300px; width: 90%;">
+            <h2>Select Language & Start</h2>
+            <select id="languageSelectOverlay" style="margin: 10px 0; padding: 10px; width: 100%;">
+                <option value="en-US">English (US) 🇺🇸</option>
+                <option value="es-ES">Spanish 🇪🇸</option>
+                <option value="zh-CN">Chinese (Simplified) 🇨🇳</option>
+                <option value="hi-IN">Hindi 🇮🇳</option>
+                <option value="ar-SA">Arabic 🇸🇦</option>
+                <option value="fr-FR">French 🇫🇷</option>
+                <option value="ru-RU">Russian 🇷🇺</option>
+                <option value="ja-JP">Japanese 🇯🇵</option>
+                <option value="de-DE">German 🇩🇪</option>
+                <option value="pt-BR">Portuguese 🇧🇷</option>
+            </select>
+            <button onclick="startChat()" style="padding: 10px; width: 100%;">Start</button>
+        </div>
+    </div>
+    
+    
+
+    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;" id="orderHeader">
         Make the Order in {{ restaurant_name.replace("_"," ") }}
     </header>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
@@ -74,462 +96,541 @@
 <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: relative; display: flex; flex-direction: column; align-items: center;">
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px;" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px;">
-        <button onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send</button>
+        <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send</button>
         <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">🎤</button>
     </div>
     <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
         <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
     </div>
-    <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
+    <!-- <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
     <select id="languageSelect" style="margin-top: 10px; padding: 5px;" value="en-US">
-        <option value="en-US">English (US)</option>
-        <option value="es-ES">Spanish</option>
-        <option value="uk-UA">Ukrainian</option>
-        <option value="pl-PL">Polish</option>
-    </select>
+        <option value="en-US">English (US)🇺🇸</option>
+        <option value="es-ES">Spanish🇪🇸</option>
+        <option value="uk-UA">Ukrainian🇺🇦</option>
+        <option value="pl-PL">Polish🇵🇱</option>
+    </select> -->
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
     window.onload = function() {
-        console.log("Window loaded");
+    console.log("Window loaded");
+    
+    
+    let currentThreadId = null;
+    let currentAssistantId = null;
+    let isRecording = false;
+    let blockMicButton = false;
+    let mediaRecorder;
+    let audioChunks = [];
+    let userLanguage = 'en-US';
 
-        let currentThreadId = null;
-        let currentAssistantId = null;
-        let isRecording = false;
-        let blockMicButton = false;
-        let mediaRecorder;
-        let audioChunks = [];
-
-        function startConversation() {
-            const assistantId = "{{ assistant_id }}";
-            fetch(`/assistant_start/${assistantId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })
-            })
-            .then(response => response.json())
-            .then(data => {
-                currentThreadId = data.thread_id;
-                currentAssistantId = data.assistant_id;
-
-                console.log("Received Thread ID: ", data.thread_id);
-                console.log("Current Assistant ID: ", data.assistant_id);
-                
-                document.getElementById('restaurantLogo').style.display = 'none';
-                document.getElementById('welcomeMessage').style.display = 'none';
-
-                const initialMessage = `Hello, welcome in {{ restaurant_name.replace('_', ' ') }}.<br>Please, type in the message or start the voice input to make the order.`;
-                
-                appendMessage(initialMessage, 'assistant');
-                
-                enableInput();
-            })
-            .catch(error => {
-                console.error("Error starting conversation: ", error);
-            });
+    // Dictionary for translations (can be expanded)
+    const translations = {
+        'en-US': {
+            initialMessage: "Hello, welcome in",
+            phrase: "Feel free to check out the menu",
+            makeOrder: "Make the Order in",
+            typeMessage: "Type your message here✍️",
+            send: "Send",
+        },
+        'es-ES': {
+            initialMessage: "Hola, bienvenido a",
+            phrase: "Siéntase libre de ver el menú",
+            makeOrder: "Hacer el pedido en",
+            typeMessage: "Escriba su mensaje aquí✍️",
+            send: "Enviar",
+        },
+        'zh-CN': {
+            initialMessage: "您好，欢迎来到",
+            phrase: "随时查看菜单",
+            makeOrder: "在这里下订单",
+            typeMessage: "在这里输入您的消息✍️",
+            send: "发送",
+        },
+        'hi-IN': {
+            initialMessage: "नमस्ते, में आपका स्वागत है",
+            phrase: "मेनू देखने के लिए स्वतंत्र महसूस करें",
+            makeOrder: "यहां ऑर्डर करें",
+            typeMessage: "यहां अपना संदेश टाइप करें✍️",
+            send: "भेजें",
+        },
+        'ar-SA': {
+            initialMessage: "مرحبا، مرحبا بكم في",
+            phrase: "لا تتردد في الاطلاع على القائمة",
+            makeOrder: "اطلب هنا",
+            typeMessage: "اكتب رسالتك هنا✍️",
+            send: "إرسال",
+        },
+        'fr-FR': {
+            initialMessage: "Bonjour, bienvenue à",
+            phrase: "N'hésitez pas à consulter le menu",
+            makeOrder: "Passez la commande à",
+            typeMessage: "Tapez votre message ici✍️",
+            send: "Envoyer",
+        },
+        'ru-RU': {
+            initialMessage: "Здравствуйте, добро пожаловать в",
+            phrase: "Не стесняйтесь просмотреть меню",
+            makeOrder: "Сделайте заказ в",
+            typeMessage: "Введите ваше сообщение здесь✍️",
+            send: "Отправить",
+        },
+        'ja-JP': {
+            initialMessage: "こんにちは、ようこそ",
+            phrase: "メニューを確認してください",
+            makeOrder: "ここで注文",
+            typeMessage: "ここにメッセージを入力✍️",
+            send: "送信",
+        },
+        'de-DE': {
+            initialMessage: "Hallo, willkommen in",
+            phrase: "Schauen Sie sich das Menü an",
+            makeOrder: "Bestellen Sie in",
+            typeMessage: "Geben Sie hier Ihre Nachricht ein✍️",
+            send: "Senden",
+        },
+        'pt-BR': {
+            initialMessage: "Olá, bem-vindo ao",
+            phrase: "Sinta-se à vontade para conferir o menu",
+            makeOrder: "Faça o pedido em",
+            typeMessage: "Digite sua mensagem aqui✍️",
+            send: "Enviar",
         }
+    };
 
-        function enableInput() {
-            console.log("Enabling input fields and buttons");
-            document.getElementById('userMessage').disabled = false;
-            document.querySelector('button[onclick="sendMessage()"]').disabled = false;
-            document.getElementById('micButton').disabled = false;
-            console.log("Input and buttons enabled");
+    function startChat() {
+        userLanguage = document.getElementById('languageSelectOverlay').value;
+
+        sessionStorage.setItem('userLanguage', userLanguage);
+        console.log("Setup language (", userLanguage, ") in session")
+
+        // Hide the overlay
+        document.getElementById('overlay').style.display = 'none';
+
+        // Translate the texts
+        translateTexts(userLanguage);
+
+        // Start the conversation
+        startConversation();
+    }
+
+    window.startChat = startChat;
+
+    function translateTexts(language) {
+        const translation = translations[language];
+        document.getElementById('orderHeader').textContent = `${translation.makeOrder} {{ restaurant_name.replace('_', ' ') }}`;
+        document.getElementById('userMessage').placeholder = translation.typeMessage;
+        document.getElementById('sendButton').textContent = translation.send;
+    }
+
+    function startConversation() {
+        const assistantId = "{{ assistant_id }}";
+        fetch(`/assistant_start/${assistantId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            currentThreadId = data.thread_id;
+            currentAssistantId = data.assistant_id;
+
+            console.log("Received Thread ID: ", data.thread_id);
+            console.log("Current Assistant ID: ", data.assistant_id);
+            
+            document.getElementById('restaurantLogo').style.display = 'none';
+            document.getElementById('welcomeMessage').style.display = 'none';
+
+            const translation = translations[userLanguage];
+            const initialMessage = `${translation.initialMessage} {{ restaurant_name.replace('_', ' ') }}.<br>${translation.phrase}`;
+            
+            {% if assistant_turned_on and isWorkingHours %}
+            appendMessage(initialMessage, 'assistant');
+            {% endif %}
+
+            
+            enableInput();
+        })
+        .catch(error => {
+            console.error("Error starting conversation: ", error);
+        });
+    }
+
+    function enableInput() {
+        console.log("Enabling input fields and buttons");
+        document.getElementById('userMessage').disabled = false;
+        document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+        document.getElementById('micButton').disabled = false;
+        console.log("Input and buttons enabled");
+    }
+
+    
+    window.sendMessage = function sendMessage() {
+    const userMessage = document.getElementById('userMessage').value;
+    console.log("Send button clicked");
+    console.log("User message: ", userMessage);
+    if (userMessage.trim() === '') {
+        console.log("Empty message, not sending.");
+        return;
+    }
+
+    appendMessage(userMessage, 'user');
+
+    const spinner = document.getElementById('spinner');
+    const userMessageInput = document.getElementById('userMessage');
+    const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+
+    if (spinner) {
+        spinner.style.display = 'block';
+        showWittyPhrase(true);
+    }
+    userMessageInput.disabled = true;
+    sendButton.disabled = true;
+
+    const unique_azz_id = "{{ unique_azz_id }}";
+    let llmResponse;
+
+    const formData = new FormData();
+    let userLanguage = sessionStorage.getItem('userLanguage');
+    
+    formData.append('message', userMessage);
+    formData.append('language', userLanguage);
+    formData.append('thread_id', currentThreadId);
+    formData.append('assistant_id', currentAssistantId);
+
+    fetch(`/generate_response/${unique_azz_id}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Received response: ", data);
+        llmResponse = data.response_llm;
+        // appendMessage(llmResponse, 'assistant');
+
+        const voiceFormData = new FormData();
+        voiceFormData.append('full_gpts_response', llmResponse);
+        voiceFormData.append('language', userLanguage);
+
+        return fetch(`/generate_voice_output/${unique_azz_id}`, {
+            method: 'POST',
+            body: voiceFormData
+        });
+    })
+    .then(response => response.blob())
+    .then(audioBlob => {
+        console.log("Received audio blob");
+        const audioUrl = window.URL.createObjectURL(audioBlob);
+        appendMessage(llmResponse, 'assistant');
+        const audio = new Audio(audioUrl);
+        console.log("Started Playing audio");
+        audio.play();
+
+        if (spinner) spinner.style.display = 'none';
+        showWittyPhrase(false);
+        userMessageInput.value = '';
+        userMessageInput.disabled = false;
+        sendButton.disabled = false;
+    })
+    .catch(error => {
+        console.error("Error: ", error);
+        if (spinner) spinner.style.display = 'none';
+        showWittyPhrase(false);
+        userMessageInput.disabled = false;
+        sendButton.disabled = false;
+    });
+}
+
+
+
+    window.showWittyPhrase = function showWittyPhrase(visible, voice_input) {
+        const phrases = [
+            "Your Order is Our Command! ✨",
+            "The Beauty in Simplicity 😮‍💨",
+            "Love is AI Serving You 💓",
+            "Prepare for the Tasty Journey 😋",
+            "Don't Worry, Just Eat It! 🍽️"
+        ];
+        const phraseDisplay = document.getElementById('wittyPhrase');
+        if (visible) {
+            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+            if (phraseDisplay) {
+                phraseDisplay.textContent = randomPhrase;
+                phraseDisplay.style.display = 'block';
+            }
+        } else if (visible && voice_input) {  
+            phraseDisplay.textContent = "Please, speak your truth NOW!";
+            phraseDisplay.style.display = 'block'; 
+        } else {
+            if (phraseDisplay) {
+                phraseDisplay.style.display = 'none';
+            }
         }
+    }
 
-        const activeAndWorking = "{{ assistant_turned_on }} && {{ isWorkingHours }}";
-        console.log("Active and working: ", activeAndWorking);
-        if (activeAndWorking === "True && True") {
-            startConversation();
-        }
-        
-        window.startConversation = startConversation;
+    const footer = document.getElementById('chatInputFooter');
+    const wittyPhraseDiv = document.createElement('div');
+    wittyPhraseDiv.id = 'wittyPhrase';
+    wittyPhraseDiv.style.marginBottom = '20px';
+    wittyPhraseDiv.style.marginRight = '7px';
+    wittyPhraseDiv.style.fontSize = '16px';
+    wittyPhraseDiv.style.display = 'none';
+    footer.insertBefore(wittyPhraseDiv, footer.firstChild);
 
-        function sendMessage() {
-            const userMessage = document.getElementById('userMessage').value;
-            console.log("Send button clicked");
-            console.log("User message: ", userMessage);
-            if (userMessage.trim() === '') {
-                console.log("Empty message, not sending.");
+    function appendMessage(message, sender) {
+        if (message.includes("/payment_buffer")) {
+            const isIframeRaw = "{{ iframe }}";
+            let isIframe = isIframeRaw === "True";
+
+            if (isIframe) {
+                let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
+                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
+            } else {
+                window.location.href = message;
                 return;
             }
+        } else if (message.includes("Come to the restaurant and pick up")) {
+            const isIframeRaw = "{{ iframe }}";
+            let isIframe = isIframeRaw === "True";
 
-            appendMessage(userMessage, 'user');
+            if (isIframe) {
+                message = message;
+                document.getElementById('userMessage').disabled = true;
+                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+                document.getElementById('micButton').disabled = true;
+            } else {
+                const unique_azz_id = "{{ unique_azz_id }}";
+                window.location.href = `/no-payment-order-placed/${unique_azz_id}`;
+                return;
+            }
+        }
 
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
+        
+        try {
+            const htmlContent = marked.parse(message);
+            messageDiv.innerHTML = htmlContent;
+        } catch (error) {
+            console.error("Marked conversion error: ", error);
+            messageDiv.textContent = message;
+        }
+
+        const iconDiv = document.createElement('div');
+        iconDiv.style.cssText = 'width: 30px; height: 30px; border-radius: 50%; overflow: hidden; margin: 10px;';
+
+        const messageContainer = document.createElement('div');
+
+        if (sender === 'user') {
+            messageDiv.style.backgroundColor = '#e5e5e5';
+            messageDiv.style.textAlign = 'left';
+
+            const userIcon = document.createElement('img');
+            userIcon.src = '/static/images/user_icon.png';
+            userIcon.style.width = '100%';
+            userIcon.style.height = '100%';
+            userIcon.style.objectFit = 'cover';
+            iconDiv.appendChild(userIcon);
+
+            messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-start;';
+            messageContainer.appendChild(messageDiv);
+            messageContainer.appendChild(iconDiv);
+
+            document.getElementById('chatBox').appendChild(messageContainer);
+
+        } else if (sender === 'assistant') {
+            messageDiv.style.backgroundColor = '#000000';
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'right';
+
+            const assistantIcon = document.createElement('img');
+            assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
+            assistantIcon.style.width = '100%';
+            assistantIcon.style.height = '100%';
+            assistantIcon.style.objectFit = 'cover';
+            iconDiv.appendChild(assistantIcon);
+
+            messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end;';
+            messageContainer.appendChild(messageDiv);
+            messageContainer.appendChild(iconDiv);
+
+            document.getElementById('chatBox').appendChild(messageContainer);
+
+        } else if (sender === 'system') {
+            messageDiv.style.backgroundColor = '#4CAF50';
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'center';
+
+            messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+            messageContainer.appendChild(messageDiv);
+
+            document.getElementById('chatBox').appendChild(messageContainer);
+        }
+
+        scrollToBottom(messageContainer);
+    }
+
+    window.appendMessage = appendMessage;
+
+    function scrollToBottom(element) {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.scrollTop = element.offsetTop + element.offsetHeight;
+    }
+
+    window.scrollToBottom = scrollToBottom;
+
+    var flashMessages = document.querySelector('.flash-messages');
+    if (flashMessages) {
+        setTimeout(function() {
+            flashMessages.style.display = 'none';
+        }, 5000);
+    }
+
+
+    /*
+    async function speak(text) {
+        const synthesis = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        let userLanguage = sessionStorage.getItem('userLanguage');
+        console.log("The language user selected on start (accessed from speak function): ", userLanguage)
+        
+        // utterance.lang = document.getElementById('languageSelect').value;
+        utterance.lang = userLanguage;
+        synthesis.speak(utterance);
+    }
+
+    window.speak = speak;
+    */
+    
+    const micButton = document.getElementById('micButton');
+    micButton.addEventListener('click', () => {
+        if (isRecording && !blockMicButton) {
+            mediaRecorder.stop();
+            micButton.textContent = '🎤';
             const spinner = document.getElementById('spinner');
-            const userMessageInput = document.getElementById('userMessage');
-            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            spinner.style.display = 'none';
+        } else if (!isRecording && blockMicButton) {
+            mediaRecorder.stop();
+            micButton.textContent = '🎤';
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'none';
+        } else {
+            startRecording();
+            micButton.textContent = '⏹️';
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+        }
+        isRecording = !isRecording;
+    });
 
+    async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+    mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.webm');
+        const userLanguage = sessionStorage.getItem('userLanguage');
+        formData.append('language', userLanguage);
+
+        const spinner = document.getElementById('spinner');
+        const userMessageInput = document.getElementById('userMessage');
+        const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+        const micButton = document.getElementById('micButton');
+
+        try {
+            blockMicButton = true;
             if (spinner) {
                 spinner.style.display = 'block';
                 showWittyPhrase(true);
             }
-            userMessageInput.disabled = true;
-            sendButton.disabled = true;
+            if (userMessageInput) userMessageInput.disabled = true;
+            if (sendButton) sendButton.disabled = true;
+            if (micButton) micButton.disabled = true;
 
-            const unique_azz_id = "{{ unique_azz_id }}";
-
-            fetch(`/generate_response/${unique_azz_id}`, {
+            const transcribeResponse = await fetch('/transcribe_voice', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userMessage, thread_id: currentThreadId, assistant_id: currentAssistantId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Received response: ", data);
-                if (data.order_formed) {
-                    appendMessage(data.response_llm, 'assistant');
-                    appendMessage("Press here to proceed", 'system');
-                    userMessageInput.disabled = true;
-                    sendButton.disabled = true;
-                    document.getElementById('chatBox').innerHTML += '<p style="text-align: center"><strong>Order complete.<br>Please proceed to checkout.</strong></p>';
-                } else if (data.response_llm.includes("/payment_buffer")) {
-                    appendMessage(data.response_llm, 'assistant');  
-                    userMessageInput.disabled = true;
-                    sendButton.disabled = true;
-                    document.getElementById('chatBox').innerHTML += '<p style="text-align: center; align-items: center"><strong>Please, proceed to checkout☝️<br>➕To make the order, update the page➕</strong></p>';
-                } else {
-                    appendMessage(data.response_llm, 'assistant');
-                    userMessageInput.disabled = false;
-                    sendButton.disabled = false;
-
-                    const chosen_language = document.getElementById('languageSelect').value;
-                    if (chosen_language !== "is-IS"){
-                        speak(data.for_voice);
-                        console.log("Entered the loop");
-                    }
-                }
-
-                if (spinner) spinner.style.display = 'none';
-                showWittyPhrase(false);
-                userMessageInput.value = '';
-            })
-            .catch(error => {
-                console.error("Error: ", error);
-                if (spinner) spinner.style.display = 'none';
-                showWittyPhrase(false);
-                userMessageInput.disabled = false;
-                sendButton.disabled = false;
+                body: formData
             });
-        }
 
-        window.sendMessage = sendMessage;
+            const transcribeData = await transcribeResponse.json();
+            if (transcribeResponse.ok && transcribeData.status === 'success') {
+                const transcription = transcribeData.transcription;
+                appendMessage(transcription, "user");
 
-        function showWittyPhrase(visible, voice_input) {
-            const phrases = [
-                "Your Order is Our Command! ✨",
-                "The Beauty in Simplicity 😮‍💨",
-                "Love is AI Serving You 💓",
-                "Prepare for the Tasty Journey 😋",
-                "Don't Worry, Just Eat It! 🍽️"
-            ];
-            const phraseDisplay = document.getElementById('wittyPhrase');
-            if (visible) {
-                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                if (phraseDisplay) {
-                    phraseDisplay.textContent = randomPhrase;
-                    phraseDisplay.style.display = 'block';
-                }
-              
-            } else if (visible && voice_input) {  
-                    phraseDisplay.textContent = "Please, speak your truth NOW!";
-                    phraseDisplay.style.display = 'block'; 
+                const responseFormData = new FormData();
+                responseFormData.append('message', transcription);
+                responseFormData.append('thread_id', currentThreadId);
+                responseFormData.append('assistant_id', currentAssistantId);
+                responseFormData.append('language', userLanguage);
+
+                const unique_azz_id = "{{ unique_azz_id }}";
+                let llmResponse;
+
+                const response = await fetch(`/generate_response/${unique_azz_id}`, {
+                    method: 'POST',
+                    body: responseFormData
+                });
+
+                const data = await response.json();
+                llmResponse = data.response_llm;
+
+                const voiceFormData = new FormData();
+                voiceFormData.append('full_gpts_response', llmResponse);
+                voiceFormData.append('language', userLanguage);
+
+                const voiceResponse = await fetch(`/generate_voice_output/${unique_azz_id}`, {
+                    method: 'POST',
+                    body: voiceFormData
+                });
+
+                const audioBlob = await voiceResponse.blob();
+                console.log("Received audio blob");
+                const audioUrl = window.URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                appendMessage(llmResponse, 'assistant');
+                
+                console.log("Started Playing audio");
+                audio.play();
+
+                blockMicButton = false;
             } else {
-                if (phraseDisplay) {
-                    phraseDisplay.style.display = 'none';
-                }
+                appendMessage('Transcription failed. Please try again.', 'system');
+                blockMicButton = false;
             }
-        }
-
-        window.showWittyPhrase = showWittyPhrase;
-
-        const footer = document.getElementById('chatInputFooter');
-        const wittyPhraseDiv = document.createElement('div');
-        wittyPhraseDiv.id = 'wittyPhrase';
-        wittyPhraseDiv.style.marginBottom = '20px';
-        wittyPhraseDiv.style.marginRight = '7px';
-        wittyPhraseDiv.style.fontSize = '16px';
-        wittyPhraseDiv.style.display = 'none';
-        footer.insertBefore(wittyPhraseDiv, footer.firstChild);
-
-        function appendMessage(message, sender) {
-            if (message.includes("/payment_buffer")) {
-                const isIframeRaw = "{{ iframe }}";
-                let isIframe = isIframeRaw === "True";
-
-                console.log('Entered includes payment buffer loop');
-
-                if (isIframe) {
-                    let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
-                    message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
-                } else {
-                    window.location.href = message;
-                    return;
-                }
-            } else if (message.includes("Come to the restaurant and pick up")) {
-                const isIframeRaw = "{{ iframe }}";
-                let isIframe = isIframeRaw === "True";
-
-                console.log('Entered includes "Come to the restaurant" loop');
-
-                if (isIframe) {
-                    message = message;
-                    document.getElementById('userMessage').disabled = true;
-                    document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                    document.getElementById('micButton').disabled = true;
-                } else {
-                    const unique_azz_id = "{{ unique_azz_id }}";
-                    window.location.href = `/no-payment-order-placed/${unique_azz_id}`;
-                    return;
-                }
-            }
-
-            const messageDiv = document.createElement('div');
-            messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
-            console.log("Opened appendMessage function");
-
-            try {
-                const htmlContent = marked.parse(message);
-                messageDiv.innerHTML = htmlContent;
-            } catch (error) {
-                console.error("Marked conversion error: ", error);
-                messageDiv.textContent = message;
-            }
-
-            const iconDiv = document.createElement('div');
-            iconDiv.style.cssText = 'width: 30px; height: 30px; border-radius: 50%; overflow: hidden; margin: 10px;';
-
-            const messageContainer = document.createElement('div'); // Define messageContainer here
-
-            if (sender === 'user') {
-                messageDiv.style.backgroundColor = '#e5e5e5';
-                messageDiv.style.textAlign = 'left';
-
-                const userIcon = document.createElement('img');
-                userIcon.src = '/static/images/user_icon.png'; // Replace with your user icon path
-                userIcon.style.width = '100%';
-                userIcon.style.height = '100%';
-                userIcon.style.objectFit = 'cover';
-                iconDiv.appendChild(userIcon);
-
-                messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-start;';
-                messageContainer.appendChild(messageDiv);
-                messageContainer.appendChild(iconDiv);
-
-                document.getElementById('chatBox').appendChild(messageContainer);
-
-            } else if (sender === 'assistant') {
-                messageDiv.style.backgroundColor = '#000000';
-                messageDiv.style.color = 'white';
-                messageDiv.style.textAlign = 'right';
-
-                const assistantIcon = document.createElement('img');
-                assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}'; // Replace with your assistant icon path or restaurant logo
-                assistantIcon.style.width = '100%';
-                assistantIcon.style.height = '100%';
-                assistantIcon.style.objectFit = 'cover';
-                iconDiv.appendChild(assistantIcon);
-
-                messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end;';
-                messageContainer.appendChild(messageDiv);
-                messageContainer.appendChild(iconDiv);
-
-                document.getElementById('chatBox').appendChild(messageContainer);
-
-            } else if (sender === 'system') {
-                messageDiv.style.backgroundColor = '#4CAF50';
-                messageDiv.style.color = 'white';
-                messageDiv.style.textAlign = 'center';
-
-                messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
-                messageContainer.appendChild(messageDiv);
-
-                document.getElementById('chatBox').appendChild(messageContainer);
-            }
-
-            scrollToBottom(messageContainer);
-        }
-
-        window.appendMessage = appendMessage;
-
-        function scrollToBottom(element) {
-            const chatBox = document.getElementById('chatBox');
-            chatBox.scrollTop = element.offsetTop + element.offsetHeight;
-            console.log("Scrolled to bottom of: ", element);
-        }
-
-        window.scrollToBottom = scrollToBottom;
-
-        var flashMessages = document.querySelector('.flash-messages');
-        if (flashMessages) {
-            setTimeout(function() {
-                flashMessages.style.display = 'none';
-            }, 5000);
-        }
-
-        /*
-        function startVoiceInput() {
-            const recognition = new webkitSpeechRecognition();
-            recognition.lang = "en-US"; // Set the language
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onresult = function(event) {
-                const result = event.results[0][0].transcript;
-                console.log('Voice input result: ', result);
-                document.getElementById('userMessage').value = result;
-                // appendMessage(result, 'user');  // Add transcription to chat history as user message
-                sendMessage();
-            };
-
-            recognition.onerror = function(event) {
-                console.error('Voice recognition error: ', event.error);
-            };
-
-            recognition.start();
-        }
-
-        window.startVoiceInput = startVoiceInput;
-        */
-
-        async function speak(text) {
-            console.log("Started Speaking");
-            const synthesis = window.speechSynthesis;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = document.getElementById('languageSelect').value;
-            synthesis.speak(utterance);
-        }
-
-        window.speak = speak;
-
-        const micButton = document.getElementById('micButton');
-        // Event listener for micButton
-        micButton.addEventListener('click', () => {
-            if (isRecording && !blockMicButton) {
-                mediaRecorder.stop();
-                console.log("Stopped media recorder!");
-                micButton.textContent = '🎤';
-                const spinner = document.getElementById('spinner');
+        } catch (error) {
+            appendMessage('An error occurred. Please try again.', 'system');
+            blockMicButton = false;
+        } finally {
+            if (spinner) {
                 spinner.style.display = 'none';
-            } else if (!isRecording && blockMicButton) {
-                mediaRecorder.stop();
-                console.log("Stopped media recorder!");
-                micButton.textContent = '🎤';
-                const spinner = document.getElementById('spinner');
-                spinner.style.display = 'none';
-            } else {
-                startRecording();
-                micButton.textContent = '⏹️';
-                const spinner = document.getElementById('spinner');
-                spinner.style.display = 'block';
+                showWittyPhrase(false);
             }
-            isRecording = !isRecording;
-        });
-
-        async function startRecording() {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const formData = new FormData();
-                formData.append('file', audioBlob, 'audio.webm');
-                const chosen_language = document.getElementById('languageSelect').value; // Get the selected language
-                formData.append('language', chosen_language); // Add the language to the form data
-
-                const spinner = document.getElementById('spinner');
-                const userMessageInput = document.getElementById('userMessage');
-                const sendButton = document.querySelector('button[onclick="sendMessage()"]');
-                const micButton = document.getElementById('micButton'); // Correct the querySelector
-
-                try {
-                    blockMicButton = true;
-                    if (spinner) {
-                        spinner.style.display = 'block';
-                        showWittyPhrase(true);
-                    }
-                    if (userMessageInput) userMessageInput.disabled = true;
-                    if (sendButton) sendButton.disabled = true;
-                    if (micButton) micButton.disabled = true;
-
-                    // Send request to the /transcribe_voice endpoint
-                    const transcribeResponse = await fetch('/transcribe_voice', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const transcribeData = await transcribeResponse.json();
-                    console.log('Transcription data: ', transcribeData);
-
-                    if (transcribeResponse.ok && transcribeData.status === 'success') {
-                        const transcription = transcribeData.transcription;
-                        appendMessage(transcription, "user");
-
-                        // Create form data for the /generate_response endpoint
-                        const responseFormData = new FormData();
-                        responseFormData.append('message', transcription);
-                        responseFormData.append('thread_id', currentThreadId);
-                        responseFormData.append('assistant_id', currentAssistantId);
-                        responseFormData.append('language', chosen_language);
-
-                        const unique_azz_id = "{{ unique_azz_id }}";  // Replace with your actual unique AZZ ID
-
-                        // Send the transcription result to the /generate_response endpoint
-                        const response = await fetch(`/generate_response/${unique_azz_id}`, {
-                            method: 'POST',
-                            body: responseFormData
-                        });
-
-                        const data = await response.json();
-                        console.log('Full data: ', data);
-                        appendMessage(data.response_llm, 'assistant');
-                        
-                        blockMicButton = false; // Unlock mic button after response is received
-                    } else {
-                        console.error('Error in transcription: ', transcribeData.error || 'Unknown error');
-                        appendMessage('Transcription failed. Please try again.', 'system');
-                        blockMicButton = false; // Unlock mic button on error
-                    }
-                } catch (error) {
-                    console.error('Error: ', error);
-                    appendMessage('An error occurred. Please try again.', 'system');
-                    blockMicButton = false; // Unlock mic button on error
-                } finally {
-                    if (spinner) {
-                        spinner.style.display = 'none';
-                        showWittyPhrase(false);
-                    }
-                    if (userMessageInput) userMessageInput.disabled = false;
-                    if (sendButton) sendButton.disabled = false;
-                    if (micButton) micButton.disabled = false;
-                    audioChunks = [];
-                }
-
-                // Stop all tracks in the MediaStream to ensure recording is stopped completely
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            mediaRecorder.start();
+            if (userMessageInput) userMessageInput.disabled = false;
+            if (sendButton) sendButton.disabled = false;
+            if (micButton) micButton.disabled = false;
+            audioChunks = [];
         }
+
+        stream.getTracks().forEach(track => track.stop());
     };
+
+    mediaRecorder.start();
+}
+
+};
 </script>
 
 
-
-
 {% endblock %}
-
-
-
-
-
