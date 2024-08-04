@@ -36,3 +36,4 @@ typing-extensions
 pathlib
 deep-translator
 langdetect
+markdown2
