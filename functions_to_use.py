@@ -19,8 +19,6 @@ import string
 import re
 import os
 import base64
-from translate import Translator
-import langid
 # from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
 import uuid

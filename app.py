@@ -46,9 +46,7 @@ import pytz
 #from tools.stellar_payments.create_account import create_stellar_account
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
-import threading
 import time
-import asyncio
 
 """
 logging.basicConfig(level=logging.DEBUG,
