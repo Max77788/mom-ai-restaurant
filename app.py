@@ -260,6 +260,12 @@ def notify_waitlist():
 
 #################### Registration/Login Part Start ####################
 
+@app.route('/landing', methods=['GET', 'POST'])
+def serve_landing():
+    return render_template('start/bestLanding.html', title="Restaurant Assistant")
+
+
+
 @app.route('/', methods=['GET', 'POST'])
 def landing_page():
     #session.clear()  # Clear session for clean state testing
@@ -1220,6 +1226,9 @@ def dashboard_display():
         print(f"Assistant ID added in session: {assistant_id}")
         print(f"Restaurant name added in session: {restaurant_name}")
         
+        if logo_id == None:
+            logo_id = "666af654dee400a1d635eb08"
+        
         logo_url = url_for('serve_image', file_id=logo_id)
 
     else:
@@ -1721,7 +1730,7 @@ def start_conversation(assistant_id):
     print("Returned id ", assistant_id) # Debugging line
     print("Starting a new conversation...")  # Debugging line
     thread = CLIENT_OPENAI.beta.threads.create(
-    #tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
+    tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
     )                                               
                                                                
     
@@ -2053,14 +2062,32 @@ def change_password():
     res_email = collection.find_one({"unique_azz_id":unique_azz_id}).get("res_email")
     return
 
+
+
+@app.route("/thank-you", methods=["GET"])
+def thank_you_quick_registration():
+    return render_template("start/quick_registered_thanks.html", title="Thank You")
+
+
+
+
+
 @app.route("/quick_registration", methods=["POST"])
+#@auth.login_required
 def quick_registration():
+    print("Received POST request on '/quick_registration'")
+    
     data = request.json
     res_name = data.get("res_name")
     restaurant_url = data.get("restaurant_url", None)
     res_email = data.get("res_email")
-    assistant_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False).id
     
+    print(f"{res_name}, {restaurant_url}, {res_email} - we insert")
+
+    assistant, vector_store_id, menu_file_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
+    
+    assistant_id = assistant.id
+
     quick_reg = {
         "quick_reg": True
     }
@@ -2070,10 +2097,10 @@ def quick_registration():
     password = generate_random_string(10)
     hashed_password = hash_password(password)
     
-    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_password, restaurant_url, assistant_id, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, "EUR", MOM_AI_EXEMPLARY_MENU_HTML, None, None, None, None, None, **quick_reg)
+    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_password, restaurant_url, assistant_id, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, "EUR", MOM_AI_EXEMPLARY_MENU_HTML, None, None, None, None, None, logo_id="666af654dee400a1d635eb08", **quick_reg)
     send_confirmation_email_quick_registered(mail, res_email, password, res_name, FROM_EMAIL)
 
-    return jsonify({"success":True})
+    return jsonify({"success":True, "message":"Restaurant Added Successfully"})
 
 ################## Payment routes/Order Posting ###################
 @app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])

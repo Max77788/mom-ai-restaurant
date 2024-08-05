@@ -88,7 +88,7 @@
             {% endif %}
             {% if assistant_turned_on and isWorkingHours %}
             {% else %}
-            <p><b>We are currently off. You will be able to take the order later.</b></p>
+            <p id="offMessage"><b>We are currently off. You will be able to take the order later.</b></p>
             {% endif %}
         </div>
     </div>
@@ -128,77 +128,88 @@
 
     // Dictionary for translations (can be expanded)
     const translations = {
-        'en-US': {
-            initialMessage: "Hello, welcome in",
-            phrase: "Feel free to check out the menu",
-            makeOrder: "Make the Order in",
-            typeMessage: "Type your message here✍️",
-            send: "Send",
-        },
-        'es-ES': {
-            initialMessage: "Hola, bienvenido a",
-            phrase: "Siéntase libre de ver el menú",
-            makeOrder: "Hacer el pedido en",
-            typeMessage: "Escriba su mensaje aquí✍️",
-            send: "Enviar",
-        },
-        'zh-CN': {
-            initialMessage: "您好，欢迎来到",
-            phrase: "随时查看菜单",
-            makeOrder: "在这里下订单",
-            typeMessage: "在这里输入您的消息✍️",
-            send: "发送",
-        },
-        'hi-IN': {
-            initialMessage: "नमस्ते, में आपका स्वागत है",
-            phrase: "मेनू देखने के लिए स्वतंत्र महसूस करें",
-            makeOrder: "यहां ऑर्डर करें",
-            typeMessage: "यहां अपना संदेश टाइप करें✍️",
-            send: "भेजें",
-        },
-        'ar-SA': {
-            initialMessage: "مرحبا، مرحبا بكم في",
-            phrase: "لا تتردد في الاطلاع على القائمة",
-            makeOrder: "اطلب هنا",
-            typeMessage: "اكتب رسالتك هنا✍️",
-            send: "إرسال",
-        },
-        'fr-FR': {
-            initialMessage: "Bonjour, bienvenue à",
-            phrase: "N'hésitez pas à consulter le menu",
-            makeOrder: "Passez la commande à",
-            typeMessage: "Tapez votre message ici✍️",
-            send: "Envoyer",
-        },
-        'ru-RU': {
-            initialMessage: "Здравствуйте, добро пожаловать в",
-            phrase: "Не стесняйтесь просмотреть меню",
-            makeOrder: "Сделайте заказ в",
-            typeMessage: "Введите ваше сообщение здесь✍️",
-            send: "Отправить",
-        },
-        'ja-JP': {
-            initialMessage: "こんにちは、ようこそ",
-            phrase: "メニューを確認してください",
-            makeOrder: "ここで注文",
-            typeMessage: "ここにメッセージを入力✍️",
-            send: "送信",
-        },
-        'de-DE': {
-            initialMessage: "Hallo, willkommen in",
-            phrase: "Schauen Sie sich das Menü an",
-            makeOrder: "Bestellen Sie in",
-            typeMessage: "Geben Sie hier Ihre Nachricht ein✍️",
-            send: "Senden",
-        },
-        'pt-BR': {
-            initialMessage: "Olá, bem-vindo ao",
-            phrase: "Sinta-se à vontade para conferir o menu",
-            makeOrder: "Faça o pedido em",
-            typeMessage: "Digite sua mensagem aqui✍️",
-            send: "Enviar",
-        }
-    };
+    'en-US': {
+        initialMessage: "Hello, welcome in",
+        phrase: "Feel free to check out the menu",
+        makeOrder: "Make the Order in",
+        typeMessage: "Type your message here✍️",
+        send: "Send",
+        offMessage: "We are currently off. You will be able to take the order later."
+    },
+    'es-ES': {
+        initialMessage: "Hola, bienvenido a",
+        phrase: "Siéntase libre de ver el menú",
+        makeOrder: "Hacer el pedido en",
+        typeMessage: "Escriba su mensaje aquí✍️",
+        send: "Enviar",
+        offMessage: "Actualmente estamos cerrados. Podrá hacer el pedido más tarde."
+    },
+    'zh-CN': {
+        initialMessage: "您好，欢迎来到",
+        phrase: "随时查看菜单",
+        makeOrder: "在这里下订单",
+        typeMessage: "在这里输入您的消息✍️",
+        send: "发送",
+        offMessage: "我们现在不营业。稍后您可以下订单。"
+    },
+    'hi-IN': {
+        initialMessage: "नमस्ते, में आपका स्वागत है",
+        phrase: "मेनू देखने के लिए स्वतंत्र महसूस करें",
+        makeOrder: "यहां ऑर्डर करें",
+        typeMessage: "यहां अपना संदेश टाइप करें✍️",
+        send: "भेजें",
+        offMessage: "हम फिलहाल बंद हैं। आप बाद में ऑर्डर कर पाएंगे।"
+    },
+    'ar-SA': {
+        initialMessage: "مرحبا، مرحبا بكم في",
+        phrase: "لا تتردد في الاطلاع على القائمة",
+        makeOrder: "اطلب هنا",
+        typeMessage: "اكتب رسالتك هنا✍️",
+        send: "إرسال",
+        offMessage: "نحن حاليا مغلقون. ستتمكن من تقديم الطلب لاحقًا."
+    },
+    'fr-FR': {
+        initialMessage: "Bonjour, bienvenue à",
+        phrase: "N'hésitez pas à consulter le menu",
+        makeOrder: "Passez la commande à",
+        typeMessage: "Tapez votre message ici✍️",
+        send: "Envoyer",
+        offMessage: "Nous sommes actuellement fermés. Vous pourrez passer la commande plus tard."
+    },
+    'ru-RU': {
+        initialMessage: "Здравствуйте, добро пожаловать в",
+        phrase: "Не стесняйтесь просмотреть меню",
+        makeOrder: "Сделайте заказ в",
+        typeMessage: "Введите ваше сообщение здесь✍️",
+        send: "Отправить",
+        offMessage: "Мы сейчас закрыты. Вы сможете сделать заказ позже."
+    },
+    'ja-JP': {
+        initialMessage: "こんにちは、ようこそ",
+        phrase: "メニューを確認してください",
+        makeOrder: "ここで注文",
+        typeMessage: "ここにメッセージを入力✍️",
+        send: "送信",
+        offMessage: "現在営業時間外です。後で注文できます。"
+    },
+    'de-DE': {
+        initialMessage: "Hallo, willkommen in",
+        phrase: "Schauen Sie sich das Menü an",
+        makeOrder: "Bestellen Sie in",
+        typeMessage: "Geben Sie hier Ihre Nachricht ein✍️",
+        send: "Senden",
+        offMessage: "Wir haben derzeit geschlossen. Sie können die Bestellung später aufgeben."
+    },
+    'pt-BR': {
+        initialMessage: "Olá, bem-vindo ao",
+        phrase: "Sinta-se à vontade para conferir o menu",
+        makeOrder: "Faça o pedido em",
+        typeMessage: "Digite sua mensagem aqui✍️",
+        send: "Enviar",
+        offMessage: "Estamos atualmente fechados. Você poderá fazer o pedido mais tarde."
+    }
+};
+
 
     function startChat() {
         userLanguage = document.getElementById('languageSelectOverlay').value;
@@ -223,6 +234,9 @@
         document.getElementById('orderHeader').textContent = `${translation.makeOrder} {{ restaurant_name.replace('_', ' ') }}`;
         document.getElementById('userMessage').placeholder = translation.typeMessage;
         document.getElementById('sendButton').textContent = translation.send;
+        {% if not assistant_turned_on and not isWorkingHours %}
+        document.getElementById('offMessage').textContent = translation.offMessage;
+        {% endif %}
     }
 
     function startConversation() {
@@ -628,7 +642,6 @@
 
     mediaRecorder.start();
 }
-
 };
 </script>
 

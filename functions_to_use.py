@@ -911,7 +911,7 @@ And only after the user's confirmation does it IMMEDIATELY trigger the function 
         tool_resources={"file_search": {"vector_store_ids": [MOM_AI_EXEMPLARY_MENU_VECTOR_ID]}},
         )
 
-        return assistant, "default_vector", "default_menu"
+        return assistant, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, MOM_AI_EXEMPLARY_MENU_FILE_ID
 
 
 def remove_formatted_lines(menu_text):
@@ -1557,6 +1557,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
     language_adj = "English"
     list_of_items_with_links = [t + (l,) for t, l in zip(list_of_all_items, list_of_image_links)]
 
+    '''
     user_message_enhanced = f"""
     Role: You are the best restaurant assistant who serves customers and register orders in the system
     
@@ -1577,12 +1578,13 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
     ALWAYS PROVIDE THE USER WITH A CLEAR CALL TO ACTION AT THE END OF THE RESPONSE!    
     (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
     """
-
-    #print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
+    '''
+    
+    # print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
 
     response = client.beta.threads.messages.create(thread_id=thread_id,
                                                    role="user",
-                                                   content=user_message_enhanced,
+                                                   content=translated_user_message,
                                                    attachments=[{
                                                        "file_id":menu_file_id,
                                                        "tools":[{"type":"file_search"}]
@@ -1619,7 +1621,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
             print("Action in progress...")
 
             messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
-            print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
+            #print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
 
             joined_messages_of_assistant = ""
             messages_gpt_list = list(messages_gpt)
@@ -1659,7 +1661,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                                                            content=summary_to_convert)
 
             run_json = client.beta.threads.runs.create(thread_id=thread_id_json,
-                                                       assistant_id='MOM_AI_JSON_LORD_ID')
+                                                       assistant_id=MOM_AI_JSON_LORD_ID)
 
             json_start_time = time.time()
             while True:
@@ -1673,7 +1675,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                     messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_json)
                     print(f"\n\nTokens used by JSON assistant: {run_status.usage.total_tokens}\n\n")
                     total_tokens_used_JSON = run_status.usage.total_tokens
-                    total_tokens_used += total_tokens_used_JSON
+                    total_tokens_used = total_tokens_used_JSON
                     
                     formatted_json_order = messages_gpt_json.data[0].content[0].text.value
                     print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
@@ -1687,7 +1689,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                     current_utc_timestamp = time.time()
 
                     # Convert the timestamp to a datetime object
-                    utc_datetime = datetime.datetime.utcfromtimestamp(current_utc_timestamp)
+                    utc_datetime = datetime.utcfromtimestamp(current_utc_timestamp)
 
                     # Format the datetime object to a human-readable string
                     human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
@@ -1724,7 +1726,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} Euros\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
                         
                         restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
-                        all_ids_chats = restaurant_instance.get("notif_destin")
+                        all_ids_chats = restaurant_instance.get("notif_destin", [])
 
                         for chat_id in all_ids_chats:
                             send_telegram_notification(chat_id)
@@ -2081,7 +2083,7 @@ def setup_working_hours():
                     {"unique_azz_id": res_instance.get("unique_azz_id")},
                     {"$set": {"isOpen": isWorkingHours}}
                 )
-                #print("Set isOpen for ", res_instance.get("unique_azz_id"))
+                #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
             else:
                 # Spans to the next day
                 isWorkingHours = current_hour >= start or current_hour < end
@@ -2090,7 +2092,7 @@ def setup_working_hours():
                     {"unique_azz_id": res_instance.get("unique_azz_id")},
                     {"$set": {"isOpen": isWorkingHours}}
                 )
-
+            #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
     #print(f"Updated working status successfully!")
 
 
@@ -2119,7 +2121,7 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
         # Iterate through each row in the DataFrame
         for index, row in df.iterrows():
             # Write the first and second column values to the file
-            file.write(f"Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in currency {currency}: {row[2]}\n")
+            file.write(f'Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in currency {currency}: {row[2]} - Item\'s image: <img src="{row[3]}" alt="Image of {row[0]}" width="170" height="auto">\n')
 
     print(f"File successfully converted and saved as {output_file_path}")
     return output_file_path, html_menu
@@ -2281,7 +2283,7 @@ def send_confirmation_email_quick_registered(mail, email, password, restaurant_n
                 Your account has been successfully registered!
             </p>
             <p style="font-size: 16px; line-height: 1.5;">
-                Use this password to login now: {password}
+                Use this password to login now: <b>{password}</b>
             </p>
             <p style="font-size: 16px; line-height: 1.5;">
                 Go to <a href="https://mom-ai-restaurant.pro/login" target="_blank" style="color: #1a73e8; text-decoration: none;">mom-ai-restaurant.pro</a> and start earning with AI.

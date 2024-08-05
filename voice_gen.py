@@ -8,6 +8,21 @@ CLIENT_OPENAI = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 client = CLIENT_OPENAI
 
+audio_file= open("InternationalVomit.mp3", "rb")
+transcription = client.audio.transcriptions.create(
+  model="whisper-1", 
+  file=audio_file
+)
+print(transcription.text)
+
+
+
+
+
+
+'''
+
+
 with open(str("default_menu/default_restaurant_menu.txt"), "rb") as menu:    
     menu_file = client.files.create(file=menu,
         purpose='assistants')
@@ -29,18 +44,7 @@ vector_store_id=vector_store.id, files=file_streams
 
 print(menu_file_id)
 print(vector_store.id)
-
-
-
-
-
-
-
-
-
-
-
-
+'''
 
 
 
