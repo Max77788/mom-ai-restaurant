@@ -326,6 +326,11 @@
         llmResponse = data.response_llm;
         // appendMessage(llmResponse, 'assistant');
 
+        if (llmResponse.includes("/payment_buffer") || llmResponse.includes("Thank you very much! You ordered")) {
+            appendMessage(llmResponse, "assistant")
+            return; // Terminate the function here
+        }
+
         const voiceFormData = new FormData();
         voiceFormData.append('full_gpts_response', llmResponse);
         voiceFormData.append('language', userLanguage);
@@ -598,6 +603,11 @@
 
                 const data = await response.json();
                 llmResponse = data.response_llm;
+
+                if (llmResponse.includes("/payment_buffer") || llmResponse.includes("Thank you very much! You ordered")) {
+                    appendMessage(llmResponse, "assistant")
+                    return; // Terminate the function here
+                }
 
                 const voiceFormData = new FormData();
                 voiceFormData.append('full_gpts_response', llmResponse);

@@ -702,6 +702,12 @@ function downloadImage() {
                     xhr.send(JSON.stringify({ add_fee_payment: addFeeToPayment }));
                 });
             }
+            setTimeout(function() {
+                var flashMessage = document.querySelector('.flash-message');
+                if (flashMessage) {
+                    flashMessage.style.display = "none";
+                }
+            }, 7000);
         });
     </script>
 
@@ -724,14 +730,6 @@ function downloadImage() {
         event.currentTarget.classList.add("active");
     }
 
-    window.addEventListener('load', function() {
-            setTimeout(function() {
-                var flashMessage = document.querySelector('.flash-message');
-                if (flashMessage) {
-                    flashMessage.classList.add('hidden');
-                }
-            }, 7000); // 7000 milliseconds = 7 seconds
-        });
 </script>
 
 

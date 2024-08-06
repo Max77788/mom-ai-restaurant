@@ -1,29 +1,307 @@
 {% extends "layout_no_land.html" %}
 
 {% block content %}
-    <div class="success-payment-message">
-        <h1>✅The payment was successful.</h1>
-        <h2>Visit <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=res_unique_azz_id) }}' target="_blank">{{ restaurant_name.replace("_", " ") }}</a> to pick up your food shortly.</h2>
-        <h3>Here is your order id - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>. Please, either remember, note down or screenshot this number - you will be asked to provide it in the restaurant.</h2>
-        
-        <p>You can make the other order following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color:darkred">this link</a>.</p>
-        
-        <!-- <p>You will be redirected to the AI-assistant page automatically in <span id="countdown">60</span> seconds.</p> -->
-    </div>
-    <!--
-    <script>
-        // Countdown and redirect script
-        let countdown = 60;
-        const countdownElement = document.getElementById('countdown');
+<style>
+    /* Modal styles */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0, 0, 0); /* Fallback color */
+        background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+    }
 
-        const interval = setInterval(() => {
-            countdown--;
-            countdownElement.textContent = countdown;
-            if (countdown === 0) {
-                clearInterval(interval);
-                window.location.href = "{{ url_for('assistant_order_chat', unique_azz_id=res_unique_azz_id) }}";
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+        max-width: 600px;
+        text-align: center;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    /* Existing styles */
+    .success-order-message {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+        background: #f9f9f9;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    .success-order-message h1, .success-order-message h2, .success-order-message h3, .success-order-message p {
+        margin: 20px 0;
+    }
+    .success-order-message ul {
+        list-style-type: none;
+        padding: 0;
+    }
+    .success-order-message li {
+        background: #ffffff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin: 10px 0;
+        padding: 10px;
+        text-align: left;
+    }
+    .success-order-message a {
+        color: #007bff;
+        text-decoration: none;
+    }
+    .success-order-message a:hover {
+        text-decoration: underline;
+    }
+    .success-order-message .web3-button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 20px 0;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    .success-order-message .web3-button:hover {
+        background-color: #45a049;
+    }
+    .email-form {
+        max-width: 600px;
+        margin: 0;
+        padding: 5px;
+        background: #f9f9f9;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    .email-form h2, .email-form p {
+        margin: 20px 0;
+    }
+    .email-form input[type="email"] {
+        padding: 10px;
+        font-size: 16px;
+        margin-right: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    .email-form button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 5px;
+    }
+    .email-form button:hover {
+        background-color: #0056b3;
+    }
+    .success-message {
+        margin-top: 20px;
+        color: green;
+    }
+</style>
+
+<!-- Modal HTML -->
+<div id="web3Modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Connect Your Web3 Wallet</h2>
+        <p>Btw, you have earned 50 MOM tokens by making this order - connect your Web3 wallet in one click and redeem your prize!</p>
+        <button class="web3-button" onclick="connectWallet()">Connect Web3 Wallet</button>
+        <div id="response-message"></div>
+    </div>
+</div>
+
+<div class="success-order-message">
+    <h1>✅ Your order in {{ restaurant_name }} has been successfully placed.</h1>
+    <h2>These are your items:</h2>
+    <ul>
+        {% for item in items %}
+            <li>
+                <b>{{ item['name'] }}</b>: <b>{{ item['quantity'] }} serving(s)</b><br>
+                <!-- <b>{{ item['amount'] }} EUR <u>per 1 item</u></b> -->
+            </li>
+        {% endfor %}
+        <b>Total: {{ total_paid }} EUR</b>
+    </ul>
+    <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
+        Please, remember this number - you will not be able to pick your order without this number.</h3>
+
+    <hr>
+    
+    <h3>Alternatively, you can simply drop your email address below and we will send you the order ID on your email.</h3>
+    <div class="email-form">
+        <h2>Receive your Order ID</h2>
+        <form id="orderIdForm">
+            <input type="email" id="email" name="email" placeholder="Enter your email address" required>
+            <button id="emailSubmitButton" type="submit">Receive my Order ID</button>
+        </form>
+        <div id="loadingContainer" style="align-items:center;">
+           <img id="loadingGif" src="/static/assets/loading-gif.gif" alt="Loading..." style="display:none;" width="70" height="auto">
+        </div>
+    </div>
+    <div id="message"></div>
+    
+    <p>You can make another order by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
+    
+    <hr>
+
+    <div id="successful-top-up" style="display: none">
+        <h2>Perfect! You have received 50 MOM Tokens</h2>
+    </div>
+</div>
+
+<script>
+    document.getElementById('orderIdForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const email = document.getElementById('email').value;
+        const restaurant_name = "{{ restaurant_name }}";
+        const order_id = "{{ order_id }}";
+        const loadingGif = document.getElementById('loadingGif');
+        const messageElement = document.getElementById('message');
+    
+        // Show the loading GIF
+        loadingGif.style.display = 'block';
+    
+        try {
+            const response = await fetch('/send-orderid-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email: email, restaurant_name: restaurant_name, order_id: order_id })
+            });
+    
+            if (response.ok) {
+                messageElement.innerHTML = `<p style='color: #00ff00'>Thank you, the order ID has been successfully sent to ${email}.</p>`;
+                document.getElementById("emailSubmitButton").disabled = true;
+            } else {
+                messageElement.innerHTML = "<p style='color: #ff0000'>There was an error sending your order ID. Please try again.</p>";
             }
-        }, 1000);
-    </script>
-    -->
+        } catch (error) {
+            console.error('Error:', error);
+            messageElement.textContent = 'There was an error sending your order ID. Please try again.';
+        } finally {
+            // Hide the loading GIF
+            loadingGif.style.display = 'none';
+        }
+    });
+
+    // Get the modal
+    var modal = document.getElementById("web3Modal");
+
+    // Get the <span> element that closes the modal
+    var span = document.getElementsByClassName("close")[0];
+
+    // When the user clicks on <span> (x), close the modal
+    span.onclick = function() {
+        modal.style.display = "none";
+    }
+
+    // When the user clicks anywhere outside of the modal, close it
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    }
+    
+    let suggest_web3_bonus =  "{{ suggest_web3_bonus }}" === "True"
+
+    // Show the modal if suggest_web3_bonus is true
+    if (suggest_web3_bonus) {
+        modal.style.display = "block";
+    }
+
+    async function connectWallet() {
+        let accounts;
+
+        if (window.ethereum) {
+            try {
+                // Request account access if needed
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                alert('Connected account: ' + accounts[0]);
+                
+                const account = accounts[0];
+                const amount = 50;
+
+                data = {
+                    wallet_address: account,
+                    amount: amount
+                }
+            
+                fetch('/mint-send-tokens', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.ok) {
+                        localStorage.setItem("hide_wallet_section", true); 
+                        console.log("Setup hide wallet section variable")
+                    };
+                    const unique_azz_id = "{{ unique_azz_id }}"
+                    
+
+                    // Remove all query parameters from the URL
+                    window.location.href = "/success_payment/dominos_qihX/0831897"
+        
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    const responseMessageDiv = document.getElementById('response-message');
+                    responseMessageDiv.innerHTML = `<p style="color: red;">An error occurred while submitting the review. Please try again later.</p>`;
+                    // Remove all query parameters from the URL
+                    window.location.href = "/success_payment/dominos_qihX/0831897"
+                });
+
+            } catch (error) {
+                console.error('User rejected the request:', error);
+                window.location.href = "/success_payment/dominos_qihX/0831897"
+                return;
+            }
+        } else {
+            alert('MetaMask is not installed. Please install it to use this feature.');
+            window.location.href = "/success_payment/dominos_qihX/0831897"
+            return;
+        }
+    }
+
+    /*
+    let hide_wallet_section = localStorage.getItem("hide_wallet_section")
+    if (hide_wallet_section) {
+        document.getElementById("wallet-button-section").style.display = "none"
+        document.getElementById("successful-top-up").style.display = "block"
+    }
+    */
+</script>
+
 {% endblock %}

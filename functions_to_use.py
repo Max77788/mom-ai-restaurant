@@ -7,6 +7,7 @@ import gridfs
 from pathlib import Path
 import qrcode
 import asyncio
+import io
 from io import BytesIO
 import requests
 from bs4 import BeautifulSoup
@@ -15,16 +16,19 @@ from pydub import AudioSegment
 import secrets
 from deep_translator import GoogleTranslator
 from langdetect import detect, detect_langs
+import azure.cognitiveservices.speech as speechsdk
 import string
 import re
 import os
 import base64
+import requests
 # from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
 import uuid
 from utils.pp_payment import SetExpressCheckout
 import json
 import time
+from web3 import Web3
 import threading
 from openai import OpenAI
 from time import sleep
@@ -38,25 +42,6 @@ from pymongo import MongoClient
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-"""
-socketio = SocketIO(app)
-
-clients = {}
-
-@socketio.on('connect')
-def handle_connect():
-    clients[request.sid] = {}
-    print('Client connected:', request.sid)
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    client_id = request.sid
-    if client_id in clients:
-        if 'thread' in clients[client_id] and clients[client_id]['thread'].is_alive():
-            clients[client_id]['cancel'] = True
-        del clients[client_id]
-    print('Client disconnected:', client_id)
-"""
 
 app = Flask(__name__)
 #socketio = SocketIO(app, async_mode='eventlet')
@@ -85,6 +70,9 @@ MOM_AI_LANGUAGE_DETECTOR = os.environ.get("MOM_AI_POLYGLOT_MASTER_ID", "asst_LdS
 MOM_AI_EXEMPLARY_MENU_VECTOR_ID = "vs_fszfiVR3qO7DDHNSkTQn8fYH"
 MOM_AI_EXEMPLARY_MENU_FILE_ID = "file-FON6GkHWdj1c4xioGCpje05N"
 
+# Web3
+MOM_TOKEN_OWNER_ADDRESS = os.environ.get("CONTRACT_OWNER_ADDRESS")
+MOM_TOKEN_OWNER_PRIVATE_KEY = os.environ.get("OWNER_ADDRESS_PRIVATE_KEY")
 
 MOM_AI_EXEMPLARY_MENU_HTML = """
 <table border="1" class="dataframe table table-striped">
@@ -161,475 +149,74 @@ MOM_AI_EXEMPLARY_MENU_HTML = """
 </table>
 """
 
-
-# Define the scopes
-SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+AZURE_SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID")
 
 CLIENT_OPENAI = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-CONTRACT_ABI = [
-	{
-		"inputs": [],
-		"stateMutability": "nonpayable",
-		"type": "constructor"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "spender",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "allowance",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "needed",
-				"type": "uint256"
-			}
-		],
-		"name": "ERC20InsufficientAllowance",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "sender",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "balance",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "needed",
-				"type": "uint256"
-			}
-		],
-		"name": "ERC20InsufficientBalance",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "approver",
-				"type": "address"
-			}
-		],
-		"name": "ERC20InvalidApprover",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "receiver",
-				"type": "address"
-			}
-		],
-		"name": "ERC20InvalidReceiver",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "sender",
-				"type": "address"
-			}
-		],
-		"name": "ERC20InvalidSender",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "spender",
-				"type": "address"
-			}
-		],
-		"name": "ERC20InvalidSpender",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "owner",
-				"type": "address"
-			}
-		],
-		"name": "OwnableInvalidOwner",
-		"type": "error"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "OwnableUnauthorizedAccount",
-		"type": "error"
-	},
-	{
-		"anonymous": False,
-		"inputs": [
-			{
-				"indexed": True,
-				"internalType": "address",
-				"name": "owner",
-				"type": "address"
-			},
-			{
-				"indexed": True,
-				"internalType": "address",
-				"name": "spender",
-				"type": "address"
-			},
-			{
-				"indexed": False,
-				"internalType": "uint256",
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "Approval",
-		"type": "event"
-	},
-	{
-		"anonymous": False,
-		"inputs": [
-			{
-				"indexed": True,
-				"internalType": "address",
-				"name": "previousOwner",
-				"type": "address"
-			},
-			{
-				"indexed": True,
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "OwnershipTransferred",
-		"type": "event"
-	},
-	{
-		"anonymous": False,
-		"inputs": [
-			{
-				"indexed": True,
-				"internalType": "address",
-				"name": "from",
-				"type": "address"
-			},
-			{
-				"indexed": True,
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"indexed": False,
-				"internalType": "uint256",
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "Transfer",
-		"type": "event"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "owner",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "spender",
-				"type": "address"
-			}
-		],
-		"name": "allowance",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "spender",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "approve",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "account",
-				"type": "address"
-			}
-		],
-		"name": "balanceOf",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "decimals",
-		"outputs": [
-			{
-				"internalType": "uint8",
-				"name": "",
-				"type": "uint8"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "user",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "amount",
-				"type": "uint256"
-			}
-		],
-		"name": "mintForOrder",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "toAddress",
-				"type": "address"
-			}
-		],
-		"name": "mintOnDemand",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "name",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "renounceOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "rewardAmount",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "newRewardAmount",
-				"type": "uint256"
-			}
-		],
-		"name": "setRewardAmount",
-		"outputs": [],
-		"stateMutability": "payable",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "symbol",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "totalSupply",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "transfer",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "from",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "to",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "value",
-				"type": "uint256"
-			}
-		],
-		"name": "transferFrom",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "newOwner",
-				"type": "address"
-			}
-		],
-		"name": "transferOwnership",
-		"outputs": [],
-		"stateMutability": "nonpayable",
-		"type": "function"
-	}
-]
+with open('mom_ai_token_data/MOMTokenABI.json', 'r') as file:
+    CONTRACT_ABI = json.load(file)
+
+# Connect to the Polygon node (you can use Infura, Alchemy, or a local node)
+url_base =  "https://polygon-mainnet.infura.io/v3/" if os.environ.get("POLYGON_MAINNET", "False") == "True" else "https://polygon-amoy.infura.io/v3/" 
+infura_project_id = os.environ.get("INFURA_PROJECT_ID")
+
+polygon_url = url_base + infura_project_id
+web3 = Web3(Web3.HTTPProvider(polygon_url))
+
+# Check connection
+if web3.isConnected():
+    print("Connected to Polygon node")
+else:
+    print("Failed to connect to Polygon node")
+
+# Address and ABI of your deployed contract
+contract_address = os.environ.get("MOM_TOKEN_CONTRACT_ADDRESS")
+if not contract_address:
+    raise ValueError("Contract address is not set in the environment variables")
+
+# Convert to checksum address
+contract_address = web3.toChecksumAddress(contract_address)
+print(f"Contract Address: {contract_address}")
+
+# Load the contract
+contract = web3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
+print("Contract loaded")
 
 POSTS_DIR = "posts"
 
-def authenticate_gmail():
-    creds = None
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=53828)
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-    return creds
+
+def mint_and_send_tokens(user_address, amount):
+    # Define the owner address and private key (never expose the private key in a real app)
+    owner_address = MOM_TOKEN_OWNER_ADDRESS
+    private_key = MOM_TOKEN_OWNER_PRIVATE_KEY
+
+    amount = amount * (10**18)
+
+    # Build the transaction
+    tx = contract.functions.mintAndSend(user_address, amount).buildTransaction({
+        'from': owner_address,
+        'nonce': web3.eth.getTransactionCount(owner_address),
+        'gas': 2000000,
+        'gasPrice': web3.toWei('50', 'gwei')
+    })
+
+    # Sign the transaction
+    signed_tx = web3.eth.account.sign_transaction(tx, private_key)
+
+    # Send the transaction
+    tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
+
+    # Wait for the transaction to be mined
+    receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+
+    # Convert the transaction hash to a hexadecimal string
+    tx_hash_hex = tx_hash.hex()
+
+    # print(f"Sent {amount} MOM tokens to {user_address} successfully!\nHere is the receipt:\n{receipt}")
+    
+    return {"success": True, "receipt": receipt, "tx_hash": tx_hash_hex}
+
+
 
 def get_post_filenames(POSTS_DIR=POSTS_DIR):
     return [f for f in os.listdir(POSTS_DIR) if f.endswith('.md')]
@@ -644,23 +231,6 @@ def get_post_content_and_headline(filename, POSTS_DIR=POSTS_DIR):
     content = ''.join(lines[0:]) if len(lines) >= 1 else ''
     return content, headline
 
-
-
-def send_email(subject, body, to):
-    creds = authenticate_gmail()
-    service = build('gmail', 'v1', credentials=creds)
-
-    message = MIMEMultipart()
-    message['to'] = to
-    message['subject'] = subject
-    message.attach(MIMEText(body, 'plain'))
-
-    raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
-    send_message = {'raw': raw_message}
-
-    message = service.users().messages().send(userId="me", body=send_message).execute()
-    print(f'Message Id: {message["id"]}. Message successfully sent to {to}!')
-    return message
 
 
 def generate_random_string(length=6):
@@ -1164,6 +734,87 @@ def generate_qr_code_and_upload(text):
     return file_id
 
 
+def convert_and_transcribe_audio_openai(audio_content):
+    try:
+        # Convert webm to wav in-memory
+        print("Starting conversion from webm to wav in-memory.")
+        webm_audio = AudioSegment.from_file(io.BytesIO(audio_content), format="webm")
+        wav_io = io.BytesIO()
+        webm_audio.export(wav_io, format="wav")
+        wav_io.seek(0)
+        print("Conversion successful, wav_io length:", len(wav_io.getvalue()))
+
+        # Save in-memory wav to a temporary file
+        with open("temp.wav", "wb") as temp_wav_file:
+            temp_wav_file.write(wav_io.read())
+            temp_wav_file.seek(0)
+            print("Temporary wav file saved.")
+
+            try:
+                CLIENT_OPENAI = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+                client = CLIENT_OPENAI
+                print("Starting transcription with OpenAI Whisper model.")
+                transcription = client.audio.transcriptions.create(
+                    model="whisper-1", 
+                    file=temp_wav_file
+                )
+                print("Transcription successful:", transcription.text)
+                return {"transcription": transcription.text, "status": "success"}
+            except Exception as e:
+                print(f"Error during transcription: {e}")
+                return {"error": str(e), "status": "fail"}
+    except Exception as e:
+        print(f"Error during conversion or file handling: {e}")
+        return {"error": str(e), "status": "fail"}
+
+
+
+def convert_and_transcribe_audio_azure(audio_content, language):
+    try:
+        # Convert webm to wav in-memory
+        webm_audio = AudioSegment.from_file(io.BytesIO(audio_content), format="webm")
+        wav_io = io.BytesIO()
+        webm_audio.export(wav_io, format="wav")
+        wav_io.seek(0)
+
+        # Save in-memory wav to a temporary file
+        with open("temp.wav", "wb") as temp_wav_file:
+            temp_wav_file.write(wav_io.read())
+            temp_wav_file.seek(0)
+
+            # Transcribe the audio file using Azure Speech-to-Text
+            subscription_key = AZURE_SUBSCRIPTION_ID
+            region = "eastus"  # Example region
+
+            speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
+            audio_input = speechsdk.AudioConfig(filename="temp.wav")
+            speech_config.speech_recognition_language = language
+
+            speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_input)
+            result = speech_recognizer.recognize_once()
+
+            if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+                transcription = result.text
+                print(f"Transcription result: {transcription}")
+                return {"transcription": transcription, "status": "success"}
+            elif result.reason == speechsdk.ResultReason.NoMatch:
+                print("No speech could be recognized")
+                return {"error": f"No speech could be recognized. Please, speak clearer in the language you chosen: {language}", "status": "fail"}
+            elif result.reason == speechsdk.ResultReason.Canceled:
+                cancellation_details = result.cancellation_details
+                print(f"Speech Recognition canceled: {cancellation_details.reason}")
+                if cancellation_details.reason == speechsdk.CancellationReason.Error:
+                    print(f"Error details: {cancellation_details.error_details}")
+                return {"error": "Speech recognition canceled", "details": cancellation_details.error_details, "status": "fail"}
+    except Exception as e:
+        print(f"Error during transcription: {e}")
+        return {"error": str(e), "status": "fail"}
+
+
+
+
+
 
 
 # Function to transform the list into the desired string format
@@ -1554,8 +1205,8 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
     #print("\n\nList of items with links: ", list_of_items_with_links, "\n\n")
     """
 
-    language_adj = "English"
-    list_of_items_with_links = [t + (l,) for t, l in zip(list_of_all_items, list_of_image_links)]
+    #language_adj = "English"
+    #list_of_items_with_links = [t + (l,) for t, l in zip(list_of_all_items, list_of_image_links)]
 
     '''
     user_message_enhanced = f"""
@@ -1582,6 +1233,14 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
     
     # print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
 
+    message_to_compare_menu_items = f"""
+    Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
+    from this list and use the images from this list:
+    {list_of_all_items}   
+    """
+ 
+    print("Message to compare menu items: ", message_to_compare_menu_items)
+
     response = client.beta.threads.messages.create(thread_id=thread_id,
                                                    role="user",
                                                    content=translated_user_message,
@@ -1591,7 +1250,9 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                                                    }])
     
     run = client.beta.threads.runs.create(thread_id=thread_id,
-                                          assistant_id=assistant_id)
+                                          assistant_id=assistant_id,
+                                          additional_instructions=message_to_compare_menu_items,
+                                          temperature=1)
     
     start_time = time.time()
     while True:
@@ -1704,6 +1365,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
 
                         clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
                         response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
+                        # translator.translate()
                         return link_to_payment_buffer, total_tokens_used
                     else:
                         total_price = f"{sum(item['quantity'] * item['amount'] for item in items_ordered):.2f}"
@@ -1721,6 +1383,8 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         "published":True}
     
                         db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+                        # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
+                        
                         string_of_items = transform_orders_to_string(items_ordered)
 
                         no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} Euros\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
@@ -1728,6 +1392,8 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
                         all_ids_chats = restaurant_instance.get("notif_destin", [])
 
+                        session["order_confirm_access_granted"] = True
+                        
                         for chat_id in all_ids_chats:
                             send_telegram_notification(chat_id)
 
@@ -2129,17 +1795,44 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
 def generate_code():
     return str(uuid.uuid4())[:7]
 
+
 # Function to send the confirmation email
-def send_confirmation_email(mail, email, confirmation_code, from_email):
-    msg = Message('MOM AI Restaurant Email Confirmation', recipients=[email], sender=from_email)
+def send_email_raw(mail, email, main_html, subject_line, from_email):
+    msg = Message(subject_line, recipients=[email], sender=("MOM AI Restaurant",from_email))
     # HTML content with bold and centered confirmation code
     msg.html = f'''
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <h2 style="color: #444;">MOM AI Restaurant Assistant</h2>
+            {main_html}
             <p style="font-size: 16px; line-height: 1.5;">
-                You have requested account registration on MOM AI Restaurant Assistant.
+                Kind Regards,<br>
+                <strong>MOM AI Team</strong>
+            </p>
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="https://i.ibb.co/LnWCxZF/MOMLogo-Small-No-Margins.png" alt="MOM AI Logo" style="width: 170px; height: 69px;">
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+    mail.send(msg)
+
+
+
+
+
+# Function to send the confirmation email
+def send_confirmation_email(mail, email, confirmation_code, from_email):
+    msg = Message('MOM AI Restaurant Email Confirmation', recipients=[email], sender=("MOM AI Restaurant",from_email))
+    # HTML content with bold and centered confirmation code
+    msg.html = f'''
+    <html>
+    <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
+        <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #444;">MOM AI Restaurant</h2>
+            <p style="font-size: 16px; line-height: 1.5;">
+                You have requested account registration on MOM AI Restaurant.
             </p>
             <p style="font-size: 16px; line-height: 1.5;">
                 Please confirm your email by inserting the following code:
@@ -2164,15 +1857,15 @@ def send_confirmation_email(mail, email, confirmation_code, from_email):
 
 # Function to send the confirmation email
 def send_confirmation_email_change(mail, email, confirmation_code, from_email):
-    msg = Message('MOM AI Restaurant Email Confirmation', recipients=[email], sender=from_email)
+    msg = Message('MOM AI Restaurant Email Confirmation', recipients=[email], sender=("MOM AI Restaurant",from_email))
     # HTML content with bold and centered confirmation code
     msg.html = f'''
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <h2 style="color: #444;">MOM AI Restaurant Assistant</h2>
+            <h2 style="color: #444;">MOM AI Restaurant</h2>
             <p style="font-size: 16px; line-height: 1.5;">
-                You have requested account registration on MOM AI Restaurant Assistant.
+                You have requested account registration on MOM AI Restaurant.
             </p>
             <p style="font-size: 16px; line-height: 1.5;">
                 Please confirm your email by inserting the following code:
@@ -2199,7 +1892,7 @@ def send_confirmation_email_change(mail, email, confirmation_code, from_email):
 
 def send_confirmation_email_request_withdrawal(mail, email, restaurant_name, withdraw_amount, withdrawal_description, from_email):
     withdraw_amount = f'{withdraw_amount:.2f}'
-    msg = Message('MOM AI Withdrawal Confirmation', recipients=[email], sender=from_email)
+    msg = Message('MOM AI Withdrawal Confirmation', recipients=[email], sender=("MOM AI Restaurant",from_email))
     msg_for_mom_ai =  Message('MOM AI Withdrawal Request', recipients=["contact@mom-ai-agency.site"], sender=from_email)
     msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has requested a withdrawal of {withdraw_amount} USD.\n\nDescription is: \n\n{withdrawal_description}\n\nPlease, proceed with the withdrawal.'
 
@@ -2210,7 +1903,7 @@ def send_confirmation_email_request_withdrawal(mail, email, restaurant_name, wit
 
 
 def send_waitlist_email(mail, email, restaurant_name, from_email):
-    msg = Message(f'{restaurant_name} is on MOM AI Waitlist!', recipients=[email], sender=from_email)
+    msg = Message(f'{restaurant_name} is on MOM AI Waitlist!', recipients=[email], sender=("MOM AI Restaurant",from_email))
     msg_for_mom_ai =  Message('MOM AI Waitlist New Person', recipients=["contact@mom-ai-agency.site"], sender=from_email)
     msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been added to the waitlist. Awesome!\n\nI love ya!'
 
@@ -2230,7 +1923,7 @@ def send_waitlist_email(mail, email, restaurant_name, from_email):
     mail.send(msg)
 
 def send_confirmation_email_registered(mail, email, restaurant_name, from_email):
-    msg = Message(f'{restaurant_name} is in MOM AI Family!', recipients=[email], sender=from_email)
+    msg = Message(f'{restaurant_name} is in MOM AI Family!', recipients=[email], sender=("MOM AI Restaurant",from_email))
     msg_for_mom_ai =  Message('MOM AI New Restaurant Registered', recipients=["contact@mom-ai-agency.site"], sender=from_email)
     msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been registered. Awesome!\n\nI love ya!'
 
@@ -2240,7 +1933,7 @@ def send_confirmation_email_registered(mail, email, restaurant_name, from_email)
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <h2 style="color: #444;">Welcome to MOM AI Restaurant Assistant!</h2>
+            <h2 style="color: #444;">Welcome to MOM AI Restaurant!</h2>
             <p style="font-size: 16px; line-height: 1.5;">
                 Hi, {restaurant_name}'s restaurant representative.
             </p>
@@ -2265,7 +1958,7 @@ def send_confirmation_email_registered(mail, email, restaurant_name, from_email)
 
 
 def send_confirmation_email_quick_registered(mail, email, password, restaurant_name, from_email):
-    msg = Message(f'{restaurant_name} is in MOM AI Family!', recipients=[email], sender=from_email)
+    msg = Message(f'{restaurant_name} is in MOM AI Family!', recipients=[email], sender=("MOM AI Restaurant",from_email))
     msg_for_mom_ai =  Message('MOM AI New Restaurant Registered', recipients=["contact@mom-ai-agency.site"], sender=from_email)
     msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has been registered. Awesome!\n\nI love ya!'
 
@@ -2275,7 +1968,7 @@ def send_confirmation_email_quick_registered(mail, email, password, restaurant_n
     <html>
     <body style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px; color: #333;">
         <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-            <h2 style="color: #444;">Welcome to MOM AI Restaurant Assistant!</h2>
+            <h2 style="color: #444;">Welcome to MOM AI Restaurant!</h2>
             <p style="font-size: 16px; line-height: 1.5;">
                 Hi, {restaurant_name}'s restaurant representative.
             </p>

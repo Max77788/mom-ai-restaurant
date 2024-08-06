@@ -13,16 +13,16 @@ from pydub import AudioSegment
 import uuid
 import base64
 from bs4 import BeautifulSoup
-import azure.cognitiveservices.speech as speechsdk
 import markdown
 import json
+import requests
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from functions_to_use import send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
+from functions_to_use import send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -61,13 +61,19 @@ scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///blog.db')
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
+
 
 # Define the Post model
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
+
+
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 
 # Ensure the tables are created
 with app.app_context():
@@ -78,6 +84,12 @@ SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDB
 
 POSTS_DIR = 'posts'
 auth = HTTPBasicAuth()
+
+class Config:
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+app.config.from_object(Config)
 
 
 # Define users and passwords
@@ -102,34 +114,6 @@ mail = Mail(app)
 
 
 
-# Connect to the Polygon node (you can use Infura, Alchemy, or a local node)
-url_base =  "https://polygon-mainnet.infura.io/v3/" if os.environ.get("POLYGON_MAINNET", "False") == "True" else "https://polygon-amoy.infura.io/v3/" 
-infura_project_id = os.environ.get("INFURA_PROJECT_ID")
-
-polygon_url = url_base + infura_project_id
-web3 = Web3(Web3.HTTPProvider(polygon_url))
-
-# Check connection
-if web3.isConnected():
-    print("Connected to Polygon node")
-else:
-    print("Failed to connect to Polygon node")
-
-# Address and ABI of your deployed contract
-contract_address = os.environ.get("MOM_TOKEN_CONTRACT_ADDRESS")
-if not contract_address:
-    raise ValueError("Contract address is not set in the environment variables")
-
-# Convert to checksum address
-contract_address = web3.toChecksumAddress(contract_address)
-print(f"Contract Address: {contract_address}")
-
-# Load the contract
-contract = web3.eth.contract(address=contract_address, abi=CONTRACT_ABI)
-print("Contract loaded")
-
-
-
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.mkdir(app.config['UPLOAD_FOLDER'])
 
@@ -139,12 +123,14 @@ mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
 client_db = MongoClient(mongodb_connection_string)
 
 # Specify the database name
-db = client_db['MOM_AI_Restaurants']
+db_mongo = client_db['MOM_AI_Restaurants']
 
 # Specify the collection name
-collection = db[os.environ.get("DB_VERSION")]
+collection = db_mongo[os.environ.get("DB_VERSION")]
 
 db_order_dashboard = client_db["Dashboard_Orders"]
+
+db_rest_reviews = client_db["restaurant_reviews"]
 
 db_items_cache = client_db["Items_Cache"]
 
@@ -161,7 +147,7 @@ EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 AZURE_SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID")
 
-fs = gridfs.GridFS(db)
+fs = gridfs.GridFS(db_mongo)
 
 print("Everything Initialized!")
 
@@ -751,8 +737,15 @@ def logout():
 @app.route('/post/<int:post_id>')
 def post(post_id):
     post = Post.query.get_or_404(post_id)
-    html_content = markdown(post.content, extras=["break-on-newline", "cuddled-lists", "pyshell"])
-    return render_template('blog-posts/post.html', content=html_content, title=post.title)
+    title = post.title,
+    content = post.content
+    #created_at = post.created_at.strftime('%d.%m')
+    # html_content = markdown(post.content, extras=["break-on-newline", "cuddled-lists", "pyshell"])
+    return render_template('blog-posts/post.html', 
+                           content=content, 
+                           title=title)
+                           #created_at=created_a
+                           
 
 @app.route('/all_posts')
 def all_posts():
@@ -760,22 +753,16 @@ def all_posts():
     post_links = [url_for('post', post_id=post.id) for post in posts]
     return render_template('blog-posts/all_posts.html', post_links=post_links, title="Blog Posts")
 
-# Webhook for adding new posts
+
 @app.route('/add_post', methods=['POST'])
 @auth.login_required
 def add_post():
     data = request.json
     content = data.get('content')
+    title = data.get('title')
     
     if not content:
         return jsonify({'error': 'Content is required'}), 400
-    
-    # Extract the title from the first line of the content
-    lines = content.split('\n')
-    title = lines[0].strip('# ') if lines else 'no_title'
-    
-    # Join the remaining lines to form the rest of the content
-    content = '\n'.join(lines[1:]).strip()
     
     new_post = Post(title=title, content=content)
     db.session.add(new_post)
@@ -926,6 +913,41 @@ def change_credentials():
     return render_template('settings/change_credentials.html', form=form, title="Change Credentials")
 
 
+@app.route('/send-orderid-email', methods=['POST', 'GET'])
+def send_orderid_email():
+    data = request.json
+    email = data.get("email")
+    restaurant_name = data.get("restaurant_name")
+    order_id = data.get("order_id")
+
+    msg_body = f"""
+    <p style="font-size: 16px; line-height: 1.5;">Thank you for ordering at {restaurant_name} with MOM AI Restaurant.<br><br>
+    Provide this order ID in the restaurant and have a great meal!</p>
+    <div style="text-align: center; font-size: 24px; margin: 20px 0;">
+                <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">{order_id}</strong>
+    </div>
+    """
+
+    subject_line = "Your Order ID from MOM AI Restaurant"
+    
+    send_email_raw(mail, email, msg_body, subject_line, FROM_EMAIL)
+
+    # The URL to which the POST request will be sent
+    url = 'https://script.google.com/macros/s/AKfycbww4HXvT1pArfTYZZHSkryqPPgXPmPZf44skGWwzsz0DHmQn_8ViSTIWbGnkQciZBbg/exec?gid=0'
+
+    timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+
+    # The data to be sent in the POST request
+    data = {
+        "gid":2010883790,
+        "email": email,
+        'time': timestamp_utc
+    }
+
+    # Sending the POST request
+    response = requests.post(url, data=data)
+
+    return jsonify({"ok":True})
 
 
 
@@ -1426,7 +1448,6 @@ def set_working_hours():
     return render_template('settings/set_working_hours.html', title="Set Working Hours", start_hours=start_hours, end_hours=end_hours, restaurant=restaurant, current_rest_timezone=current_rest_timezone)
 
 
-
 @app.route('/submit_hours', methods=['POST'])
 def submit_hours():
     working_hours = request.json['schedule']
@@ -1449,6 +1470,83 @@ def submit_hours():
 
     return jsonify({"status": "success", "data": working_hours}), 200
 
+
+@app.route('/submit_review', methods=['POST'])
+def submit_review():
+    data = request.json
+    print(data)
+    order_id = data.get("order_id")
+    person_name = data.get("name")
+    review_text = data.get("review_text")
+    unique_azz_id = data.get("unique_azz_id")
+    review_rating = data.get("rating")
+    wallet_address = data.get("wallet_address", None)
+
+    ### Validation Part ###
+
+    try:
+        # Query the database and project only the 'orderID' field
+        orderids_cursor = db_order_dashboard[unique_azz_id].find({}, {"orderID": 1, "_id": 0})
+        print(orderids_cursor)
+        
+        # Collect orderIDs in a list
+        orderids = [doc["orderID"] for doc in orderids_cursor]
+        print(orderids)
+    except Exception as e:
+        return jsonify({"message":"The Order ID is not existent", "success":False})
+    
+
+    if not order_id in orderids:
+        print("No order ID in orders")
+        return jsonify({"message":"The Order ID is not existent", "success":False})
+    
+    try:
+        restaurant_reviews = db_rest_reviews[unique_azz_id]
+        
+        # Query the database and project only the 'orderID' field
+        orderids_cursor_reviews = restaurant_reviews.find({}, {"order_id": 1, "_id": 0})
+
+        # Collect orderIDs in a list
+        orderids_reviews = [doc["order_id"] for doc in orderids_cursor_reviews]
+    except Exception as e:
+        orderids_reviews = []
+        pass
+    
+    if order_id in orderids_reviews:
+        print("The review is already there!")
+        return jsonify({"message":"The review for this order has been already submitted", "success":False})
+
+    
+    # Success - adding review and topping up the web3 wallet
+    
+    review_to_pass = {
+        "text": review_text,
+        "person": person_name,
+        "order_id": order_id,
+        "rating": int(review_rating)
+    }
+    
+    tx_hash = ""
+
+    print("Order ID reviews: ", orderids_reviews)
+
+    if wallet_address:
+        # Check whether the review is gonna be the first one
+        if len(orderids_reviews) == 0:
+            amount_to_send = 150
+        else:
+            amount_to_send = 50
+
+        tx = mint_and_send_tokens(wallet_address, amount_to_send)
+        tx_hash = tx["tx_hash"]
+        print(f"Sent {amount_to_send} MOM to the user")
+    
+    restaurant_reviews.insert_one(review_to_pass)
+
+    if tx_hash:
+        return jsonify({"message":f"The review has been successfully placed and token added to your balance.\nCheck the transaction on https://amoy.polygonscan.com/tx/{tx_hash}", "tx_hash":tx_hash, "success":True})
+    else:
+        return jsonify({"message":f"The review has been successfully placed and token added to your balance.", "tx_hash":tx_hash, "success":True})
 
 @app.route('/settings', methods=['POST', 'GET'])
 def settings_display():
@@ -1473,7 +1571,30 @@ def add_number_nots():
 def show_menu():
     form = UpdateMenuForm()
     html_menu = session.get("html_menu")
-    return render_template("dashboard/menu_display.html", html_menu=html_menu, form=form)
+    wrapped_html_table = wrap_images_in_html_table(html_menu)
+
+    print("That's the menu we've got ", wrapped_html_table)
+    return render_template("dashboard/menu_display.html", html_menu=wrapped_html_table, form=form)
+
+
+def wrap_images_in_html_table(html_table):
+    soup = BeautifulSoup(html_table, 'html.parser')
+    rows = soup.find_all('tr')[1:]  # Skip the header row
+
+    try:
+        for row in rows:
+            cells = row.find_all('td')
+            image_cell = cells[3]
+            image_url = image_cell.text.strip()
+            item_name = cells[0].text.strip()
+            new_image_tag = f'<img src="{image_url}" alt="Image of {item_name}" width="170" height="auto">'
+            image_cell.string = ""
+            image_cell.append(BeautifulSoup(new_image_tag, 'html.parser'))
+
+        return str(soup)
+    except Exception as e:
+        return html_table
+
 
 @app.route('/update_menu', methods=['POST'])
 def update_menu():
@@ -1521,36 +1642,24 @@ def update_menu():
 
 
 # Mint MOM token
-@app.route('/mint_tokens', methods=['POST'])
+@app.route('/mint-send-tokens', methods=['POST'])
 def mint_tokens():
     data = request.json
-    user_address = data['user_address']
+    wallet_address = data['wallet_address']
     amount = data['amount']
 
-    # Define the owner address and private key (never expose the private key in a real app)
-    owner_address = "0xYourOwnerAddressHere"
-    private_key = "YourOwnerPrivateKeyHere"
+    sending = mint_and_send_tokens(wallet_address, amount)
 
-    # Build the transaction
-    tx = contract.functions.mintForOrder(user_address, amount).buildTransaction({
-        'from': owner_address,
-        'nonce': web3.eth.getTransactionCount(owner_address),
-        'gas': 2000000,
-        'gasPrice': web3.toWei('50', 'gwei')
-    })
+    tx_hash = sending["tx_hash"]
 
-    # Sign the transaction
-    signed_tx = web3.eth.account.sign_transaction(tx, private_key)
+    hide_wallet_button = True
 
-    # Send the transaction
-    tx_hash = web3.eth.sendRawTransaction(signed_tx.rawTransaction)
-
-    # Wait for the transaction to be mined
-    receipt = web3.eth.waitForTransactionReceipt(tx_hash)
+    
 
     return jsonify({
-        'status': 'Transaction sent',
-        'transaction_hash': tx_hash.hex()
+        'ok': True,
+        'transaction_hash': tx_hash,
+        "hide_wallet_button": hide_wallet_button
     })
 
 
@@ -1812,41 +1921,10 @@ def transcribe_voice():
         audio_content = file.read()
         print(f"Audio content (length {len(audio_content)} bytes): {audio_content[:100]}...")
 
-        # Convert webm to wav in-memory
-        webm_audio = AudioSegment.from_file(io.BytesIO(audio_content), format="webm")
-        wav_io = io.BytesIO()
-        webm_audio.export(wav_io, format="wav")
-        wav_io.seek(0)
-
-        # Save in-memory wav to a temporary file
-        with open("temp.wav", "wb") as temp_wav_file:
-            temp_wav_file.write(wav_io.read())
-            temp_wav_file.seek(0)
-
-            # Transcribe the audio file using Azure Speech-to-Text
-            subscription_key = AZURE_SUBSCRIPTION_ID
-            region = "eastus"  # Example region
-
-            speech_config = speechsdk.SpeechConfig(subscription=subscription_key, region=region)
-            audio_input = speechsdk.AudioConfig(filename="temp.wav")
-            speech_config.speech_recognition_language = language
-
-            speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_input)
-            result = speech_recognizer.recognize_once()
-
-            if result.reason == speechsdk.ResultReason.RecognizedSpeech:
-                transcription = result.text
-                print(f"Transcription result: {transcription}")
-                return jsonify({"transcription": transcription, "status": "success"})
-            elif result.reason == speechsdk.ResultReason.NoMatch:
-                print("No speech could be recognized")
-                return jsonify({"error": f"No speech could be recognized. Please, speak clearer in the language you chosen: {language}", "status": "fail"})
-            elif result.reason == speechsdk.ResultReason.Canceled:
-                cancellation_details = result.cancellation_details
-                print(f"Speech Recognition canceled: {cancellation_details.reason}")
-                if cancellation_details.reason == speechsdk.CancellationReason.Error:
-                    print(f"Error details: {cancellation_details.error_details}")
-                return jsonify({"error": "Speech recognition canceled", "details": cancellation_details.error_details, "status": "fail"})
+         # Call the separate function to convert and transcribe
+        # result = convert_and_transcribe_audio_openai(audio_content)
+        result = convert_and_transcribe_audio_azure(audio_content, language)
+        return jsonify(result)
     except Exception as e:
         print(f"Error during transcription: {e}")
         return jsonify({"error": str(e), "status": "fail"})
@@ -1975,6 +2053,7 @@ def generate_response(unique_azz_id):
     rows = soup.find_all('tr')[1:]  # Skip the header row
 
     list_of_all_items = []
+    list_of_all_items_names_images = []
     list_of_image_links = []
     for row in rows:
         columns = row.find_all('td')
@@ -1984,7 +2063,9 @@ def generate_response(unique_azz_id):
         if columns[3]:
            image_link = columns[3].text
            list_of_image_links.append(image_link)
-        tuple_we_deserved = (item, ingredients, f"{price} EUR")
+        items_image = f'<img src="{image_link} alt="Image of {item}" width="170" height="auto">'
+        tuple_we_deserved = (f"Item Name:{item}", f"Item Ingredients:{ingredients}", f"Items Price: {price} EUR", f"Image for {item}: {items_image}")
+        #list_of_all_items.append(tuple_we_deserved)
         list_of_all_items.append(tuple_we_deserved)
 
     # print("List of image links formed: ", list_of_image_links)
@@ -2128,6 +2209,14 @@ def no_payment_order_placed(unique_azz_id):
 
 @app.route('/success_payment_backend/<unique_azz_id>', methods=["POST", "GET"])
 def success_payment_backend(unique_azz_id):
+    suggest_web3_bonus = request.args.get("suggest_web3_bonus")
+    
+    if suggest_web3_bonus:
+        session["suggest_web3_bonus"] = True
+    else:
+        session["suggest_web3_bonus"] = False
+
+    print("Setup suggest web3 hours in session to ", session["suggest_web3_bonus"])
     
     if not session.get('access_granted_payment_result'):
         abort(403)  # Forbidden
@@ -2221,20 +2310,41 @@ def success_payment_backend(unique_azz_id):
     # This route can be used for further processing if needed
     return redirect(url_for('success_payment_display', unique_azz_id=unique_azz_id, id=order_id))
 
+
+
 @app.route('/success_payment/<unique_azz_id>/<id>', methods=["GET", "POST"])
 def success_payment_display(unique_azz_id, id):
+    suggest_web3_bonus = session.get("suggest_web3_bonus", False)
+
+    print("Suggest web3 bonus, ", suggest_web3_bonus)
+    
     if not id:
         abort(403)
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     restaurant_name = current_restaurant_instance.get("name")
     result = db_items_cache[unique_azz_id].delete_one({"id":id})
 
+    order = db_order_dashboard[unique_azz_id].find_one({"orderID": id})
+
+    items = order.get("items")
+
+    total_paid = session.get('total')
+
     # Check if the delete was successful
     if result.deleted_count > 0:
         print("Document deleted.")
     else:
         print("No document matches the query. Nothing was deleted.")
-    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, res_unique_azz_id=unique_azz_id, order_id=id)
+
+    if session.get("suggest_web3_bonus", None):
+        session.pop("suggest_web3_bonus")
+
+    return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, 
+                           res_unique_azz_id=unique_azz_id, 
+                           order_id=id, 
+                           suggest_web3_bonus=suggest_web3_bonus, 
+                           items=items,
+                           total_paid=total_paid)
     
 
 @app.route('/cancel_payment/<unique_azz_id>')
@@ -2346,7 +2456,7 @@ def view_orders_ajax():
     for order in orders:
         order_info = {
             'foods': [item for item in order['items']],
-            'timestamp': datetime.fromtimestamp(order['timestamp']).strftime('%Y-%m-%d %H:%M:%S'),
+            'timestamp': order['timestamp'],
             'published': order['published'],
             'orderID':order.get('orderID', 'no ID provided'),
             'paid':order.get('paid')
@@ -2438,6 +2548,20 @@ def show_restaurant_profile_public(unique_azz_id):
     res_coords = ast.literal_eval(restaurant["location_coord"])
     latitude = res_coords["lat"]
     longitude = res_coords["lng"]
+
+    html_menu = restaurant.get("html_menu")
+    if html_menu:
+        wrapped_html_table = wrap_images_in_html_table(html_menu)
+
+    restaurant_reviews = db_rest_reviews[unique_azz_id]
+    
+    reviews = restaurant_reviews.find()
+
+    reviews = list(reviews)
+
+    print("Reviews passed: ", reviews)
+
+    there_are_reviews = True if len(reviews)>=1 else False
     
     start_work = restaurant.get("start_work")
     end_work = restaurant.get("end_work")
@@ -2469,7 +2593,11 @@ def show_restaurant_profile_public(unique_azz_id):
                            latitude=latitude, longitude=longitude, 
                            isWorkingHours=isWorkingHours,
                            start_working_hours=start_working_hours,
-                           end_working_hours=end_working_hours)
+                           end_working_hours=end_working_hours,
+                           unique_azz_id=unique_azz_id,
+                           html_menu=wrapped_html_table,
+                           reviews=reviews,
+                           there_are_reviews=there_are_reviews)
 
     
 if __name__ == '__main__':

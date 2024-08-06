@@ -32,15 +32,16 @@
         </div>
         <div class="profile-right">
             {% if not restaurant.profile_visible %}
-            <h1 style="background-color: #ddd;">The profile is not diplayed to the customers. To change it toggle profile visibility on the dashboard</h1>
+            <h1 style="background-color: #ddd;">The profile is not displayed to the customers. To change it toggle profile visibility on the dashboard</h1>
             {% endif %}
             <div class="description">
                 <h2>Description of AI-empowered Restaurant {{ restaurant['name'].replace("_", " ") }}</h2>
                 <p>{{ restaurant['description'] or "The best restaurant embracing the future with AI-implementation and just serving an awesome food"}}</p>
             </div>
             <div class="assistant-section">
-                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Make the order with AI</button></a>
+                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Make the AI-order</button></a>
             </div>
+
             <div class="working-hours">
                 <h2 style="margin-top: 15px;">Working Hours (Timezone: <a id="timeLink" href="https://time.is/{{ restaurant.timezone.replace('Etc/', '').replace('+0', '') }}" target="_blank">{{ restaurant.timezone.replace("Etc/", "") }}</a>)</h2>
                 <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
@@ -57,11 +58,323 @@
                     {% endfor %}
                 </table>
             </div>
+
+            <!-- Reviews Section -->
+            <div class="reviews">
+                <h2>Submit a Review</h2>
+                {% if there_are_reviews %}
+                    <p><i>(and get 50 MOM tokens easily after this 15-seconds web3 wallet connection)</i></p>
+                {% else %}
+                    <p><i>(and get <s> 50</s> <b>150 MOM tokens</b> easily for being the first review)</i></p>    
+                {% endif %}
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <button id="connectWalletButton" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px;">Connect Web3 Wallet</button>
+                    <p id="walletAddress" style="margin-top: 10px; color: #2c3e50;"></p>
+                </div>
+                <form id="review-form">
+                    <label for="order-id">Order ID:</label>
+                    <input placeholder="Provide the ID of your order in this restaurant" type="text" id="order-id" name="order_id" required><br><br>
+                    <label for="person-name">Your Name:</label>
+                    <input placeholder="Type in your name here or leave empty to stay anonymous" type="text" id="person-name" name="person_name" minlength="3" maxlength="40"><br><br>
+                    <label for="review">Review (50-300 characters):</label><br>
+                    <textarea id="review" name="review" rows="4" cols="50" minlength="50" maxlength="300" required></textarea><br>
+                    <!-- Star Rating Section -->
+                    <label for="rating">Rating:</label><br>
+                    <div class="star-rating">
+                        <input type="radio" id="star5" name="rating" value="10" required /><label for="star5" title="5 stars"></label>
+                        <input type="radio" id="star4.5" name="rating" value="9" /><label for="star4.5" title="4.5 stars"></label>
+                        <input type="radio" id="star4" name="rating" value="8" /><label for="star4" title="4 stars"></label>
+                        <input type="radio" id="star3.5" name="rating" value="7" /><label for="star3.5" title="3.5 stars"></label>
+                        <input type="radio" id="star3" name="rating" value="6" /><label for="star3" title="3 stars"></label>
+                        <input type="radio" id="star2.5" name="rating" value="5" /><label for="star2.5" title="2.5 stars"></label>
+                        <input type="radio" id="star2" name="rating" value="4" /><label for="star2" title="2 stars"></label>
+                        <input type="radio" id="star1.5" name="rating" value="3" /><label for="star1.5" title="1.5 stars"></label>
+                        <input type="radio" id="star1" name="rating" value="2" /><label for="star1" title="1 star"></label>
+                        <input type="radio" id="star0.5" name="rating" value="1" /><label for="star0.5" title="0.5 star"></label>
+                    </div><br>
+
+                    <button type="submit" class="ai-button">Submit Review</button>
+                </form>
+                
+                <div id="response-message" style="margin-top: 20px;"></div>
+
+                <!-- Modal for wallet connection -->
+                <div id="walletModal" class="modal">
+                    <div class="modal-content">
+                        <span class="close">&times;</span>
+                        <p>Your wallet is not connected. Would you like to connect your wallet to receive MOM tokens?</p>
+                        <button id="confirmConnectWallet" class="ai-button">Yes, Connect Wallet</button>
+                        <button id="cancelConnectWallet" class="ai-button">No, Submit Without Wallet</button>
+                    </div>
+                </div>
+                
+                <script>
+                let walletAddress = null;
+
+                document.getElementById('review-form').addEventListener('submit', async function(event) {
+                    event.preventDefault(); // Prevent the default form submission
+
+                    // Check if wallet is connected
+                    if (!walletAddress) {
+                        document.getElementById('walletModal').style.display = 'block';
+                    } else {
+                        submitReview();
+                    }
+                });
+
+                document.getElementById('confirmConnectWallet').addEventListener('click', async function() {
+                    await connectWallet();
+                    document.getElementById('walletModal').style.display = 'none';
+                    submitReview();
+                });
+
+                document.getElementById('cancelConnectWallet').addEventListener('click', function() {
+                    document.getElementById('walletModal').style.display = 'none';
+                    submitReview();
+                });
+
+                function submitReview() {
+                    const orderId = document.getElementById('order-id').value;
+                    const review = document.getElementById('review').value;
+                    const person_name = document.getElementById('person-name').value || "Anonymous";
+                    const rating = document.querySelector('input[name="rating"]:checked').value;
+                
+                    const unique_azz_id = "{{ unique_azz_id }}";
+                
+                    const data = {
+                        order_id: orderId,
+                        review_text: review,
+                        name: person_name,
+                        rating: rating,
+                        unique_azz_id: unique_azz_id,
+                        wallet_address: walletAddress // Include the wallet address if available
+                    };
+                
+                    fetch('/submit_review', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        const responseMessageDiv = document.getElementById('response-message');
+                        if (data.success) {
+                            responseMessageDiv.innerHTML = `<p style="color: green;">${data.message}</p>`;
+                        } else {
+                            responseMessageDiv.innerHTML = `<p style="color: red;">${data.message}</p>`;
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Error:', error);
+                        const responseMessageDiv = document.getElementById('response-message');
+                        responseMessageDiv.innerHTML = `<p style="color: red;">An error occurred while submitting the review. Please try again later.</p>`;
+                    });
+                }
+
+                // Web3 Wallet Connection
+                async function connectWallet() {
+                    if (window.ethereum) {
+                        try {
+                            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                            walletAddress = accounts[0];
+                            document.getElementById('walletAddress').innerHTML = `<p style="font-size:17px">Connected Wallet: ${walletAddress}<br>Congratulations! Your Wallet Has Been Connected - Leave Review and Get MOM Tokens</p>`;
+                            document.getElementById('connectWalletButton').style.display = 'none';
+                        } catch (error) {
+                            console.error('User rejected the request.');
+                        }
+                    } else {
+                        alert('Please install MetaMask to connect your wallet.');
+                    }
+                }
+
+                document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
+
+                // Modal handling
+                const modal = document.getElementById("walletModal");
+                const span = document.getElementsByClassName("close")[0];
+
+                span.onclick = function() {
+                    modal.style.display = "none";
+                }
+
+                window.onclick = function(event) {
+                    if (event.target == modal) {
+                        modal.style.display = "none";
+                    }
+                }
+                </script>
+                
+                <style>
+                .star-rating {
+                    direction: rtl;
+                    display: inline-flex;
+                    font-size: 1.5rem;
+                    justify-content: space-around;
+                    padding: 0;
+                    position: relative;
+                    width: 10rem;
+                    margin-left: 107px;
+                }
+                .star-rating input {
+                    display: none;
+                }
+                .star-rating label {
+                    color: #ddd;
+                    cursor: pointer;
+                    font-size: 2rem;
+                    margin: 0;
+                    padding: 0;
+                    text-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
+                }
+                .star-rating label:before {
+                    content: '\2605';
+                    display: inline-block;
+                    position: relative;
+                }
+                .star-rating input:checked ~ label {
+                    color: #ffc700;
+                }
+                .star-rating input:hover ~ label {
+                    color: #ffc700;
+                }
+
+                /* Modal styling */
+                .modal {
+                    display: none;
+                    position: fixed;
+                    z-index: 1;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    overflow: auto;
+                    background-color: rgb(0,0,0);
+                    background-color: rgba(0,0,0,0.4);
+                    padding-top: 60px;
+                }
+
+                .modal-content {
+                    background-color: #fefefe;
+                    margin: 5% auto;
+                    padding: 20px;
+                    border: 1px solid #888;
+                    width: 80%;
+                    max-width: 400px;
+                    text-align: center;
+                    border-radius: 10px;
+                }
+
+                .close {
+                    color: #aaa;
+                    float: right;
+                    font-size: 28px;
+                    font-weight: bold;
+                }
+
+                .close:hover,
+                .close:focus {
+                    color: black;
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+                </style>
+                
+                
+                
+            </div>
+            
+            <hr>
+
+            <!-- Display Reviews -->
+<div class="display-reviews">
+    {% if there_are_reviews %}
+        <h2 style="margin-bottom: 10px;">Customer Reviews</h2>
+        {% for review in reviews %}
+            <div class="review-card">
+                <p class="review-text">"{{ review.text }}"</p>
+                <p class="review-person"><strong>{{ review.person }}</strong> - Order ID: {{ review.order_id[:4] }}***</p>
+                <div class="star-rating">
+                    {% set filled_stars = review.rating %}
+                    {% set empty_stars = 10 - review.rating %}
+
+                    <!-- Render empty stars -->
+                    {% for i in range(empty_stars) %}
+                    <span class="star empty">&#9733;</span>
+                    {% endfor %}
+
+                    <!-- Render filled stars -->
+                    {% for i in range(filled_stars) %}
+                    <span class="star filled">&#9733;</span>
+                    {% endfor %}
+                    
+                    
+                </div>
+                <p>{{review.rating}}/10</p>
+            </div>
+            
+            </div>
+            {% endfor %}
+    {% else %}
+        <h2>No Customer Reviews Yet</h2>
+        <h3>Be the first one and get bonus!</h3>
+    {% endif %}
+</div>
+
+<style>
+.review-card {
+    border: 1px solid #ddd;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+.review-text {
+    font-size: 16px;
+    color: #333;
+}
+.review-person {
+    font-size: 14px;
+    color: #777;
+    margin-top: 5px;
+}
+
+/* Star Rating */
+.star-rating {
+    display: flex;
+    align-items: center;
+}
+.star {
+    font-size: 20px;
+    color: #ddd;
+    margin-right: 2px;
+}
+.star.filled {
+    color: #ffc700;
+}
+.star.half-filled {
+    position: relative;
+    color: #ffc700;
+}
+.star.half-filled::before {
+    content: '\2605';
+    color: #ddd;
+    position: absolute;
+    width: 50%;
+    overflow: hidden;
+}
+</style>
+
+
+            <hr>
+
             <div class="menu">
                 <h2>Menu</h2>
-                <div class="menu-content table-responsive">
-                    {{ restaurant['html_menu']|safe or "Menu is expected soon" }}
+                <div class="menu-content table-responsive" id="menu-content">
+                    {{ html_menu|safe or "Menu is expected soon" }}
                 </div>
+                <button id="show-more-button" class="ai-button" style="display: none;">Show More</button>
             </div>
         </div>
     </div>
@@ -108,7 +421,7 @@
         .website a:hover, .location a:hover {
             text-decoration: underline;
         }
-        .description, .menu, .assistant-section {
+        .description, .menu, .assistant-section, .reviews {
             margin-top: 20px;
         }
         .assistant-section-mobile {
@@ -138,6 +451,65 @@
                 margin-top: 10px;
             }
         }
+        .display-reviews {
+            margin-top: 20px;
+        }
+        .review-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .review-text {
+            font-size: 16px;
+            color: #333;
+        }
+        .review-person {
+            font-size: 14px;
+            color: #777;
+            margin-top: 5px;
+        }
+    
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 400px;
+            text-align: center;
+            border-radius: 10px;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
     </style>
     <!-- Include Google Maps JavaScript API with Places library -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initMap" async defer></script>
@@ -159,5 +531,46 @@
         });
     }
 
+    document.addEventListener("DOMContentLoaded", function() {
+        const menuContent = document.getElementById("menu-content");
+        const showMoreButton = document.getElementById("show-more-button");
+
+        // Assuming the menu items are in a list or table format
+        const menuItems = menuContent.querySelectorAll("tr");
+        if (menuItems.length > 3) {
+            showMoreButton.style.display = "block"; // Show the "Show More" button
+        }
+
+        // Hide menu items beyond the first 3
+        for (let i = 3; i < menuItems.length; i++) {
+            menuItems[i].style.display = "none";
+        }
+
+        showMoreButton.addEventListener("click", function() {
+            const isExpanded = showMoreButton.innerText === "Show Less";
+            for (let i = 3; i < menuItems.length; i++) {
+                menuItems[i].style.display = isExpanded ? "none" : "table-row";
+            }
+            showMoreButton.innerText = isExpanded ? "Show More" : "Show Less";
+        });
+    });
+
+    // Web3 Wallet Connection
+    async function connectWallet() {
+        if (window.ethereum) {
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                walletAddress = accounts[0];
+                document.getElementById('walletAddress').innerHTML = `<p style="font-size:17px">Connected Wallet: ${walletAddress}<br>Congratulations! Your Wallet Has Been Connected - Leave Review and Get MOM Tokens</p>`;
+                document.getElementById('connectWalletButton').style.display = 'none';
+            } catch (error) {
+                console.error('User rejected the request.');
+            }
+        } else {
+            alert('Please install MetaMask to connect your wallet.');
+        }
+    }
+
+    document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
 </script>
 {% endblock %}
