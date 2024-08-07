@@ -10,10 +10,15 @@
         margin: 20px auto; /* Add margin to the top and bottom, center horizontally */
     }
     .content-wrapper p {
-        margin-bottom: 27px; /* Adjust the value as needed */
+        margin-bottom: 32px; /* Adjust the value as needed */
+        text-align: center;
+    }
+
+    .content-wrapper h1 {
+        text-align: center; /* Adjust the value as needed */
     }
 </style>
-
+<!-- <p><em>Posted on {{ created_at }}</em></p> -->
 <article>
     <div class="content-wrapper">
         {{ content | safe }}

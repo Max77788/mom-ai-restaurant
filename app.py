@@ -11,6 +11,7 @@ import bcrypt
 import gridfs
 from pydub import AudioSegment
 import uuid
+import re
 import base64
 from bs4 import BeautifulSoup
 import markdown
@@ -61,29 +62,37 @@ scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL_CORRECT', 'sqlite:///blog.db')
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 
 
 # Define the Post model
 class Post(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    url_slug = db.Column(db.String(150), nullable=False)
+    url_slug = db.Column(db.String(150), nullable=True, unique=True, index=True)
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
 
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 
+# DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
+
+# print("Drop the existing tables = ", DROP_THE_EXISTING_TABLES)
+
 # Ensure the tables are created
 with app.app_context():
+    #if DROP_THE_EXISTING_TABLES:
+        #db.drop_all()
+        #print("Dropped the tables")
     db.create_all()
+
 
 CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
 SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
 
-POSTS_DIR = 'posts'
 auth = HTTPBasicAuth()
 
 class Config:
@@ -735,26 +744,54 @@ def logout():
 #################### Registration/Login Part End ####################
 
 #################### Blog Posts #########################
-@app.route('/post/<int:post_id>')
-def post(post_id):
-    post = Post.query.get_or_404(post_id)
-    title = post.title,
+@app.route('/post/<string:url_slug>')
+def post(url_slug):
+    post = Post.query.filter_by(url_slug=url_slug).first_or_404()
+    title = post.title.replace('(', '').replace(')', '').replace("'", '')
     content = post.content
-    #created_at = post.created_at.strftime('%d.%m')
-    # html_content = markdown(post.content, extras=["break-on-newline", "cuddled-lists", "pyshell"])
-    return render_template('blog-posts/post.html', 
-                           content=content, 
-                           title=title)
-                           #created_at=created_a
+    created_at = post.created_at.strftime('%d.%m.%Y %H:%M')
+    return render_template('blog-posts/post.html', content=content, title=title, created_at=created_at)
+
                            
 
 @app.route('/all_posts')
 def all_posts():
-    posts = Post.query.all()
-    post_links = [url_for('post', post_id=post.id) for post in posts]
-    return render_template('blog-posts/all_posts.html', post_links=post_links, title="Blog Posts")
+    page = request.args.get('page', 1, type=int)
+    posts_pagination = Post.query.paginate(page=page, per_page=10, count=False)
+    posts = posts_pagination.items
+    
+    post_data = []
+    for post in posts:
+        # Parse the HTML content
+        soup = BeautifulSoup(post.content, 'html.parser')
+        
+        # Remove all h1 elements
+        for h1 in soup.find_all('h1'):
+            h1.decompose()
+        
+        # Extract plain text
+        plain_text = soup.get_text()
+        
+        # Remove text within brackets
+        plain_text = re.sub(r'\(.*?\)', '', plain_text)
+        
+        # Get the first 100 characters of the plain text
+        excerpt = plain_text[:300]
+        
+        post_data.append({
+            'title': post.title,
+            'excerpt': excerpt,
+            'link': url_for('post', url_slug=post.url_slug),
+            'created_at': post.created_at.strftime('%d.%m.%Y %H:%M')  # Format the created_at field
+        })
+    
+    next_url = url_for('all_posts', page=posts_pagination.next_num) if posts_pagination.has_next else None
+    prev_url = url_for('all_posts', page=posts_pagination.prev_num) if posts_pagination.has_prev else None
+    
+    return render_template('blog-posts/all_posts.html', posts=post_data, title="Blog Posts", next_url=next_url, prev_url=prev_url)
 
 
+"""
 @app.route('/add_post', methods=['POST'])
 @auth.login_required
 def add_post():
@@ -770,7 +807,7 @@ def add_post():
     db.session.commit()
     
     return jsonify({'message': 'Post added successfully', 'title': title}), 201
-
+"""
 
 
 

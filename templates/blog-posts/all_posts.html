@@ -1,10 +1,95 @@
 {% extends "layout.html" %}
-{% block title %}All Posts{% endblock %}
+
 {% block content %}
-<h1>All Posts</h1>
-<ul>
-    {% for link in post_links %}
-        <li><a href="{{ link }}">{{ link.split('/')[-1].replace('_', ' ').capitalize() }}</a></li>
-    {% endfor %}
-</ul>
+<style>
+    .posts-wrapper {
+        text-align: center; /* Center the wrapper */
+    }
+    .posts-wrapper ul {
+        list-style-type: none; /* Remove bullets from list items */
+        padding: 0; /* Remove default padding */
+    }
+    .post-container {
+        margin: 0 auto; /* Center the container */
+        max-width: 800px; /* Set a maximum width */
+        padding: 20px;
+        margin-bottom: 20px;
+        background: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s ease-in-out;
+        text-align: center; /* Align text to the left */
+    }
+    .post-container:hover {
+        transform: scale(1.02);
+    }
+    .post-title {
+        font-size: 1.8em;
+        font-weight: bold;
+        color: #000; /* Bold color for the title */
+        margin-bottom: 10px;
+    }
+    .post-meta {
+        font-size: 0.9em;
+        color: #888888;
+        margin-bottom: 15px;
+    }
+    .post-excerpt {
+        font-size: 1.1em;
+        color: #333333;
+        margin-bottom: 15px;
+    }
+    .read-now {
+        font-size: 1em;
+        color: #ffffff;
+        background-color: #000;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+    }
+    .read-now:hover {
+        background-color: #003;
+    }
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+    .pagination a {
+        margin: 0 5px;
+        padding: 10px 15px;
+        color: #ffffff;
+        background-color: #000;
+        border-radius: 5px;
+        text-decoration: none;
+    }
+    .pagination a:hover {
+        background-color: #003;
+    }
+</style>
+
+<div class="posts-wrapper">
+    <h1>AI-Restaurants Articles Hub</h1>
+    <ul>
+        {% for post in posts %}
+            <li class="post-container">
+                <h2 class="post-title">{{ post.title }}</h2>
+                <p class="post-meta"><em>Posted on {{ post.created_at }} UTC</em></p>
+                <p class="post-meta"><em>(approximately <u>3 minutes to read</u>)</em></p>
+                <p class="post-excerpt">{{ post.excerpt }}...</p>
+                <a class="read-now" href="{{ post.link }}">Read Now</a>
+            </li>
+        {% endfor %}
+    </ul>
+    <div class="pagination">
+        {% if prev_url %}
+            <a href="{{ prev_url }}">&laquo; Previous</a>
+        {% endif %}
+        {% if next_url %}
+            <a href="{{ next_url }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}
+
+
