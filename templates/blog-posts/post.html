@@ -1,5 +1,4 @@
 {% extends "layout.html" %}
-{% block title %}{{ title }}{% endblock %}
 {% block content %}
 <style>
     .content-wrapper {
@@ -20,4 +19,20 @@
         {{ content | safe }}
     </div>
 </article>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Get all <p> elements within the content-wrapper
+        const paragraphs = document.querySelectorAll('.content-wrapper p');
+        
+        // Iterate through all paragraphs
+        paragraphs.forEach(function(paragraph) {
+            // Create an <hr> element
+            const hr = document.createElement('hr');
+            
+            // Insert the <hr> element after the current paragraph
+            paragraph.parentNode.insertBefore(hr, paragraph.nextSibling);
+        });
+    });
+</script>
 {% endblock %}
