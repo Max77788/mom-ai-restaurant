@@ -126,7 +126,7 @@
     }
 </style>
 
-<!-- Modal HTML -->
+<!-- Modal HTML 
 <div id="web3Modal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
@@ -136,6 +136,7 @@
         <div id="response-message"></div>
     </div>
 </div>
+-->
 
 <div class="success-order-message">
     <h1>✅ Your order in {{ restaurant_name }} has been successfully placed.</h1>
@@ -211,89 +212,6 @@
             loadingGif.style.display = 'none';
         }
     });
-
-    // Get the modal
-    var modal = document.getElementById("web3Modal");
-
-    // Get the <span> element that closes the modal
-    var span = document.getElementsByClassName("close")[0];
-
-    // When the user clicks on <span> (x), close the modal
-    span.onclick = function() {
-        modal.style.display = "none";
-    }
-
-    // When the user clicks anywhere outside of the modal, close it
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
-    }
-    
-    let suggest_web3_bonus =  "{{ suggest_web3_bonus }}" === "True"
-
-    // Show the modal if suggest_web3_bonus is true
-    if (suggest_web3_bonus) {
-        modal.style.display = "block";
-    }
-
-    async function connectWallet() {
-        let accounts;
-
-        if (window.ethereum) {
-            try {
-                // Request account access if needed
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                alert('Connected account: ' + accounts[0]);
-                
-                const account = accounts[0];
-                const amount = 50;
-
-                data = {
-                    wallet_address: account,
-                    amount: amount
-                }
-            
-                fetch('/mint-send-tokens', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.ok) {
-                        localStorage.setItem("hide_wallet_section", true); 
-                        console.log("Setup hide wallet section variable")
-                    };
-                    const unique_azz_id = "{{ unique_azz_id }}"
-                    
-
-                    // Remove all query parameters from the URL
-                    window.location.href = "/success_payment/dominos_qihX/0831897"
-        
-                })
-                .catch((error) => {
-                    console.error('Error:', error);
-                    const responseMessageDiv = document.getElementById('response-message');
-                    responseMessageDiv.innerHTML = `<p style="color: red;">An error occurred while submitting the review. Please try again later.</p>`;
-                    // Remove all query parameters from the URL
-                    window.location.href = "/success_payment/dominos_qihX/0831897"
-                });
-
-            } catch (error) {
-                console.error('User rejected the request:', error);
-                window.location.href = "/success_payment/dominos_qihX/0831897"
-                return;
-            }
-        } else {
-            alert('MetaMask is not installed. Please install it to use this feature.');
-            window.location.href = "/success_payment/dominos_qihX/0831897"
-            return;
-        }
-    }
 
     /*
     let hide_wallet_section = localStorage.getItem("hide_wallet_section")

@@ -485,7 +485,7 @@ def landing_page():
     """
     
             
-    return render_template('start/landing.html', title="Restaurant Assistant")
+    return render_template('start/bestLanding.html', title="AI Restaurant")
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -951,6 +951,39 @@ def change_credentials():
     return render_template('settings/change_credentials.html', form=form, title="Change Credentials")
 
 
+
+@app.route('/add-email-in-funnel', methods=['POST'])
+def add_email_in_funnel():
+    data = request.json
+    email = data.get("email")
+
+    msg_body = f"""
+    <p style="font-size: 16px; line-height: 1.5;">Thank you for trusting MOM AI Restaurant. From now on you are on the frontier of AI-innvation in the restaurant industry!</p>
+    <p style="font-size: 16px; line-height: 1.5;">By the way, you can reap benefits of AI in your restaurant after this <a href="https://mom-ai-restaurant.pro/register" style="color:#000033"><u>simple 5-minutes registration.</u></a></p>
+    """
+
+    subject_line = "Ride the wave of the innovation with MOM AI Restaurant"
+    
+    send_email_raw(mail, email, msg_body, subject_line, FROM_EMAIL)
+
+    # The URL to which the POST request will be sent
+    url = 'https://script.google.com/macros/s/AKfycbww4HXvT1pArfTYZZHSkryqPPgXPmPZf44skGWwzsz0DHmQn_8ViSTIWbGnkQciZBbg/exec'
+
+    timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+
+    # The data to be sent in the POST request
+    data = {
+        "gid":2141419829,
+        "email": email,
+        'time': timestamp_utc
+    }
+
+    # Sending the POST request
+    response = requests.post(url, data=data)
+
+    return jsonify({"ok":True})
+
+
 @app.route('/send-orderid-email', methods=['POST', 'GET'])
 def send_orderid_email():
     data = request.json
@@ -971,7 +1004,7 @@ def send_orderid_email():
     send_email_raw(mail, email, msg_body, subject_line, FROM_EMAIL)
 
     # The URL to which the POST request will be sent
-    url = 'https://script.google.com/macros/s/AKfycbww4HXvT1pArfTYZZHSkryqPPgXPmPZf44skGWwzsz0DHmQn_8ViSTIWbGnkQciZBbg/exec?gid=0'
+    url = 'https://script.google.com/macros/s/AKfycbww4HXvT1pArfTYZZHSkryqPPgXPmPZf44skGWwzsz0DHmQn_8ViSTIWbGnkQciZBbg/exec'
 
     timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
 

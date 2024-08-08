@@ -62,15 +62,19 @@
             <!-- Reviews Section -->
             <div class="reviews">
                 <h2>Submit a Review</h2>
+                <h4>Rewards Soon...</h4>
+                <!--
                 {% if there_are_reviews %}
-                    <p><i>(and get 50 MOM tokens easily after this 15-seconds web3 wallet connection)</i></p>
+                    <p style="color: #808080"><i>(and get 50 MOM tokens easily after this 15-seconds web3 wallet connection)</i></p>
                 {% else %}
-                    <p><i>(and get <s> 50</s> <b>150 MOM tokens</b> easily for being the first review)</i></p>    
+                    <p style="color: #808080"><i>(and get <s> 50</s> <b>150 MOM tokens</b> easily for being the first review)</i></p>    
                 {% endif %}
+    
                 <div style="text-align: center; margin-bottom: 20px;">
                     <button id="connectWalletButton" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px;">Connect Web3 Wallet</button>
                     <p id="walletAddress" style="margin-top: 10px; color: #2c3e50;"></p>
                 </div>
+                -->
                 <form id="review-form">
                     <label for="order-id">Order ID:</label>
                     <input placeholder="Provide the ID of your order in this restaurant" type="text" id="order-id" name="order_id" required><br><br>
@@ -98,7 +102,7 @@
                 
                 <div id="response-message" style="margin-top: 20px;"></div>
 
-                <!-- Modal for wallet connection -->
+                <!--
                 <div id="walletModal" class="modal">
                     <div class="modal-content">
                         <span class="close">&times;</span>
@@ -107,6 +111,7 @@
                         <button id="cancelConnectWallet" class="ai-button">No, Submit Without Wallet</button>
                     </div>
                 </div>
+                -->
                 
                 <script>
                 let walletAddress = null;
@@ -121,7 +126,7 @@
                         submitReview();
                     }
                 });
-
+                /*
                 document.getElementById('confirmConnectWallet').addEventListener('click', async function() {
                     await connectWallet();
                     document.getElementById('walletModal').style.display = 'none';
@@ -132,6 +137,7 @@
                     document.getElementById('walletModal').style.display = 'none';
                     submitReview();
                 });
+                */
 
                 function submitReview() {
                     const orderId = document.getElementById('order-id').value;
@@ -172,7 +178,8 @@
                         responseMessageDiv.innerHTML = `<p style="color: red;">An error occurred while submitting the review. Please try again later.</p>`;
                     });
                 }
-
+                
+                /*
                 // Web3 Wallet Connection
                 async function connectWallet() {
                     if (window.ethereum) {
@@ -204,6 +211,7 @@
                         modal.style.display = "none";
                     }
                 }
+                */
                 </script>
                 
                 <style>
@@ -555,6 +563,7 @@
         });
     });
 
+    /*
     // Web3 Wallet Connection
     async function connectWallet() {
         if (window.ethereum) {
@@ -572,5 +581,6 @@
     }
 
     document.getElementById('connectWalletButton').addEventListener('click', connectWallet);
+    */
 </script>
 {% endblock %}

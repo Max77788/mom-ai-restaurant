@@ -14,6 +14,23 @@
         text-align: center;
     }
 
+    .content-wrapper h2 {
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    .content-wrapper h3 {
+        text-align: center;
+        margin-bottom: 12px;
+    }
+
+    .content-wrapper p a {
+        font-weight: bold; /* Make the text bold */
+        text-decoration: underline; /* Underline the text */
+        color: #007BFF; /* A bright blue color that stands out against black text */
+    }
+
+
     .content-wrapper h1 {
         text-align: center; /* Adjust the value as needed */
     }
@@ -22,8 +39,64 @@
 <article>
     <div class="content-wrapper">
         {{ content | safe }}
+        
+        <h2>Thank you for your attention! Like this kind of content?</h2>
+        <h3>Then simply drop your email address<br>to receive the articles of this kind on autopilot. <i>(couple of times per week)</i></h3>
+
+        <form id="orderIdForm" style="align-items: center; text-align: center;">
+            <input type="email" style="width: 300px;" id="email" name="email" placeholder="Enter your email address" required>
+            <div style="margin-top: 5px;">
+                <button id="emailSubmitButton" type="submit">Subscribe to Articles</button>
+            </div> 
+            <div id="message"></div>
+        </form>
+        <div id="loadingContainer" style="align-items:center;">
+           <img id="loadingGif" src="/static/assets/loading-gif.gif" alt="Loading..." style="display:none;" width="70" height="auto">
+        </div>
+        </div>
+        
+        
     </div>
+
 </article>
+
+
+
+
+<script>
+document.getElementById('orderIdForm').addEventListener('submit', async function(event) {
+    event.preventDefault();
+    const email = document.getElementById('email').value;
+    const loadingGif = document.getElementById('loadingGif');
+    const messageElement = document.getElementById('message');
+
+    // Show the loading GIF
+    loadingGif.style.display = 'block';
+
+    try {
+        const response = await fetch('/add-email-in-funnel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email: email })
+        });
+
+        if (response.ok) {
+            messageElement.innerHTML = `<p style='color: #00ff00'>Thank you, your email has been successfully added!<br>Now you will never miss a new thing in the AI Restaurants space.</p>`;
+            document.getElementById("emailSubmitButton").disabled = true;
+        } else {
+            messageElement.innerHTML = "<p style='color: #ff0000'>There was an error adding your email. Please try again.</p>";
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        messageElement.textContent = 'There was an error sending your order ID. Please try again.';
+    } finally {
+        // Hide the loading GIF
+        loadingGif.style.display = 'none';
+    }
+});
+</script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function() {

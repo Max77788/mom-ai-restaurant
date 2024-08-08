@@ -44,6 +44,8 @@
     }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/web3@1.3.5/dist/web3.min.js"></script>
+
 <div style="width: 100%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
     
     <div id="overlay" style="position: fixed; width: 100%; height: 100%; top: 0; left: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;">
@@ -62,10 +64,89 @@
                 <option value="pt-BR">Portuguese 🇧🇷</option>
             </select>
             <button onclick="startChat()" style="padding: 10px; width: 100%;">Start</button>
+            <!--
+            <p style="font-size: 14px; margin-top: 5px;">Connect your web3 wallet<br>&<br>get MOM tokens upon placing the order.</p>
+            <button id="connectWalletButtonOverlay" onclick="connectWallet()" style="margin-top: 10px; padding: 10px; width: 100%;">Connect Web3 Wallet</button>
+            <p id="walletSuccessMessage" style="display: none; color: green; margin-top: 10px;">Wallet connected successfully!<br>Order and get MOM</p>
+            -->
         </div>
     </div>
     
+    <!--
+    <script>
+        async function connectWallet() {
+            let accounts;
     
+            if (window.ethereum) {
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    
+                    const account = accounts[0];
+    
+                    // Store account in local storage
+                    localStorage.setItem("web3_wallet", account);
+    
+                    // Hide the connect wallet button
+                    document.getElementById('connectWalletButtonOverlay').style.display = 'none';
+    
+                    // Show the success message
+                    document.getElementById('walletSuccessMessage').style.display = 'block';
+                
+                    // Fetch and display MOM token balance
+                    await fetchTokenBalance(account);
+                } catch (error) {
+                    console.error('User rejected the request:', error);
+                    return;
+                }
+            }
+        }
+
+        connectWallet()
+        
+        async function fetchTokenBalance(account) {
+            const tokenAddress = '0xdB1022f9fABB6B6208969ac289fFd69957eE3092'; // Replace with your MOM token contract address
+            const tokenABI = [
+                // Only the 'balanceOf' function is needed here
+                {
+                    "constant": true,
+                    "inputs": [
+                        {
+                            "name": "_owner",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "balanceOf",
+                    "outputs": [
+                        {
+                            "name": "balance",
+                            "type": "uint256"
+                        }
+                    ],
+                    "type": "function"
+                }
+            ];
+
+            const web3 = new Web3(window.ethereum);
+            const tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
+
+            try {
+                const balance = await tokenContract.methods.balanceOf(account).call();
+                const formattedBalance = web3.utils.fromWei(balance, 'ether'); // Adjust if the token has different decimals
+                localStorage.setItem("momsBalance", formattedBalance)
+                document.getElementById('tokenBalance').innerText = 'MOM Token Balance: ' + formattedBalance;
+            } catch (error) {
+                console.error('Error fetching token balance', error);
+                document.getElementById('tokenBalance').innerText = 'Error fetching token balance';
+            }
+        }
+    </script>
+
+    <div id="tokenBalance" style="text-align: center; margin: 10px 0; font-size: 16px; color: black;">
+        Connect wallet to see MOM token balance
+    </div>
+    -->
 
     <header style="background-color: #000000; color: white; padding: 10px; text-align: center;" id="orderHeader">
         Make the Order in {{ restaurant_name.replace("_"," ") }}
@@ -225,6 +306,15 @@
 
         // Start the conversation
         startConversation();
+        /*
+        // Fetch MOM token balance if wallet is connected
+        const account = localStorage.getItem("web3_wallet");
+        if (account) {
+            fetchTokenBalance(account);
+        } else {
+            document.getElementById('tokenBalance').innerText = 'Connect wallet to see MOM token balance';
+        }
+        */    
     }
 
     window.startChat = startChat;
