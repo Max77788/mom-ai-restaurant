@@ -1236,7 +1236,8 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
     message_to_compare_menu_items = f"""
     Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
     from this list and use the images from this list:
-    {list_of_all_items}   
+    {list_of_all_items} 
+    Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
     """
  
     print("Message to compare menu items: ", message_to_compare_menu_items)
