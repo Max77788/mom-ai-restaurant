@@ -1,16 +1,16 @@
 {% extends "layout_no_land.html" %}
 {% block content %}
 <p>
-    {% if available_amount < 100 %}
-        You need to reach <b>100 Euros</b> balance to be able to withdraw your funds. Your Current Balance is <b>{{ available_amount }} Euros</b>.
+    {% if available_amount < 110 %}
+        You need to reach <b>110 Euros</b> balance to be able to withdraw your funds. Your Current Balance is <b>{{ available_amount }} Euros</b>.
     {% else %}
         <form id="withdrawal-form" action="/post-withdrawal-request" method="POST">
             <label for="withdrawal-description">Describe where you want your withdrawal with the needed details(Card Number, IBAN, SWIFT, etc.):</label><br>
             <textarea id="withdrawal-description" name="withdrawal_description" rows="2" cols="50"></textarea><br>
             <span id="description-error" style="color: red; display: none; padding-bottom: 15px;">Withdrawal description must be between 50 and 500 characters.</span><br>
-            <button type="submit" id="leave-request" class="{% if available_amount < 400 %}disabled{% else %}enabled{% endif %}" {% if available_amount < 400 %}disabled{% endif %}>Leave Request</button>
+            <button type="submit" id="leave-request" class="{% if available_amount < 100 %}disabled{% else %}enabled{% endif %}" {% if available_amount < 100 %}disabled{% endif %}>Leave Request</button>
         </form><br>
-        <p>You have {{ available_amount }} EUR to withdraw. - <b>Only all funds withdrawal is available</b></p>
+        <p>You have {{ available_amount - 10 }} EUR to withdraw. - <b>Only all funds withdrawal is available. 10 Euros will be retained to ensure the smooth flow of your AI-agent.</b></p>
         <p>Please get familiar with paypal fees - <a href="https://www.paypal.com/us/webapps/mpp/merchant-fees" target="_blank">learn more</a></p>
     {% endif %}
 </p>

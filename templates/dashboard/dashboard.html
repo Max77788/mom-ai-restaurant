@@ -113,7 +113,7 @@ function downloadImage() {
             <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}</span>
             <br><a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
             {% if awaiting_withdrawal > 0 %}
-            <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span>$
+            <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span> EUR
             {% endif %}
             <br><i><a href="javascript:void(0);" onclick="toggleVisibilityAndConvert('currency-converter', '{{ res_currency }}');"><u>Show/Hide Currency Converter</u></a></i>
             <div id="currency-converter" style="display: none;">

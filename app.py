@@ -1366,11 +1366,11 @@ def payments_display():
 
     payments = list(orders)
 
-    print("Payments passed: ", payments)
+    # print("Payments passed: ", payments)
 
     there_are_payments = True if len(payments)>=1 else False
 
-    print(f"\n\nPayments Retrieved\n\n")
+    # print(f"\n\nPayments Retrieved\n\n")
 
     #payments = [{"timestamp":order.get("timestamp"), "total_paid":order.get("total_paid"), ""} for order in orders]
 
@@ -2453,20 +2453,22 @@ def request_withdraw_funds():
 def post_withdrawal_request():
     # Retrieve the withdrawal description from the form data
     withdrawal_description = request.form.get('withdrawal_description')
-    
+    print("We are on the request withdrawal post endpoint")
     res_email = session.get('restaurant_email')
     res_name = session.get('restaurant_name')
-    withdraw_amount = round(session.get("current_balance"), 2)
+    withdraw_amount = round(session.get("current_balance")-10, 2)
+
+    print("Withdraw amount: ", withdraw_amount)
 
     send_confirmation_email_request_withdrawal(mail, res_email, res_name, withdraw_amount, withdrawal_description, FROM_EMAIL)
     current_restaurant_instance = collection.find_one({"email": res_email})
     
     if current_restaurant_instance.get("await_withdrawal"):
         print("Chose IF")
-        result_withdraw_request = collection.update_one({"email":res_email}, {"$set": {"balance": 0}, "$inc": {"await_withdrawal": withdraw_amount}})
+        result_withdraw_request = collection.update_one({"email":res_email}, {"$set": {"balance": 10}, "$inc": {"await_withdrawal": withdraw_amount}})
     else:
         print("Chose ELSE")
-        result_withdraw_request = collection.update_one({"email":res_email}, {"$set": {"balance": 0, "await_withdrawal": withdraw_amount}})
+        result_withdraw_request = collection.update_one({"email":res_email}, {"$set": {"balance": 10, "await_withdrawal": withdraw_amount}})
     # Check if the update was successful
     if result_withdraw_request.matched_count > 0:
         print("Balance decreased successfully in request withdraw route.")

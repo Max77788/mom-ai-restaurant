@@ -1894,7 +1894,7 @@ def send_confirmation_email_request_withdrawal(mail, email, restaurant_name, wit
     withdraw_amount = f'{withdraw_amount:.2f}'
     msg = Message('MOM AI Withdrawal Confirmation', recipients=[email], sender=("MOM AI Restaurant",from_email))
     msg_for_mom_ai =  Message('MOM AI Withdrawal Request', recipients=["contact@mom-ai-agency.site"], sender=from_email)
-    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has requested a withdrawal of {withdraw_amount} USD.\n\nDescription is: \n\n{withdrawal_description}\n\nPlease, proceed with the withdrawal.'
+    msg_for_mom_ai.body = f'Hi, MOM AI\'s representative!\n\nThe restaurant {restaurant_name} - {email} has requested a withdrawal of {withdraw_amount} EUR.\n\nDescription is: \n\n{withdrawal_description}\n\nPlease, proceed with the withdrawal.'
 
     mail.send(msg_for_mom_ai)
 
