@@ -157,7 +157,8 @@
             </script>
             
         
-        <p>You can make another order by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
+        <p>You can make another order in {{ restaurant_name }} by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
+        <p style="margin-top: 8px;">To explore the family of AI-empowered restaurants click <a href="/ai-restaurants" target="_blank" style="color: darkred;">this link</a>.</p>
 
 {% endblock %}
 

@@ -547,7 +547,8 @@ def register():
         if form.referral_id.data:
             session["id_of_who_referred"] = form.referral_id.data
         
-        if request.files['menu']:
+        
+        if request.files.get('menu'):
             menu = request.files['menu']
             #script = request.files['script']
 
