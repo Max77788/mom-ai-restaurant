@@ -2152,9 +2152,10 @@ def generate_response(unique_azz_id):
         item = columns[0].text
         ingredients = columns[1].text
         price = columns[2].text
-        if columns[3]:
-           image_link = columns[3].text
-           list_of_image_links.append(image_link)
+        if len(columns) > 3:
+            if columns[3]:
+                image_link = columns[3].text
+                list_of_image_links.append(image_link)
         items_image = f'<img src="{image_link}" alt="Image of {item}" width="170" height="auto">'
         tuple_we_deserved = (f"Item Name:{item}", f"Item Ingredients:{ingredients}", f"Items Price: {price} EUR", f"Image for {item}: {items_image}")
         #list_of_all_items.append(tuple_we_deserved)
