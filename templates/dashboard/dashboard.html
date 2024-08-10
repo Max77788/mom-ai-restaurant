@@ -10,17 +10,20 @@
         <h1>Congratulations!</h1>
         <h2>✅Your Account Has Been Successfully Created✅</h2>
         <h3>Next Steps:</h3>
-        <h2 style="margin-top: 10px;">1. Setup Notifications in 30 seconds</h2>
+        <h2 style="margin-top: 10px;">1. Setup Notifications in 30 seconds🔔</h2>
         <p>- Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
         <p>- Go to Profile -> Notifications section and paste the obtained code</p>
-        <p>- Now you will be receiving the notification upon the incoming of the paid order</p>
+        <p>- Now you will be receiving the notification upon the incoming of the order</p>
         <p><i>*you can set up notifications on the multiple devices (e.g., on your phone and the ones of employees)</i></p>
-        <h2 style="margin-top: 10px;">2. Set the working hours of your restaurant</h2>
+        <h2 style="margin-top: 10px;">2. Set the working hours of your restaurant⏱️</h2>
         <p>- Go to Profile -> <a href="/set-working-hours" target="_blank"><u>Set Working Hours</u></a> section and press 'Edit' button</p>
         <p>- Choose your restaurant's timezone and working hours, press 'Submit' button</p>
-        <h2 style="margin-top: 10px;">3. Activate the assistant in right upper corner<br>&<br>begin generating orders with MOM AI Restaurant Assistant</h2>
+        <h2 style="margin-top: 10px;">3. Form and upload your restaurant menu quickly📑</h2>
+        <p>- Go to Menu section and check out the simple instructions on how to upload your menu.</p>
+        <p><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and have your menu file formed!</u></a></p>
+        <h2 style="margin-top: 10px;">4. Activate the assistant in right upper corner<br>&<br>begin generating orders with MOM AI Restaurant Assistant📈</h2>
         <img src="/static/images/turn_on_ass.png" alt="Turn On Assistant" style="max-width: 100%; height: auto;">
-        <p>*you can check out this guide anytime at the bottom of the dashboard page</p>
+        <p>*you can check out this guide anytime at the bottom of the dashboard page♻️</p>
     </div>
 </div>
 
@@ -296,6 +299,14 @@ function downloadImage() {
                 </span>
                 {% endif %}
             </div>
+            
+            {% if default_menu %}
+                <hr>
+                <div class="default_menu">
+                    <p style="font-size: medium;">AI-Assistant is currently referring to the default menu<br><b>Check out the "Menu📖" Tab Now!</b></p>
+                </div>
+                <hr>
+            {% endif %}
 
             <div class="switch-container">
                 <span id="profileVisibilityStatus">

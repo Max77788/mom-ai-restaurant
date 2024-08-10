@@ -167,9 +167,14 @@
             {% else %}
                 <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<!-- <br>Click below to start chatting. </p> -->
             {% endif %}
-            {% if assistant_turned_on and isWorkingHours %}
+            
+            {% if default_menu %}
+                <p id="offMessage">{{ restaurant_name }} hasn't uploaded the menu yet. Come back later😉</p>
             {% else %}
-            <p id="offMessage"><b>We are currently off. You will be able to take the order later.</b></p>
+                {% if assistant_turned_on and isWorkingHours %}
+                {% else %}
+                <p id="offMessage"><b>We are currently off. You will be able to take the order later.</b></p>
+                {% endif %}
             {% endif %}
         </div>
     </div>

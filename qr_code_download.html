@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Download Example</title>
+    <!-- Include html2canvas library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <!-- The container for the QR code and text -->
+    <div id="qr-code-container" style="border: 1px solid black; padding: 10px; width: 200px; text-align: center;">
+        <img src="https://via.placeholder.com/150" alt="Restaurant Assistant QR-code" class="restaurant-logo" />
+        <h4 style="text-align: center; margin-top: -20px; margin-bottom: 7px;">😋Order in your Native Language now with Our AI-agent🥘</h4>
+    </div>
+
+    <!-- Button to trigger the download -->
+    <button id="download-btn" style="margin-top: 20px;">Download QR Code as Image</button>
+
+    <!-- JavaScript to handle the download -->
+    <script>
+        document.getElementById('download-btn').addEventListener('click', function() {
+            html2canvas(document.getElementById('qr-code-container')).then(function(canvas) {
+                // Create an anchor element
+                var link = document.createElement('a');
+                link.download = 'qr-code-image.png';
+                
+                // Convert canvas to a data URL and set it as the href attribute
+                link.href = canvas.toDataURL('image/png');
+                
+                // Trigger the download
+                link.click();
+            });
+        });
+    </script>
+</body>
+</html>

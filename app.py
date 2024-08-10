@@ -93,24 +93,14 @@ with app.app_context():
 CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
 SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
 
-auth = HTTPBasicAuth()
+MOM_AI_EXEMPLARY_MENU_VECTOR_ID = "vs_fszfiVR3qO7DDHNSkTQn8fYH"
+MOM_AI_EXEMPLARY_MENU_FILE_ID = "file-FON6GkHWdj1c4xioGCpje05N"
 
 class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 app.config.from_object(Config)
-
-
-# Define users and passwords
-users = {
-    os.environ.get('BLOG_USERNAME'): generate_password_hash(os.environ.get('BLOG_PASSWORD'))
-}
-
-@auth.verify_password
-def verify_password(username, password):
-    if username in users and check_password_hash(users.get(username), password):
-        return username
 
 
 # Initialize Flask-Mail
@@ -547,6 +537,7 @@ def register():
         if form.referral_id.data:
             session["id_of_who_referred"] = form.referral_id.data
         
+        session["custom_menu_provided"] = False
         
         if request.files.get('menu'):
             menu = request.files['menu']
@@ -584,7 +575,8 @@ def register():
 
             session["restaurant_name"] = restaurant_name
             session["res_website_url"] = restaurant_url
-            session["html_menu"] = html_menu       
+            session["html_menu"] = html_menu   
+            session["custom_menu_provided"] = True    
 
             with open(menu_txt_path, 'rb') as menu_file:
                 menu_encoded = base64.b64encode(menu_file.read())
@@ -1083,7 +1075,10 @@ def confirm_email(res_email):
     menu_vector_id = session.get("menu_vector_id")
 
     currency = session.get("currency")
-    html_menu = session.get("html_menu", MOM_AI_EXEMPLARY_MENU_HTML)
+    if session.get("custom_menu_provided"):
+        html_menu = session.get("html_menu", MOM_AI_EXEMPLARY_MENU_HTML)
+    else:
+        html_menu = MOM_AI_EXEMPLARY_MENU_HTML
 
     file_id = session.get("logo_id", "666af654dee400a1d635eb08")
 
@@ -1293,6 +1288,10 @@ def dashboard_display():
         res_currency = restaurant_instance.get("res_currency")
         html_menu = restaurant_instance.get("html_menu")
         assistant_spent = restaurant_instance.get("assistant_fund")
+        default_menu = False
+        menu_vector_id = restaurant_instance.get("menu_vector_id")
+        if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
+            default_menu = True
         logo_id = restaurant_instance.get("res_logo", "666af654dee400a1d635eb08")
         qr_code_id = restaurant_instance.get("qr_code", "666af654dee400a1d635eb08")
         gateway_is_on = restaurant_instance.get("paymentGatewayTurnedOn")
@@ -1316,6 +1315,7 @@ def dashboard_display():
         session["res_currency"] = res_currency
         session["html_menu"] = html_menu
         session["qr_code_id"] = qr_code_id
+        session["default_menu"] = default_menu
 
         print(f"Assistant ID added in session: {assistant_id}")
         print(f"Restaurant name added in session: {restaurant_name}")
@@ -1347,7 +1347,8 @@ def dashboard_display():
                            exchange_api_key=EXCHANGE_API_KEY,
                            gateway_is_on=gateway_is_on,
                            show_popup=show_popup,
-                           PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID)
+                           PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID,
+                           default_menu=default_menu)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -1938,6 +1939,10 @@ def assistant_order_chat(unique_azz_id):
     menu_file_id = res_instance.get("menu_file_id")
     menu_vector_id = res_instance.get("menu_vector_id")
     res_currency = res_instance.get("res_currency")
+    default_menu = False
+    menu_vector_id = res_instance.get("menu_vector_id")
+    if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
+        default_menu = True
     assistant_turned_on = res_instance.get("assistant_turned_on")
     print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
 
@@ -1972,7 +1977,17 @@ def assistant_order_chat(unique_azz_id):
     session["res_currency"] = res_currency
     session["restaurant_name"] = restaurant_name
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, lang=lang, assistant_id=full_assistant_id, unique_azz_id=unique_azz_id, restaurant_website_url=restaurant_website_url, title=f"{restaurant_name}'s Assistant", assistant_turned_on=assistant_turned_on, restaurant=res_instance, iframe=iframe, isWorkingHours=isWorkingHours)
+    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, 
+                           lang=lang, 
+                           assistant_id=full_assistant_id, 
+                           unique_azz_id=unique_azz_id, 
+                           restaurant_website_url=restaurant_website_url, 
+                           title=f"{restaurant_name}'s Assistant", 
+                           assistant_turned_on=assistant_turned_on, 
+                           restaurant=res_instance, 
+                           iframe=iframe, 
+                           isWorkingHours=isWorkingHours,
+                           default_menu=default_menu)
 
 
 

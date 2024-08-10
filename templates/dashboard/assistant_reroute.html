@@ -86,6 +86,26 @@
             <img src="{{ url_for('serve_image', file_id=qr_code_id) }}" alt="{{ restaurant_name }} Assistant QR-code" class="restaurant-logo" />
             <h4 style="text-align: center; margin-top: -20px; margin-bottom: 7px;">😋Order in your Native Language now with {{ restaurant_name }} AI-agent🥘</h4>
         </div>
+
+        <!-- Button to trigger the download -->
+    <!-- <button id="download-btn" style="margin-top: 20px;">Download QR Code as Image</button> -->
+
+    <!-- JavaScript to handle the download -->
+    <script>
+        document.getElementById('download-btn').addEventListener('click', function() {
+            html2canvas(document.getElementById('qr-code-container')).then(function(canvas) {
+                // Create an anchor element
+                var link = document.createElement('a');
+                link.download = 'qr-code-image.png';
+                
+                // Convert canvas to a data URL and set it as the href attribute
+                link.href = canvas.toDataURL('image/png');
+                
+                // Trigger the download
+                link.click();
+            });
+        });
+    </script>
         <!-- <button onclick="downloadImage()" style="margin-top: 7px">Download QR Code as Image</button> -->
         <h2 style="text-align: center; margin-top: 10px;">Or</h2>
         <p>Open this chat on a tablet and put it at the counter in your restaurant: <br>
