@@ -280,34 +280,46 @@ function downloadImage() {
             <div>
             <a href="/set_session_and_redirect"><u>Change Email or Password</u></a>
             </div>
+            <hr>
             <div class="switch-container">
                 {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
                 <span id="assistantStatus">
-                    {% if assistant_turned_on %}
-                    Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
+                    {% if not default_menu %}
+                        {% if assistant_turned_on %}
+                        Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
+                        {% else %}
+                        Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+                        {% endif %}
                     {% else %}
-                    Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+                    <span id="assistantStatus">
+                        Please, visit <b>"Menu📖"</b> tab to upload menu<br>and start using AI-assistant
+                    </span>
                     {% endif %}
+                        
                 </span>
+                {% if not default_menu %}
                 <label class="switch">
                     <input type="checkbox" id="assistantToggle" {% if assistant_turned_on %}checked{% endif %}>
                     <span class="slider round"></span>
                 </label>
+                {% endif %}
                 {% else %}
                 <span id="assistantStatus">
-                    Please, visit <b>Menu</b> tab to upload menu<br>and start using AI-assistant
+                    Please, visit <b>"Menu📖"</b> tab to upload menu<br>and start using AI-assistant
                 </span>
                 {% endif %}
             </div>
-            
+            <hr>
+            <!--
             {% if default_menu %}
                 <hr>
                 <div class="default_menu">
-                    <p style="font-size: medium;">AI-Assistant is currently referring to the default menu<br><b>Check out the "Menu📖" Tab Now!</b></p>
+                    <p style="font-size: medium;">AI-Assistant currently deos not have a menu to refer to.<br><b>Check out the "Menu📖" Tab Now!</b></p>
                 </div>
                 <hr>
             {% endif %}
-
+            -->
+            
             <div class="switch-container">
                 <span id="profileVisibilityStatus">
                     {% if restaurant.profile_visible %}
@@ -321,7 +333,9 @@ function downloadImage() {
                     <span class="slider round"></span>
                 </label>
             </div>
-
+            
+            <hr>
+        
             <div class="switch-container">
                 <span id="paymentGatewayStatus">
                     {% if gateway_is_on %}
@@ -330,12 +344,14 @@ function downloadImage() {
                     Payment Gateway is OFF<br><p style="font-size:0.7em"><i>*currently customer DOES NOT pay right after taking the order,<br><b>recommended to switch the payment gateway on</b></i></p>
                     {% endif %}
                 </span>
+                {% if not default_menu %}
                 <label class="switch">
                     <input type="checkbox" id="paymentGatewayToggle" {% if gateway_is_on %}checked{% endif %}>
                     <span class="slider round"></span>
                 </label>
+                {% endif %}
             </div>
-
+            <hr>
             {% if gateway_is_on %}
             <div id="addFeesSection" class="switch-container">
                 {% else %}
@@ -355,8 +371,6 @@ function downloadImage() {
                         <span class="slider round"></span>
                     </label>
                 </div>
-
-                <hr>
 
                 <div class="logout-section">
                     <form action="/logout" method="post">

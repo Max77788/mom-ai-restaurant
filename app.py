@@ -1644,10 +1644,15 @@ def add_number_nots():
 def show_menu():
     form = UpdateMenuForm()
     html_menu = session.get("html_menu")
+    default_menu = session.get("default_menu")
     wrapped_html_table = wrap_images_in_html_table(html_menu)
+    print("Default menu we pass: ", default_menu)
 
-    print("That's the menu we've got ", wrapped_html_table)
-    return render_template("dashboard/menu_display.html", html_menu=wrapped_html_table, form=form)
+    # print("That's the menu we've got ", wrapped_html_table)
+    return render_template("dashboard/menu_display.html", 
+                           html_menu=wrapped_html_table, 
+                           form=form,
+                           default_menu=default_menu)
 
 
 def wrap_images_in_html_table(html_table):

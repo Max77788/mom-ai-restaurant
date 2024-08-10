@@ -12,7 +12,11 @@
         <!-- <h3>How to form the menu file correctly - <a href="{{ url_for('serve_excel_guide') }}" target="_blank"><u>Press Here to Find Out</u></a></h3> -->
         <h3><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and have your menu file formed!</u></a></h3>
         <div>
+            {% if default_menu %}
+            <label for="menu_update">⬇️Please, upload the menu to start generating orders on autopilot.</label>
+            {% else %}
             <label for="menu_update">⬇️Upload New Menu</label>
+            {% endif %}
             {{ form.menu_update }}
         </div>
         <div style="margin-top: 7px;">
@@ -20,8 +24,12 @@
         </div>
     </form>
     <div class="container mt-5">
+        {% if default_menu %}
+        <h1 class="mb-4" style="text-align: center;">That's the example of the menu you should provide</h1>
+        {% else %}
         <h1 class="mb-4" style="text-align: center;">That's the menu the assistant refers to now</h1>
-            <div class="mt-4">
+        {% endif %}    
+        <div class="mt-4">
                 <div class="menu-content table-responsive">
                 {{ html_menu|safe }}
                 </div>
