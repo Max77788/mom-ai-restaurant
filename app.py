@@ -1991,7 +1991,9 @@ def assistant_dashboard_route():
 @app.route('/post-voice-order', methods=['POST'])
 def post_voice_order():
     data = request.json
+    print(data)
     unique_azz_id = data.get("unique_azz_id")
+    from_number = data.get("from_number")
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
     timezone = restaurant.get("timezone")
@@ -2017,6 +2019,7 @@ def post_voice_order():
                        "timestamp": formatted_time,
                        "total_paid": total_paid,
                        "name_of_customer": name_of_customer,
+                       "from_number": from_number,
                        "mom_ai_restaurant_fee": 0,
                        "paypal_fee": 0,
                        "paid": "NOT PAID",

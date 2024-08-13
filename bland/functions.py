@@ -99,11 +99,10 @@ def create_the_suitable_pathway(restaurant_name, store_location, opening_hours, 
     # Define the replacement values
     replacements = {
         "{{ restaurant_name }}": restaurant_name,
-        "{{restaurant_name}}": restaurant_name,
-        "{{store_location}}": store_location,
-        "{{opening_hours}}": opening_hours,
-        "{{timezone}}": timezone,
-        "{{restaurant_menu}}": restaurant_menu
+        "{{ store_location }}": store_location,
+        "{{ opening_hours }}": opening_hours,
+        "{{ timezone }}": timezone,
+        "{{ restaurant_menu }}": restaurant_menu
     }
 
     # Open the file and read its contents into a string

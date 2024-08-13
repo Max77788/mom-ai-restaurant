@@ -55,7 +55,33 @@ restaurant_menu = """
 
                   """
 
-create_the_suitable_pathway(restaurant_name, timezone, opening_hours, store_location, restaurant_menu)
+import requests
+
+# Define the endpoint URL
+url = "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/post-voice-order"
+
+# Define the request payload
+payload = {
+    "unique_azz_id": "dominos_YCcs",
+    "array_of_ordered_items": [
+        {"name": "MAGNUM CHICKEN ROLL", "quantity":3, "price": 2190},
+        {"name": "Shawarma Chicken", "quantity":3,  "price": 2290}
+    ],
+    "name": "John Doe"
+}
+
+# Send the POST request
+response = requests.post(url, json=payload)
+
+# Check the response
+if response.status_code == 200:
+    print("Order placed successfully")
+    print("Response:", response.json())
+else:
+    print("Failed to place order")
+    print("Response:", response.text)
+
+# create_the_suitable_pathway(restaurant_name, timezone, opening_hours, store_location, restaurant_menu)
 
 # result = send_the_call_on_number_demo(where_to_call, restaurant_name, language)
 
