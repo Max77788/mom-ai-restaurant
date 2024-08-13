@@ -1,3 +1,5 @@
+{% extends 'layout_no_land.html' %}
+
 {% block content %}
 <body>
     {% with messages = get_flashed_messages() %}
@@ -7,10 +9,10 @@
             </div>
         {% endif %}
     {% endwith %}
-    <!--
+    <h1 class="mb-4" style="text-align: center;">Upload the new menu</h1>
     <form action="/update_menu" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
-         <h3>How to form the menu file correctly - <a href="{{ url_for('serve_excel_guide') }}" target="_blank"><u>Press Here to Find Out</u></a></h3>
+        <!-- <h3>How to form the menu file correctly - <a href="{{ url_for('serve_excel_guide') }}" target="_blank"><u>Press Here to Find Out</u></a></h3> -->
         <h3><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and have your menu file formed!</u></a></h3>
         <div>
             {% if default_menu %}
@@ -24,14 +26,13 @@
             {{ form.submit }}
         </div>
     </form>
-     -->
     <div class="container mt-5">
         {% if default_menu %}
         <h1 class="mb-4" style="text-align: center;">That's the example of the menu you should provide</h1>
-        <h2 class="mb-4" style="text-align: center;"><a href="/update_menu_gui" target="_blank"><u>You can upload the menu here!</u></a></h2>
         {% else %}
         <h1 class="mb-4" style="text-align: center;">That's the menu the assistant refers to now</h1>
-        <h2 class="mb-4" style="text-align: center;"><a href="/update_menu_gui" target="_blank"><u>You can edit the menu here!</u></a></h2>
+        <h2 class="mb-4" style="text-align: center;">⬇️You can edit the right in the table⬇️</h2>
+        <h4 class="mb-4" style="text-align: center;">Save Changes on the Bottom</h4>
         {% endif %}    
         <div class="mt-4">
                 <div class="menu-content table-responsive">
@@ -49,10 +50,10 @@
                             {% if not default_menu %}
                             {% for item in html_menu_tuples %}
                             <tr>
-                              <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
-                              <td contenteditable="false" data-column="Item Description">{{ item["Item Description"] }}</td>
-                              <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
-                              <td contenteditable="false" data-column="Link to Image">{{ item["Link to Image"] }}</td>
+                              <td contenteditable="true" data-column="Item Name">{{ item["Item Name"] }}</td>
+                              <td contenteditable="true" data-column="Item Description">{{ item["Item Description"] }}</td>
+                              <td contenteditable="true" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
+                              <td contenteditable="true" data-column="Link to Image">{{ item["Link to Image"] }}</td>
                               <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
                             </tr>
                             {% endfor %}
@@ -70,6 +71,47 @@
                             {% endif %}
                         </tbody>
                       </table>
+                      <button id="saveChangesBtn">Save Changes</button>
+
+                      <script>
+                        document.getElementById('saveChangesBtn').addEventListener('click', function() {
+                            console.log("Pressed the button")
+                            let rows = document.querySelectorAll('#menuTable tbody tr');
+                            let updatedItems = [];
+                        
+                            rows.forEach(function(row) {
+                                let item = {};
+                                row.querySelectorAll('td').forEach(function(cell) {
+                                    if (cell.getAttribute('data-column') !== "Image"){
+                                    item[cell.getAttribute('data-column')] = cell.innerText;
+                                    }
+                                });
+                                updatedItems.push(item);
+                            });
+
+                            const data_to_send = {
+                                "unique_azz_id":"{{ unique_azz_id }}",
+                                "updatedItems": updatedItems
+                            }
+                        
+                            fetch('/update_menu_manual', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(data_to_send)
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    alert('Menu updated successfully!');
+                                    location.reload()
+                                } else {
+                                    alert('Failed to update the menu.');
+                                }
+                            });
+                        });
+                        </script>
                 </div>
             </div>
             <hr>

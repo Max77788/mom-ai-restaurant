@@ -74,80 +74,19 @@ MOM_AI_EXEMPLARY_MENU_FILE_ID = "file-FON6GkHWdj1c4xioGCpje05N"
 MOM_TOKEN_OWNER_ADDRESS = os.environ.get("CONTRACT_OWNER_ADDRESS")
 MOM_TOKEN_OWNER_PRIVATE_KEY = os.environ.get("OWNER_ADDRESS_PRIVATE_KEY")
 
-MOM_AI_EXEMPLARY_MENU_HTML = """
-<table border="1" class="dataframe table table-striped">
-  <thead>
-    <tr style="text-align: right;">
-      <th>Item Name</th>
-      <th>Item Ingredients</th>
-      <th>Item Price</th>
-      <th>Image Link</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>Pizza Margherita</td>
-      <td>Tomato, Mozzarella, Basil</td>
-      <td>12.99</td>
-      <td>https://i.ibb.co/vxNk9BC/download-20.jpg</td>
-    </tr>
-    <tr>
-      <td>Caesar Salad</td>
-      <td>Romaine Lettuce, Parmesan, Croutons, Caesar Dressing</td>
-      <td>9.99</td>
-      <td>https://i.ibb.co/mR3K7Gh/download-21.jpg</td>
-    </tr>
-    <tr>
-      <td>Grilled Chicken Sandwich</td>
-      <td>Grilled Chicken, Lettuce, Tomato, Mayo, Bun</td>       
-      <td>11.49</td>
-      <td>https://i.ibb.co/0svPn5H/images-14.jpg</td>
-    </tr>
-    <tr>
-      <td>Spaghetti Carbonara</td>
-      <td>Spaghetti, Eggs, Parmesan, Pancetta</td>
-      <td>14.99</td>
-      <td>https://i.ibb.co/C2qM3Zb/download-22.jpg</td>
-    </tr>
-    <tr>
-      <td>Beef Burger</td>
-      <td>Beef Patty, Lettuce, Tomato, Cheese, Bun</td>
-      <td>10.99</td>
-      <td>https://i.ibb.co/LhdLmDd/download-23.jpg</td>
-    </tr>
-    <tr>
-      <td>Fish Tacos</td>
-      <td>Fish, Cabbage, Pico de Gallo, Tortilla</td>
-      <td>13.49</td>
-      <td>https://i.ibb.co/RN90dRh/images-15.jpg</td>
-    </tr>
-    <tr>
-      <td>Chicken Wings</td>
-      <td>Chicken, BBQ Sauce, Spices</td>
-      <td>8.99</td>
-      <td>https://i.ibb.co/Yp20mNP/download-24.jpg</td>
-    </tr>
-    <tr>
-      <td>Vegetable Stir Fry</td>
-      <td>Mixed Vegetables, Soy Sauce, Garlic</td>
-      <td>10.49</td>
-      <td>https://i.ibb.co/p0dbJm7/download-25.jpg</td>
-    </tr>
-    <tr>
-      <td>Margarita Cocktail</td>
-      <td>Tequila, Triple Sec, Lime Juice</td>
-      <td>7.99</td>
-      <td>https://i.ibb.co/VgmvH4D/download-26.jpg</td>
-    </tr>
-    <tr>
-      <td>Chocolate Cake</td>
-      <td>Chocolate, Flour, Sugar, Eggs, Butter</td>
-      <td>6.99</td>
-      <td>https://i.ibb.co/zmxY0V5/download-27.jpg</td>
-    </tr>
-  </tbody>
-</table>
-"""
+MOM_AI_EXEMPLARY_MENU_HTML = [
+    {"name": "Pizza Margherita", "ingredients": "Tomato, Mozzarella, Basil", "price": 12.99, "image_link": "https://i.ibb.co/vxNk9BC/download-20.jpg"},
+    {"name": "Caesar Salad", "ingredients": "Romaine Lettuce, Parmesan, Croutons, Caesar Dressing", "price": 9.99, "image_link": "https://i.ibb.co/mR3K7Gh/download-21.jpg"},
+    {"name": "Grilled Chicken Sandwich", "ingredients": "Grilled Chicken, Lettuce, Tomato, Mayo, Bun", "price": 11.49, "image_link": "https://i.ibb.co/0svPn5H/images-14.jpg"},
+    {"name": "Spaghetti Carbonara", "ingredients": "Spaghetti, Eggs, Parmesan, Pancetta", "price": 14.99, "image_link": "https://i.ibb.co/C2qM3Zb/download-22.jpg"},
+    {"name": "Beef Burger", "ingredients": "Beef Patty, Lettuce, Tomato, Cheese, Bun", "price": 10.99, "image_link": "https://i.ibb.co/LhdLmDd/download-23.jpg"},
+    {"name": "Fish Tacos", "ingredients": "Fish, Cabbage, Pico de Gallo, Tortilla", "price": 13.49, "image_link": "https://i.ibb.co/RN90dRh/images-15.jpg"},
+    {"name": "Chicken Wings", "ingredients": "Chicken, BBQ Sauce, Spices", "price": 8.99, "image_link": "https://i.ibb.co/Yp20mNP/download-24.jpg"},
+    {"name": "Vegetable Stir Fry", "ingredients": "Mixed Vegetables, Soy Sauce, Garlic", "price": 10.49, "image_link": "https://i.ibb.co/p0dbJm7/download-25.jpg"},
+    {"name": "Margarita Cocktail", "ingredients": "Tequila, Triple Sec, Lime Juice", "price": 7.99, "image_link": "https://i.ibb.co/VgmvH4D/download-26.jpg"},
+    {"name": "Chocolate Cake", "ingredients": "Chocolate, Flour, Sugar, Eggs, Butter", "price": 6.99, "image_link": "https://i.ibb.co/zmxY0V5/download-27.jpg"}
+]
+
 
 AZURE_SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID")
 
@@ -325,7 +264,7 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "menu_vector_id": menu_vector_id,
             "res_currency":currency,
             "res_logo":logo_id,
-            "html_menu":html_menu,
+            "html_menu_tuples":html_menu,
             "location_coord":location_coord,
             "location_name":location_name, 
             "web3_wallet_address": wallet_public_key_address,
@@ -546,7 +485,7 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
         tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
         )
 
-        mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu":new_html}})
+        mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html}})
         
         return {"success":True}
 
@@ -1773,8 +1712,6 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
     # Format the third column to two decimal places
     if df.shape[1] == 3:  # Check if the DataFrame has EXACTLY three columns
         df.iloc[:, 2] = df.iloc[:, 2].apply(lambda x: f"{x:.2f}" if isinstance(x, (int, float)) else x)
-
-    html_menu = df.to_html(classes='table table-striped', index=False)
     
     # Validate the DataFrame
     try:
@@ -1782,16 +1719,24 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
     except InvalidMenuFormatError as e:
         print(f"Error: {e}")
         return e, None
-    
+ 
+    html_menu_tuples = []
     # Open the output TXT file
     with open(output_file_path, 'w') as file:
         # Iterate through each row in the DataFrame
         for index, row in df.iterrows():
-            # Write the first and second column values to the file
-            file.write(f'Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in currency {currency}: {row[2]} - Item\'s image: <img src="{row[3]}" alt="Image of {row[0]}" width="170" height="auto">\n')
+            if len(row) > 3:
+                # Write the first and second column values to the file
+                file.write(f'Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in currency {currency}: {row[2]} - Item\'s image: <img src="{row[3]}" alt="Image of {row[0]}" width="170" height="auto">\n')
+                html_menu_tuples.append({"Item Name":row[0], "Item Description":row[1], "Item Price (EUR)":row[2], "Link to Image":row[3]})
+            else:
+                # Write the first and second column values to the file
+                file.write(f'Item Name: {row[0]} - Item Ingredients: {row[1]} - Item Price in currency {currency}: {row[2]}')
+                html_menu_tuples.append({"Item Name":row[0], "Item Description":row[1], "Item Price (EUR)":row[2], "Link to Image":None})
 
+    
     print(f"File successfully converted and saved as {output_file_path}")
-    return output_file_path, html_menu
+    return output_file_path, html_menu_tuples
 
 def generate_code():
     return str(uuid.uuid4())[:7]

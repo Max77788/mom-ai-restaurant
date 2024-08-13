@@ -12,6 +12,7 @@ import gridfs
 from pydub import AudioSegment
 import uuid
 import re
+import pandas as pd
 import base64
 from bs4 import BeautifulSoup
 import markdown
@@ -22,6 +23,7 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
+from bland.functions import send_the_call_on_number_demo
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
 from functions_to_use import send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
@@ -148,6 +150,8 @@ GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 AZURE_SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID")
 
 fs = gridfs.GridFS(db_mongo)
+
+
 
 print("Everything Initialized!")
 
@@ -565,7 +569,9 @@ def register():
 
             menu_save_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
             
-            menu_txt_path, html_menu = convert_xlsx_to_txt_and_menu_html(menu_xlsx_path, menu_save_path, currency)
+            menu_txt_path, html_menu_tuples = convert_xlsx_to_txt_and_menu_html(menu_xlsx_path, menu_save_path, currency)
+            
+            html_menu = html_menu_tuples
             
             if not isinstance(menu_txt_path, str):
                print("Entered Invalid Menu Error.")
@@ -1286,7 +1292,7 @@ def dashboard_display():
         res_unique_azz_id = restaurant_instance.get("unique_azz_id")
         awaiting_withdrawal = restaurant_instance.get("await_withdrawal")
         res_currency = restaurant_instance.get("res_currency")
-        html_menu = restaurant_instance.get("html_menu")
+        html_menu = restaurant_instance.get("html_menu_tuples")
         assistant_spent = restaurant_instance.get("assistant_fund")
         default_menu = False
         menu_vector_id = restaurant_instance.get("menu_vector_id")
@@ -1295,6 +1301,7 @@ def dashboard_display():
         logo_id = restaurant_instance.get("res_logo", "666af654dee400a1d635eb08")
         qr_code_id = restaurant_instance.get("qr_code", "666af654dee400a1d635eb08")
         gateway_is_on = restaurant_instance.get("paymentGatewayTurnedOn")
+        referral_id = restaurant_instance.get("referral_code")
         #subscription_number = restaurant_instance.get("subscription_number")
 
         #subscription_activated = True if get_subscription_status(subscription_number) == "ACTIVE" else False
@@ -1313,7 +1320,7 @@ def dashboard_display():
         session["current_balance"] = current_balance
         session["unique_azz_id"] = res_unique_azz_id
         session["res_currency"] = res_currency
-        session["html_menu"] = html_menu
+        session["html_menu_tuples"] = html_menu
         session["qr_code_id"] = qr_code_id
         session["default_menu"] = default_menu
 
@@ -1348,7 +1355,8 @@ def dashboard_display():
                            gateway_is_on=gateway_is_on,
                            show_popup=show_popup,
                            PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID,
-                           default_menu=default_menu)
+                           default_menu=default_menu,
+                           referral_id=referral_id)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -1643,16 +1651,18 @@ def add_number_nots():
 @app.route('/menu', methods=['POST', 'GET'])
 def show_menu():
     form = UpdateMenuForm()
-    html_menu = session.get("html_menu")
+    html_menu_tuples = session.get("html_menu_tuples")
     default_menu = session.get("default_menu")
-    wrapped_html_table = wrap_images_in_html_table(html_menu)
+    unique_azz_id = session.get("unique_azz_id")
+    # wrapped_html_table = wrap_images_in_html_table(html_menu)
     print("Default menu we pass: ", default_menu)
 
     # print("That's the menu we've got ", wrapped_html_table)
     return render_template("dashboard/menu_display.html", 
-                           html_menu=wrapped_html_table, 
+                           html_menu_tuples=html_menu_tuples, 
                            form=form,
-                           default_menu=default_menu)
+                           default_menu=default_menu,
+                           unique_azz_id=unique_azz_id)
 
 
 def wrap_images_in_html_table(html_table):
@@ -1716,6 +1726,80 @@ def update_menu():
         flash("Error updating menu. Please check the file for validity.", category="danger")
 
     return redirect(url_for("dashboard_display"))
+
+
+@app.route('/update_menu_manual', methods=['POST'])
+def update_menu_manual():
+    data = request.json  # Get the JSON data from the request
+
+    print(data)
+
+    unique_azz_id = data.get("unique_azz_id")
+    updated_items = data.get("updatedItems")
+
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    # Convert the list of dictionaries to a text format
+    menu_text = ""
+    for item in updated_items:
+        menu_text += f"Item Name: {item.get('Item Name')}, "
+        menu_text += f"Item Description: {item.get('Item Description')}, "
+        menu_text += f"Item Price (EUR): {item.get('Item Price (EUR)')}, "
+        menu_text += f'Item\'s Image: <img src="{item.get("Link to Image")}" alt="{item.get("Item Name")}" width="170" height="auto">'
+        menu_text += "\n"  # Add a newline for better readability
+
+    # Save the text to a .txt file
+    file_name = 'uploads/new_menu.txt'
+    with open(file_name, 'w') as file:
+        file.write(menu_text)
+
+    with open(str(file_name), "rb") as menu:    
+        client = CLIENT_OPENAI
+
+        menu_file = client.files.create(file=menu, purpose='assistants')
+        menu_file_id = menu_file.id  
+
+        restaurant_name = restaurant.get("name") 
+        assistant_id = restaurant.get("assistant_id") 
+        
+        # Create a vector store called "Financial Statements"
+        vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
+        
+        # Ready the files for upload to OpenAI
+        file_paths = [file_name]
+        file_streams = [open(path, "rb") for path in file_paths]
+        
+        # Use the upload and poll SDK helper to upload the files, add them to the vector store,
+        # and poll the status of the file batch for completion.
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+            vector_store_id=vector_store.id, files=file_streams
+        )
+
+        assistant = client.beta.assistants.update(
+            assistant_id=assistant_id,
+            tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+        )
+
+        collection.update_one({"unique_azz_id": unique_azz_id}, {"$set": {"menu_file_id": menu_file_id, "menu_vector_id": vector_store.id, "html_menu_tuples": updated_items}})
+    # Return a success response
+    return jsonify(success=True)
+
+@app.route('/update_menu_gui')
+def update_menu_gui():
+    form = UpdateMenuForm()
+    default_menu = session.get("default_menu")
+    unique_azz_id = session.get("unique_azz_id")
+    html_menu_tuples = collection.find_one({"unique_azz_id":unique_azz_id}).get("html_menu_tuples")
+    # wrapped_html_table = wrap_images_in_html_table(html_menu)
+
+    # print("That's the menu we've got ", wrapped_html_table)
+    return render_template("settings/menu_edit.html", 
+                           html_menu_tuples=html_menu_tuples, 
+                           form=form,
+                           default_menu=default_menu,
+                           unique_azz_id=unique_azz_id,
+                           title="Edit Menu")
+
 
 
 
@@ -1901,6 +1985,82 @@ def assistant_dashboard_route():
 
 #######################################################################################################
 
+
+################### Voice Assistant Setup Start #########################
+
+@app.route('/post-voice-order', methods=['POST'])
+def post_voice_order():
+    data = request.json
+    unique_azz_id = data.get("unique_azz_id")
+
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+    timezone = restaurant.get("timezone")
+
+    # Specify the desired time zone
+    time_zone = pytz.timezone(timezone)  # Example: New York time zone
+
+    # Get the current date and time in the specified time zone
+    current_time = datetime.now(time_zone)
+
+    # Format the date and time
+    formatted_time = current_time.strftime('%Y-%m-%d %H:%M')
+
+    array_of_ordered_items = data.get("array_of_ordered_items")
+    name_of_customer = data.get("name")
+
+    total_paid = sum(item["price"] for item in array_of_ordered_items)
+
+    orderID = generate_code()
+
+    order_to_insert = {"items":array_of_ordered_items,
+                       "orderID":orderID,
+                       "timestamp": formatted_time,
+                       "total_paid": total_paid,
+                       "name_of_customer": name_of_customer,
+                       "mom_ai_restaurant_fee": 0,
+                       "paypal_fee": 0,
+                       "paid": "NOT PAID",
+                       "published": True
+                       }
+    
+    db_order_dashboard[unique_azz_id].insert_one(order_to_insert)
+ 
+    chat_ids = restaurant.get("notif_destin")
+
+    if chat_ids:
+        for chat_id in chat_ids:
+            send_telegram_notification(chat_id)
+
+    return jsonify({"success":True})
+
+@app.route('/voice-setup', methods=['GET', 'POST'])
+def voice_setup_page():
+    restaurant_name = session.get("restaurant_name")
+    return render_template('voice-setup/voice_setup.html', 
+                           title="Setup Phone Assistant",
+                           restaurant_name=restaurant_name)
+
+@app.route('/trigger_demo_call', methods=['POST'])
+def trigger_demo_call():
+    phone_number = request.form.get('phone_number')
+    language = request.form.get('language')
+    restaurant_name = session.get("restaurant_name")
+    #restaurant_name = request.form.get('restaurant_name')
+
+    print("The parameters we passed on send voice call endpoint: ", phone_number, language, restaurant_name)
+
+    if phone_number and language:
+        success = send_the_call_on_number_demo(phone_number, restaurant_name, language)
+        if success:
+            flash(f"You should receive the call on {phone_number} shortly.", 'success')
+        else:
+            flash("Something went wrong. Please try again.", 'danger')
+        return redirect(url_for('voice_setup_page'))
+    
+    flash("Please fill out all required fields.", 'warning')
+    return redirect(url_for('voice_setup_page'))
+
+################### Voice Assistant Setup End #########################
 
     
 ######################### Chat Flow ############################
@@ -2140,10 +2300,11 @@ def generate_response(unique_azz_id):
     print(f"Thread ID: {thread_id}")
     print(f"Assistant ID: {assistant_id}")
 
-    html_menu = restaurant_instance.get('html_menu')
-    soup = BeautifulSoup(html_menu, 'html.parser')
-    rows = soup.find_all('tr')[1:]  # Skip the header row
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    #soup = BeautifulSoup(html_menu, 'html.parser')
+    #rows = soup.find_all('tr')[1:]  # Skip the header row
 
+    """
     list_of_all_items = []
     list_of_all_items_names_images = []
     list_of_image_links = []
@@ -2162,13 +2323,13 @@ def generate_response(unique_azz_id):
             tuple_we_deserved = (f"Item Name:{item}", f"Item Ingredients:{ingredients}", f"Items Price: {price} EUR")
         #list_of_all_items.append(tuple_we_deserved)
         list_of_all_items.append(tuple_we_deserved)
-
+    """
     # print("List of image links formed: ", list_of_image_links)
     
     #print(f"\n\nList of all items formed: {list_of_all_items}\n\n")  # Debugging line
 
     print("Thats what we sent to retrieve the gpts response, ", user_input)
-    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=list_of_all_items, list_of_image_links=list_of_image_links, unique_azz_id=unique_azz_id)
+    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id)
 
     PRICE_PER_1_TOKEN = 0.0000005
     charge_for_message = PRICE_PER_1_TOKEN * tokens_used
