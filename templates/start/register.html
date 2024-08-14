@@ -2,14 +2,6 @@
 
 {% block content %}
 
-{% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <div class="flash-messages">
-            <div class="flash-message">{{ messages[-1] }}</div>
-        </div>
-    {% endif %}
-{% endwith %}
-
 <!-- Existing Registration Form Section -->
 <div id="upper-part" style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; text-align: center;">
     <div>

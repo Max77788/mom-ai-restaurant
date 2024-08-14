@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 import os
 # from google.cloud import speech
 import qrcode
+from geopy.distance import geodesic
 import bcrypt
 #from io import BytesIO
 #from flask_socketio import SocketIO, disconnect
@@ -1232,26 +1233,63 @@ def assistant_demo_chat():
 @app.route('/ai-restaurants')
 def market_dashboard():
     page = request.args.get('page', 1, type=int)
-    per_page = 12  # 2 columns * 6 rows
+    per_page = 6
     search_query = request.args.get('location', '')
-    if search_query:
-        title = f"Best AI-empowered restaurants in {search_query}"
-    else:
-        title = "Best AI-empowered restaurants search"
-    restaurants, total = get_restaurants(page, per_page, search_query)  # Function to fetch paginated restaurant data
-    return render_template('marketing_dashboard/market_dashboard.html', restaurants=restaurants, page=page, per_page=per_page, total=total, title=title, search_query=search_query, GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+    radius = request.args.get('radius')
+    user_lat = request.args.get('user_lat')
+    user_lng = request.args.get('user_lng')
 
-def get_restaurants(page, per_page, search_query=''):
+    restaurants, total = get_restaurants(page, per_page, search_query, user_lat, user_lng, radius)
+
+    if not restaurants and radius:
+        flash(f"No restaurants are found in {radius} km radius from you.", "warning")
+        restaurants, total = get_restaurants(page, per_page, search_query)
+
+    return render_template(
+        'marketing_dashboard/market_dashboard.html', 
+        restaurants=restaurants, 
+        page=page, 
+        per_page=per_page, 
+        total=total, 
+        title="Restaurants List with AI Sprinkle", 
+        search_query=search_query, 
+        GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY,
+        current_radius = radius
+    )
+
+
+
+def get_restaurants(page, per_page, search_query='', user_lat=None, user_lng=None, radius=None):
     skip = (page - 1) * per_page
     cursor = collection.find()
-    total = collection.count_documents({})
     restaurants = list(cursor)
-    
+
     if search_query:
         search_terms = [term.strip().lower() for term in search_query.split(',')]
         filtered_restaurants = [r for r in restaurants if any(term in r.get('location_name', '').lower() for term in search_terms) and r.get('profile_visible', False)]
     else:
         filtered_restaurants = [r for r in restaurants if r.get('profile_visible', True)]
+
+    # If user location and radius are provided, filter by distance
+    if user_lat and user_lng and radius:
+        user_coords = (float(user_lat), float(user_lng))
+        radius_km = float(radius)
+
+        # print(user_coords)
+        # print("Type of filtered restaurants: ", type(filtered_restaurants))
+        # print(filtered_restaurants)
+        
+        filtered_restaurants = [
+            r for r in filtered_restaurants 
+            if geodesic(user_coords, (json.loads(r['location_coord'])['lat'], json.loads(r['location_coord'])['lng'])).km <= radius_km
+        ]
+
+        print()
+
+        # Sort restaurants by distance
+        filtered_restaurants.sort(
+            key=lambda r: geodesic(user_coords, (json.loads(r['location_coord'])['lat'], json.loads(r['location_coord'])['lng'])).km
+        )
 
     total = len(filtered_restaurants)
     start = (page - 1) * per_page
@@ -2034,7 +2072,7 @@ def post_voice_order():
         for chat_id in chat_ids:
             send_telegram_notification(chat_id)
 
-    return jsonify({"success":True})
+    return jsonify({"success":True, "message":"Successful Posting of Voice Order!"})
 
 @app.route('/voice-setup', methods=['GET', 'POST'])
 def voice_setup_page():

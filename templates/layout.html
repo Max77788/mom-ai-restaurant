@@ -68,6 +68,14 @@
     </nav>
 
     <main>
+        {% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="flash-messages">
+            <div class="flash-message">{{ messages[-1] }}</div>
+        </div>
+    {% endif %}
+{% endwith %}
+
         {% block content %}
         <!-- Content overridden in child templates -->
         {% endblock %}
@@ -250,6 +258,7 @@
         }
     </style>
 
+    <!--
     <script>
         // JavaScript to handle the mobile banner display
         document.addEventListener('DOMContentLoaded', function() {
@@ -257,6 +266,15 @@
                 document.getElementById('mobile-banner').style.display = 'block';
             }
         });
+    </script>
+    -->
+    <script>
+        setTimeout(function() {
+                var flashMessage = document.querySelector('.flash-message');
+                if (flashMessage) {
+                    flashMessage.style.display = "none";
+                }
+            }, 7000);
     </script>
 </body>
 </html>

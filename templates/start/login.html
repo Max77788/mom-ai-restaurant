@@ -4,13 +4,6 @@
     <div id="login-container" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
         <h1>Login</h1>
         <p>Fill in the details below to enter your account.</p>
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                <div class="flash-messages">
-                    <div class="flash-message">{{ messages[-1] }}</div>
-                </div>
-            {% endif %}
-        {% endwith %}
         <form action="{{ url_for('login') }}" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; align-items: center;">
             {{ form.hidden_tag() }}
             {{ form.csrf_token }}

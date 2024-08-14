@@ -27,10 +27,43 @@
     <h2 style="text-align: center; margin-top: 20px; color: #2c3e50;">The List of AI-Empowered Restaurants</h2>
     {% endif %}
 
+    <!-- Radius Search Input -->
+    <div style="text-align: center; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <label for="radius-select">Show restaurants within:</label>
+        <select id="radius-select" style="padding: 10px; border-radius: 5px; border: 1px solid #ccc; margin-top: 5px;" onchange="updateButtonLabel()">
+            <option value="5" {% if current_radius == '5' or current_radius is none %}selected{% endif %}>5 km</option>
+            <option value="10" {% if current_radius == '10' %}selected{% endif %}>10 km</option>
+            <option value="20" {% if current_radius == '20' %}selected{% endif %}>20 km</option>
+            <option value="50" {% if current_radius == '50' %}selected{% endif %}>50 km</option>
+        </select>
+
+        <!-- Button to show restaurants in the selected radius -->
+        <button id="radius-button" onclick="findRestaurantsInRadius()" style="margin-top: 10px; padding: 10px 20px;">
+            Show Restaurants in {{ current_radius or '5' }} km Radius Around Me
+        </button>
+
+        {% if current_radius %}
+        <h3 style="margin-top: 7px; border: black solid 1px;"> <u>*Showing the restaurants in {{ current_radius }} kilometers from you </u></h3>
+        <button onclick="clearSearchCriteria()" style="margin-top: 7px;">Clear the filter</button>
+        {% endif %}
+
+        <script>
+            function updateButtonLabel() {
+                const radius = document.getElementById('radius-select').value;
+                const button = document.getElementById('radius-button');
+                button.textContent = `Show Restaurants in ${radius} km Radius Around Me`;
+            }
+            function clearSearchCriteria() {
+                window.location.href = "/ai-restaurants";
+            }
+        </script>
+    </div>
+
+
     <p style="text-align: center; color: #7f8c8d; margin-top: 3px;">Learn more and click on 'Order Food Now' to make the order with AI:</p>
 
+    <!--
     <h3 style="text-align: center;">Filter by location</h3>
-    <!-- Location Search Input -->
     <div style="text-align: center; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; flex-direction: column;">
         <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-right: 10px;">
@@ -38,6 +71,7 @@
         </div>
         <button onclick="searchRestaurants()" style="margin-top: 10px; padding: 10px 20px;">Search</button>
     </div>
+    -->
 
     <div class="grid-container">
         {% for restaurant in restaurants %}
@@ -134,6 +168,30 @@
         url.searchParams.set('location', locationInput);
         window.location.href = url.href;
     }
+
+    function findRestaurantsInRadius() {
+    const radius = document.getElementById('radius-select').value;
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            
+            const url = new URL(window.location.href);
+            url.searchParams.set('radius', radius);
+            url.searchParams.set('user_lat', userLat);
+            url.searchParams.set('user_lng', userLng);
+            window.location.href = url.href;
+            console.log("Setup URL successfully!")
+        }, function(error) {
+            // alert('Error retrieving your location. Please try again.');
+        });
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+}
+
+
 </script>
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}

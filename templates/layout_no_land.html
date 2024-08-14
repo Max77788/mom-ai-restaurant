@@ -51,12 +51,12 @@
 
     <main>
         {% with messages = get_flashed_messages() %}
-            {% if messages %}
-            <div class="flash-messages">
-                <div class="flash-message">{{ messages[-1] }}</div>
-            </div>
+    {% if messages %}
+        <div class="flash-messages">
+            <div class="flash-message">{{ messages[-1] }}</div>
+        </div>
     {% endif %}
-    {% endwith %}
+{% endwith %}
 
         {% block content %}
         <!-- Content overridden in child templates -->
