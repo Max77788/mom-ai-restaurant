@@ -2029,12 +2029,22 @@ def assistant_dashboard_route():
 @app.route('/post-voice-order', methods=['POST'])
 def post_voice_order():
     data = request.json
-    print(data)
+    raw_data = request.data
+    
+    print("JSON Data:", data)
+    print("Raw Data", raw_data)
+
+    data = json.loads(raw_data)
+
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
     timezone = restaurant.get("timezone")
+    if "+" in timezone:
+        timezone = timezone.replace("+","-")
+    elif "-" in timezone:
+        timezone = timezone.replace("-","+"): 
 
     # Specify the desired time zone
     time_zone = pytz.timezone(timezone)  # Example: New York time zone
