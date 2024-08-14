@@ -2044,7 +2044,7 @@ def post_voice_order():
     if "+" in timezone:
         timezone = timezone.replace("+","-")
     elif "-" in timezone:
-        timezone = timezone.replace("-","+"): 
+        timezone = timezone.replace("-","+")
 
     # Specify the desired time zone
     time_zone = pytz.timezone(timezone)  # Example: New York time zone
