@@ -37,3 +37,4 @@ pathlib
 deep-translator
 langdetect
 markdown2
+geopy
