@@ -2028,11 +2028,13 @@ def assistant_dashboard_route():
 
 @app.route('/post-voice-order', methods=['POST'])
 def post_voice_order():
-    data = request.json
     raw_data = request.data
+    print("Raw Data: ", raw_data)
+    
+    data = request.json
+    
     
     print("JSON Data:", data)
-    print("Raw Data", raw_data)
 
     data = json.loads(raw_data)
 
