@@ -2031,12 +2031,12 @@ def post_voice_order():
     raw_data = request.data
     print("Raw Data: ", raw_data)
     
-    data = request.json
+    #data = request.json
     
     
-    print("JSON Data:", data)
+    #print("JSON Data:", data)
 
-    data = json.loads(raw_data)
+    data = json.loads(raw_data.decode('utf-8'))
 
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
