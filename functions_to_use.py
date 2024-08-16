@@ -6,9 +6,6 @@ import openpyxl
 import gridfs
 from pathlib import Path
 import qrcode
-import docx
-import PyPDF2
-import chardet
 import asyncio
 import io
 from io import BytesIO
