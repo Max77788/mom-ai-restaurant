@@ -39,7 +39,3 @@ langdetect
 markdown2
 geopy
 statistics
-docx
-chardet
-PyPDF2
-fpdf

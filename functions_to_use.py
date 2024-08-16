@@ -109,16 +109,16 @@ MOM_TOKEN_OWNER_ADDRESS = os.environ.get("CONTRACT_OWNER_ADDRESS")
 MOM_TOKEN_OWNER_PRIVATE_KEY = os.environ.get("OWNER_ADDRESS_PRIVATE_KEY")
 
 MOM_AI_EXEMPLARY_MENU_HTML = [
-    {"name": "Pizza Margherita", "ingredients": "Tomato, Mozzarella, Basil", "price": 12.99, "image_link": "https://i.ibb.co/vxNk9BC/download-20.jpg"},
-    {"name": "Caesar Salad", "ingredients": "Romaine Lettuce, Parmesan, Croutons, Caesar Dressing", "price": 9.99, "image_link": "https://i.ibb.co/mR3K7Gh/download-21.jpg"},
-    {"name": "Grilled Chicken Sandwich", "ingredients": "Grilled Chicken, Lettuce, Tomato, Mayo, Bun", "price": 11.49, "image_link": "https://i.ibb.co/0svPn5H/images-14.jpg"},
-    {"name": "Spaghetti Carbonara", "ingredients": "Spaghetti, Eggs, Parmesan, Pancetta", "price": 14.99, "image_link": "https://i.ibb.co/C2qM3Zb/download-22.jpg"},
-    {"name": "Beef Burger", "ingredients": "Beef Patty, Lettuce, Tomato, Cheese, Bun", "price": 10.99, "image_link": "https://i.ibb.co/LhdLmDd/download-23.jpg"},
-    {"name": "Fish Tacos", "ingredients": "Fish, Cabbage, Pico de Gallo, Tortilla", "price": 13.49, "image_link": "https://i.ibb.co/RN90dRh/images-15.jpg"},
-    {"name": "Chicken Wings", "ingredients": "Chicken, BBQ Sauce, Spices", "price": 8.99, "image_link": "https://i.ibb.co/Yp20mNP/download-24.jpg"},
-    {"name": "Vegetable Stir Fry", "ingredients": "Mixed Vegetables, Soy Sauce, Garlic", "price": 10.49, "image_link": "https://i.ibb.co/p0dbJm7/download-25.jpg"},
-    {"name": "Margarita Cocktail", "ingredients": "Tequila, Triple Sec, Lime Juice", "price": 7.99, "image_link": "https://i.ibb.co/VgmvH4D/download-26.jpg"},
-    {"name": "Chocolate Cake", "ingredients": "Chocolate, Flour, Sugar, Eggs, Butter", "price": 6.99, "image_link": "https://i.ibb.co/zmxY0V5/download-27.jpg"}
+    {"Item Name": "Pizza Margherita", "Item Description": "Tomato, Mozzarella, Basil", "Item Price (EUR)": 12.99, "Link to Image": "https://i.ibb.co/vxNk9BC/download-20.jpg"},
+    {"Item Name": "Caesar Salad", "Item Description": "Romaine Lettuce, Parmesan, Croutons, Caesar Dressing", "Item Price (EUR)": 9.99, "Link to Image": "https://i.ibb.co/mR3K7Gh/download-21.jpg"},
+    {"Item Name": "Grilled Chicken Sandwich", "Item Description": "Grilled Chicken, Lettuce, Tomato, Mayo, Bun", "Item Price (EUR)": 11.49, "Link to Image": "https://i.ibb.co/0svPn5H/images-14.jpg"},
+    {"Item Name": "Spaghetti Carbonara", "Item Description": "Spaghetti, Eggs, Parmesan, Pancetta", "Item Price (EUR)": 14.99, "Link to Image": "https://i.ibb.co/C2qM3Zb/download-22.jpg"},
+    {"Item Name": "Beef Burger", "Item Description": "Beef Patty, Lettuce, Tomato, Cheese, Bun", "Item Price (EUR)": 10.99, "Link to Image": "https://i.ibb.co/LhdLmDd/download-23.jpg"},
+    {"Item Name": "Fish Tacos", "Item Description": "Fish, Cabbage, Pico de Gallo, Tortilla", "Item Price (EUR)": 13.49, "Link to Image": "https://i.ibb.co/RN90dRh/images-15.jpg"},
+    {"Item Name": "Chicken Wings", "Item Description": "Chicken, BBQ Sauce, Spices", "Item Price (EUR)": 8.99, "Link to Image": "https://i.ibb.co/Yp20mNP/download-24.jpg"},
+    {"Item Name": "Vegetable Stir Fry", "Item Description": "Mixed Vegetables, Soy Sauce, Garlic", "Item Price (EUR)": 10.49, "Link to Image": "https://i.ibb.co/p0dbJm7/download-25.jpg"},
+    {"Item Name": "Margarita Cocktail", "Item Description": "Tequila, Triple Sec, Lime Juice", "Item Price (EUR)": 7.99, "Link to Image": "https://i.ibb.co/VgmvH4D/download-26.jpg"},
+    {"Item Name": "Chocolate Cake", "Item Description": "Chocolate, Flour, Sugar, Eggs, Butter", "Item Price (EUR)": 6.99, "Link to Image": "https://i.ibb.co/zmxY0V5/download-27.jpg"}
 ]
 
 
@@ -492,7 +492,7 @@ def encode_image(image_path):
     return base64.b64encode(image_file.read()).decode('utf-8')
   
 
-
+"""
 def extract_text_from_file(file_path):
     file_extension = file_path.split('.')[-1].lower()
 
@@ -550,7 +550,7 @@ def process_links(link_list):
 def process_images(image_paths):
     # Implement your image processing logic here
     pass
-
+"""
 
 
 
