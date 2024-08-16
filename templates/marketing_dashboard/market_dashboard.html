@@ -103,6 +103,7 @@
             {% else %}
             <p>You will <u>pay in-store</u></p>
             {% endif %}
+            <p>Average price on menu: {{ restaurant.average_menu_price or "Not Given"}}€</p> 
             <p><b>Location:</b></p>
             <p style="font-size: 13px;"><b>{{ restaurant.location_name }}</b></p>
             <p><a href="https://www.google.com/maps/search/?api=1&query={{ restaurant.get('location_name') }}" target="_blank" style="color: #0000ff; margin-bottom: 10px;">View on the Map</a></p>

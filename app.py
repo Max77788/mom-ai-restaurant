@@ -2,6 +2,7 @@ from flask import Flask, abort, make_response, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from werkzeug.utils import secure_filename
+import statistics
 import os
 # from google.cloud import speech
 import qrcode
@@ -24,9 +25,9 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
-from bland.functions import send_the_call_on_number_demo
+from bland.functions import buy_and_update_phone, pathway_serving_a_to_z, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from functions_to_use import send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
+from functions_to_use import charge_for_ai_phone_number, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -192,6 +193,7 @@ def schedule_tasks():
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
     scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=15)
+    scheduler.add_job(func=charge_for_ai_phone_number, trigger="interval", hours=4)
     scheduler.start()
     print("The scheduler started")
 
@@ -757,8 +759,14 @@ def post(url_slug):
 @app.route('/all_posts')
 def all_posts():
     page = request.args.get('page', 1, type=int)
-    posts_pagination = Post.query.paginate(page=page, per_page=10, count=False)
+
+    # Get the total count of all posts
+    total_posts_count = Post.query.count()
+
+    posts_pagination = Post.query.paginate(page=page, per_page=10)
     posts = posts_pagination.items
+
+    print(len(posts))
     
     post_data = []
     for post in posts:
@@ -787,6 +795,9 @@ def all_posts():
     
     next_url = url_for('all_posts', page=posts_pagination.next_num) if posts_pagination.has_next else None
     prev_url = url_for('all_posts', page=posts_pagination.prev_num) if posts_pagination.has_prev else None
+
+    print(next_url)
+    print(prev_url)
     
     return render_template('blog-posts/all_posts.html', posts=post_data, title="Blog Posts", next_url=next_url, prev_url=prev_url)
 
@@ -1340,6 +1351,9 @@ def dashboard_display():
         qr_code_id = restaurant_instance.get("qr_code", "666af654dee400a1d635eb08")
         gateway_is_on = restaurant_instance.get("paymentGatewayTurnedOn")
         referral_id = restaurant_instance.get("referral_code")
+        referees_list = restaurant_instance.get("referees", [])
+        num_of_referees = len(referees_list) 
+        ai_phone_number = restaurant_instance.get("ai_phone_number")
         #subscription_number = restaurant_instance.get("subscription_number")
 
         #subscription_activated = True if get_subscription_status(subscription_number) == "ACTIVE" else False
@@ -1361,6 +1375,7 @@ def dashboard_display():
         session["html_menu_tuples"] = html_menu
         session["qr_code_id"] = qr_code_id
         session["default_menu"] = default_menu
+        session["ai_phone_number"] = ai_phone_number
 
         print(f"Assistant ID added in session: {assistant_id}")
         print(f"Restaurant name added in session: {restaurant_name}")
@@ -1394,7 +1409,8 @@ def dashboard_display():
                            show_popup=show_popup,
                            PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID,
                            default_menu=default_menu,
-                           referral_id=referral_id)
+                           referral_id=referral_id,
+                           num_of_referees=num_of_referees)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -1702,28 +1718,62 @@ def show_menu():
                            default_menu=default_menu,
                            unique_azz_id=unique_azz_id)
 
+    
+"""
+@app.route('/update_menu', methods=['GET', 'POST'])
+def update_menu():
+    if request.method == 'POST':
+        menu_format = request.form.get('menu_format')
+        currency_ticker = request.form.get('currency')
 
-def wrap_images_in_html_table(html_table):
-    soup = BeautifulSoup(html_table, 'html.parser')
-    rows = soup.find_all('tr')[1:]  # Skip the header row
+        if menu_format == 'file':
+            files = request.files.getlist('menu_files')
+            file_paths = []
+            for file in files:
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(file_path)
+                    file_paths.append(file_path)
+            # Handle the uploaded file paths here
+            process_files(file_paths)
 
-    try:
-        for row in rows:
-            cells = row.find_all('td')
-            image_cell = cells[3]
-            image_url = image_cell.text.strip()
-            item_name = cells[0].text.strip()
-            new_image_tag = f'<img src="{image_url}" alt="Image of {item_name}" width="170" height="auto">'
-            image_cell.string = ""
-            image_cell.append(BeautifulSoup(new_image_tag, 'html.parser'))
+        elif menu_format == 'link':
+            links = request.form.get('menu_links')
+            link_list = links.split('\t')  # Assuming links are separated by tabs
+            # Handle the links here
+            process_links(link_list)
 
-        return str(soup)
-    except Exception as e:
-        return html_table
+        elif menu_format == 'image':
+            images = request.files.getlist('menu_images')
+            image_paths = []
+            for image in images:
+                if image and allowed_file(image.filename):
+                    filename = secure_filename(image.filename)
+                    image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    image.save(image_path)
+                    image_paths.append(image_path)
+            # Handle the uploaded image paths here
+            process_images(image_paths)
+
+        flash('Menu data processed successfully!')
+        return redirect(url_for('update_menu'))
+
+    return render_template('upload_menu.html')
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'pdf', 'png', 'jpg', 'jpeg', 'gif', 'txt', 'docx', 'xlsx'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def secure_filename(filename):
+    return filename.replace(' ', '_')
+"""
+
 
 
 @app.route('/update_menu', methods=['POST'])
 def update_menu():
+
     print(request)
     menu = request.files['menu_update']
     #script = request.files['script']
@@ -1818,7 +1868,13 @@ def update_menu_manual():
             tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
         )
 
-        collection.update_one({"unique_azz_id": unique_azz_id}, {"$set": {"menu_file_id": menu_file_id, "menu_vector_id": vector_store.id, "html_menu_tuples": updated_items}})
+        average_menu_price = statistics.mean([float(item["Item Price (EUR)"]) for item in updated_items])
+
+        collection.update_one({"unique_azz_id": unique_azz_id}, 
+                              {"$set": {"menu_file_id": menu_file_id, 
+                                "menu_vector_id": vector_store.id, 
+                                "html_menu_tuples": updated_items, 
+                                "average_menu_price": average_menu_price}})
     # Return a success response
     return jsonify(success=True)
 
@@ -2015,16 +2071,132 @@ def capture_order(orderID):
 
 @app.route('/assistant_dash', methods=['POST', 'GET'])
 def assistant_dashboard_route():
+    
     sub_activated = session.get("subscription_activated")
     unique_azz_id = session.get("unique_azz_id")
     restaurant_name = session.get("restaurant_name")
     qr_code_id = session.get("qr_code_id")
-    return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, sub_activated=sub_activated, qr_code_id=qr_code_id) 
+    ai_phone_number = session.get("ai_phone_number")
+
+    return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, 
+                           sub_activated=sub_activated, 
+                           qr_code_id=qr_code_id,
+                           ai_phone_number=ai_phone_number) 
 
 #######################################################################################################
 
 
 ################### Voice Assistant Setup Start #########################
+
+
+@app.route('/charge-for-call', methods=['POST'])
+def charge_for_call():
+    data = request.json
+    call_id = data.get("call_id")
+    return call_id
+
+
+@app.route('/purchase-phone-number', methods=['POST'])
+def purchase_phone_number():
+    data = request.form
+
+    language = data.get("language")
+
+    
+    unique_azz_id = session.get("unique_azz_id")
+    
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    restaurant_name = restaurant.get("name")
+
+    pathway_id = restaurant.get("voice_pathway_id")
+
+    if restaurant.get("balance") < 23:
+        flash("Please top up your balance. You need at least 23 Euros on your account.", "danger")
+        return redirect("/voice-setup")
+    
+    dict_response = buy_and_update_phone(pathway_id, language)
+
+    if not dict_response["success"]:
+        flash("There is an error on our side. Try again!", "danger")
+        return redirect("/voice-setup")
+    
+    phone_number = dict_response["phone_number"]
+
+    # Get today's date
+    today = datetime.today()
+    formatted_date = today.strftime('%Y-%m-%d')
+
+    # Extract the day number
+    day_number = today.day
+
+    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"ai_phone_number": phone_number, "ai_phone_subscription_date": formatted_date} ,"$inc":{"balance": -20}})
+
+    
+    
+    if result.matched_count > 0:
+        flash(f"Congratulations! You have successfully setup {restaurant_name}' Voice Assistant", "success")
+        return redirect("/voice-setup")
+    else:
+        flash("We have got the phone number for you! It will arrive soon", "success")
+        return redirect("/voice-setup")
+
+
+    
+
+
+@app.route('/create-the-pathway', methods=['POST'])
+def post_create_pathway():
+    unique_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+    
+    restaurant_menu_tuples = restaurant.get("html_menu_tuples")
+
+    menu_string = ""
+
+    for item in restaurant_menu_tuples:
+        item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
+        menu_string += item_text
+    
+    restaurant_name = restaurant.get("name")
+    store_location = restaurant.get("location_name")
+    timezone = restaurant.get("timezone")
+    restaurant_menu = menu_string
+    
+    opening_hours_string = ""
+
+    opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+
+    day_of_weeks = {
+        0: 'Monday',
+        1: 'Tuesday',
+        2: 'Wednesday',
+        3: 'Thursday',
+        4: 'Friday',
+        5: 'Saturday',
+        6: 'Sunday'
+    }
+
+    for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+        day_of_week = day_of_weeks[index]
+        opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+        opening_hours_string += opening_hours_line + "\n"
+
+    result = pathway_serving_a_to_z(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+
+    print("Success Creating Pathway??? ", result["success"])
+
+    if not result["success"]:
+        flash("Oops, something wrong on our side - try again!")
+        return redirect('/voice-setup')
+
+    pathway_id = result["pathway_id"]
+
+    collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"voice_pathway_id":pathway_id}})
+
+    flash("Congratulations! Your voice agent has been successfully created!")
+    return redirect('/voice-setup')
+    
 
 @app.route('/post-voice-order', methods=['POST'])
 def post_voice_order():
@@ -2089,9 +2261,20 @@ def post_voice_order():
 @app.route('/voice-setup', methods=['GET', 'POST'])
 def voice_setup_page():
     restaurant_name = session.get("restaurant_name")
+    unique_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    voice_pathway_id = restaurant.get("voice_pathway_id")
+    ai_phone_number = restaurant.get("ai_phone_number")
+
+    print(voice_pathway_id)
+
     return render_template('voice-setup/voice_setup.html', 
                            title="Setup Phone Assistant",
-                           restaurant_name=restaurant_name)
+                           restaurant_name=restaurant_name,
+                           voice_pathway_id=voice_pathway_id,
+                           restaurant=restaurant,
+                           ai_phone_number=ai_phone_number)
 
 @app.route('/trigger_demo_call', methods=['POST'])
 def trigger_demo_call():
@@ -2100,10 +2283,36 @@ def trigger_demo_call():
     restaurant_name = session.get("restaurant_name")
     #restaurant_name = request.form.get('restaurant_name')
 
+    unique_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    opening_hours_string = ""
+
+    opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+
+    day_of_weeks = {
+    0: 'Monday',
+    1: 'Tuesday',
+    2: 'Wednesday',
+    3: 'Thursday',
+    4: 'Friday',
+    5: 'Saturday',
+    6: 'Sunday'
+    }
+
+    
+    for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+        day_of_week = day_of_weeks[index]
+        opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+        opening_hours_string += opening_hours_line
+
+    store_location = restaurant.get("location_name")
+    timezone = restaurant.get("timezone")
+
     print("The parameters we passed on send voice call endpoint: ", phone_number, language, restaurant_name)
 
     if phone_number and language:
-        success = send_the_call_on_number_demo(phone_number, restaurant_name, language)
+        success = send_the_call_on_number_demo(phone_number, restaurant_name, language, store_location, opening_hours_string, timezone)
         if success:
             flash(f"You should receive the call on {phone_number} shortly.", 'success')
         else:
@@ -2384,6 +2593,8 @@ def generate_response(unique_azz_id):
     print("Thats what we sent to retrieve the gpts response, ", user_input)
     response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id)
 
+    response_llm = replace_markdown_images(response_llm)
+    
     PRICE_PER_1_TOKEN = 0.0000005
     charge_for_message = PRICE_PER_1_TOKEN * tokens_used
     print(f"Charge for message: {charge_for_message} USD")
@@ -2414,6 +2625,19 @@ def generate_response(unique_azz_id):
     return jsonify({"response_llm":response_llm})
 
 
+
+def replace_markdown_images(text):
+    # Regular expression pattern to find ![text](url)
+    pattern = r'!\[(.*?)\]\((.*?)\)'
+    
+    # Function to replace the matched pattern with the desired <img> tag
+    def replace_match(match):
+        alt_text = match.group(1)
+        src_url = match.group(2)
+        return f'<img src="{src_url}" alt="Image of {alt_text}" width="170" height="auto">'
+    
+    # Use re.sub to replace all occurrences of the pattern
+    return re.sub(pattern, replace_match, text)
 
 
 

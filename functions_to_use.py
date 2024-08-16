@@ -6,6 +6,9 @@ import openpyxl
 import gridfs
 from pathlib import Path
 import qrcode
+import docx
+import PyPDF2
+import chardet
 import asyncio
 import io
 from io import BytesIO
@@ -14,6 +17,7 @@ from bs4 import BeautifulSoup
 import ast
 from pydub import AudioSegment
 import secrets
+import statistics
 from deep_translator import GoogleTranslator
 from langdetect import detect, detect_langs
 import azure.cognitiveservices.speech as speechsdk
@@ -69,6 +73,39 @@ MOM_AI_LANGUAGE_DETECTOR = os.environ.get("MOM_AI_POLYGLOT_MASTER_ID", "asst_LdS
 
 MOM_AI_EXEMPLARY_MENU_VECTOR_ID = "vs_fszfiVR3qO7DDHNSkTQn8fYH"
 MOM_AI_EXEMPLARY_MENU_FILE_ID = "file-FON6GkHWdj1c4xioGCpje05N"
+
+INSTRUCTION_FOR_MENU_STRUCTURING = """
+             I am the MOM AI Restaurant Assistant, a specialized GPT designed to help users navigate and form restaurant menus quickly and efficiently. Here’s how I can assist:
+
+Menu Acquisition:
+
+I can retrieve the restaurant’s menu by either processing an uploaded file containing the menu or processing the raw text containing menu information.
+I will ensure that absolutely all items from the file or raw text are captured and included in the menu creation process.
+Currency Conversion:
+
+I will use the currency rate which is provided with the particular message.
+
+Menu Transformation:
+
+I will convert the menu data into a JSON object of the following structure:
+{
+   "items":[
+{Item Name - name_of_item,
+Item Description - item_description,
+ Item Price (EUR) - price_of_item},
+
+{Item Name - name_of_item,
+Item Description -  item_description,
+Item Price (EUR) - price_of_item}
+]
+}
+
+Example Output:
+
+{
+   "items":[
+   {'Item Name': 'BIRYANI CHICKEN', 'Item Description': 'Yellow rice, chicken, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.', 'Item Price': '15.34'}, {'Item Name': 'BIRYANI LAMB', 'Item Description': 'Yellow rice, lamb, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.', 'Item Price': '15.34'}, {'Item Name': 'BIRYANI FISH', 'Item Description': 'Yellow rice, fish, mixed salad, tomato, cucumber, olive oil, red onion, yogurt sauce, spicy sauce.', 'Item Price': '15.34'}, {'Item Name': 'BIRYANI MIX', 'Item Description': 'Yellow rice, lamb, chicken, fish, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.', 'Item Price': '16.68'}, {'Item Name': 'BIRYANI VEGETARIAN', 'Item Description': 'Falafel, Hummus, yellow rice, mixed salad, red onion, tomato, cucumber, yogurt sauce, spicy sauce.', 'Item Price': '15.34'}, {'Item Name': 'SHAWARMA CHICKEN', 'Item Description': 'Tortilla bread, marinated chicken in Arabic spices, fries, pomegranate molasses, mayonnaise.', 'Item Price': '15.34'}]}
+"""
 
 # Web3
 MOM_TOKEN_OWNER_ADDRESS = os.environ.get("CONTRACT_OWNER_ADDRESS")
@@ -452,6 +489,72 @@ def remove_formatted_lines(menu_text):
     return result
 
 
+# Function to encode the image
+def encode_image(image_path):
+  with open(image_path, "rb") as image_file:
+    return base64.b64encode(image_file.read()).decode('utf-8')
+  
+
+
+def extract_text_from_file(file_path):
+    file_extension = file_path.split('.')[-1].lower()
+
+    if file_extension == 'txt':
+        with open(file_path, 'rb') as f:
+            result = chardet.detect(f.read())
+            encoding = result['encoding']
+        with open(file_path, 'r', encoding=encoding) as f:
+            return f.read()
+    
+    elif file_extension == 'xlsx':
+        df = pd.read_excel(file_path)
+        return df.to_string(index=False)
+    
+    elif file_extension == 'docx':
+        doc = docx.Document(file_path)
+        full_text = []
+        for paragraph in doc.paragraphs:
+            full_text.append(paragraph.text)
+        return '\n'.join(full_text)
+    
+    elif file_extension == 'pdf':
+        with open(file_path, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            text = []
+            for page in reader.pages:
+                text.append(page.extract_text())
+            return '\n'.join(text)
+    
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+
+
+
+def process_files(file_paths, client=CLIENT_OPENAI):
+    files_text = ""
+    
+    for file_path in file_paths:
+        new_text = extract_text_from_file(file_path)
+        files_text += new_text
+    
+    response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[
+        {"role": "system", "content": INSTRUCTION_FOR_MENU_STRUCTURING},
+        {"role": "user", "content": f"Process this text to the structured format:\n\n{files_text}"},
+    ],
+    response_format={ "type": "json_object" }
+    )
+
+def process_links(link_list):
+    # Implement your link processing logic here
+    pass
+
+def process_images(image_paths):
+    # Implement your image processing logic here
+    pass
+
+
 
 
 def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_name, mongo_restaurants, unique_azz_id, assistant_id, client=CLIENT_OPENAI):
@@ -485,7 +588,9 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
         tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
         )
 
-        mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html}})
+        average_menu_price = statistics.mean([item["Item Price (EUR)"] for item in new_html])
+
+        mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html, "average_menu_price": average_menu_price}})
         
         return {"success":True}
 
@@ -1552,9 +1657,6 @@ Instructions for Use:
 
 
 
-
-
-
 def send_telegram_notification(chat_id, message=f"New order has been published! 🚀🚀🚀"):
     bot_token = os.environ.get('TELEGRAM_BOT_TOKEN')  # Replace with your actual bot token
     chat_id = str(chat_id)      # Replace with your actual chat ID
@@ -1629,6 +1731,56 @@ def convert_hours_to_time(hour_string):
         return f"{converted_hours}:{minutes:02d}"
     else:
         return f"{hour_string}:00"
+
+
+def charge_for_ai_phone_number():
+    for res_instance in list(collection.find()):
+        
+        start_ai_phone_number = res_instance.get("start_ai_phone_number")
+        end_work = res_instance.get("end_work")
+        timezone = res_instance.get("timezone")
+        
+        # Convert timezone to the correct format for pytz
+        if timezone.startswith("Etc/GMT-"):
+            timezoneG = timezone.replace("-", "+", 1)
+        elif timezone.startswith("Etc/GMT+"):
+            timezoneG = timezone.replace("+", "-", 1)
+        
+        # Get the current date and time in the restaurant's timezone
+        now_tz = datetime.now(pytz.timezone(timezoneG))
+        current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+        current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+        
+        # Adjust current_day to match our list index where Sunday is 0
+        # current_day = (current_day + 1) % 7
+
+        # Determine if the restaurant is open
+        start = start_work[current_day]
+        end = end_work[current_day]
+
+        previous_day_end = end_work[current_day-1]
+
+        if previous_day_end > 24 and current_hour < previous_day_end-24:
+            isWorkingHours = current_hour < previous_day_end-24
+        else:       
+            # Check if the current time falls within the working hours
+            if start <= end:
+                # Same day operation
+                isWorkingHours = start <= current_hour < end
+                # Update the restaurant's open status in the database
+                collection.update_one(
+                    {"unique_azz_id": res_instance.get("unique_azz_id")},
+                    {"$set": {"isOpen": isWorkingHours}}
+                )
+                #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
+            else:
+                # Spans to the next day
+                isWorkingHours = current_hour >= start or current_hour < end
+                # Update the restaurant's open status in the database
+                collection.update_one(
+                    {"unique_azz_id": res_instance.get("unique_azz_id")},
+                    {"$set": {"isOpen": isWorkingHours}}
+                )
 
 
 def setup_working_hours():

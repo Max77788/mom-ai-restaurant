@@ -116,8 +116,13 @@
     </div>
 
     <div id="get-link" class="tab-content">
-        <p>Paste the following link on your site: <i>https://mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i></p>
-        <p>After clicking the link the customer will be redirected to the MOM AI Restaurant Assistant and will make the order in {{ restaurant_name.replace("_"," ") }}</p>
+        <p>Paste the following link on your site:</p>
+        <div style="text-align: center; font-size: 24px; margin: 20px 0;">
+            <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">
+                <i>https://mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i>
+            </strong>
+        </div>
+                <p>After clicking the link the customer will be redirected to the MOM AI Restaurant Assistant and will make the order in {{ restaurant_name.replace("_"," ") }}</p>
         <video class="responsive-video" controls poster="/static/images/thumbnails/ThumbnailAddLink.png" style="max-height:400px; width:auto">
             <source src="/static/videos/LinkExample.mp4" type="video/mp4">
             Your browser does not support the video tag.
@@ -127,6 +132,7 @@
     <div id="get-code" class="tab-content">
         <p>To integrate the assistant window onto your website, use the following code:</p>
         <pre>
+            
             <code>
                 &lt;iframe src="https://mom-ai-restaurant.pro/assistant_order_chat/{{ unique_azz_id }}?iframe=yes" width="600" height="700" style="border:none;"&gt;&lt;/iframe&gt;
             </code>
@@ -138,8 +144,16 @@
     </div>
 
     <div id="via-phone" class="tab-content">
+        {% if not ai_phone_number %}
         <p>Reach us and we will set it up for you.<br>or</p>
-        <p><a href="/voice-setup" target="_blank">Set it up yourself</a></p>
+        <p><a href="/voice-setup" target="_blank"><u>Set it up yourself</u></a></p>
+        {% else %}
+        <h2>Here is the phone number your customers can call and place the order in {{ restaurant_name }}</h2>
+        <div style="text-align: center; font-size: 24px; margin: 20px 0;">
+            <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">{{ ai_phone_number }}</strong>
+        </div>
+        <p><a href="/voice-setup" target="_blank"><u>Edit your AI-voice agent</u></a></p>
+        {% endif %}
         <div class="image-container">
             <img src="/static/images/auto-phone-orders.jpeg" alt="AI-Assistant tablet at restaurant counter">
         </div>

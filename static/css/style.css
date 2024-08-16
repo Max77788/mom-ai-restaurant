@@ -65,6 +65,20 @@ input[type="submit"], button {
     border-radius: 4px;
 }
 
+/*
+input[type="submit"], button:disabled {
+    background-color: #333;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+    pointer-events: none;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+*/
+
 input[type="submit"]:hover, button:hover {
     background-color: #333;
 }
@@ -97,6 +111,9 @@ a:hover {
 
 .form-group {
     margin-bottom: 15px;
+    text-align: center;
+    justify-content: center;
+    align-items: center;
 }
 
 button a {
@@ -155,6 +172,14 @@ a {
     max-width: 100%;
   }
 
+.flash-messages {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%; /* Ensure it takes full width of the page */
+}
+
+/* Base style for all flash messages */
 .flash-message {
     padding: 10px 20px;
     border: 1px solid #ccc;
@@ -162,7 +187,24 @@ a {
     font-weight: bold;
     margin-bottom: 15px;
     background-color: #f0f0f0;
-  }
+    max-width: 80%;
+    text-align: center;
+}
+
+/* Success message style */
+.flash-message.success {
+    border-color: #4CAF50; /* Green border */
+    background-color: #DFF2BF; /* Light green background */
+    color: #4CAF50; /* Green text */
+}
+
+/* Danger message style */
+.flash-message.danger {
+    border-color: #f44336; /* Red border */
+    background-color: #FFBABA; /* Light red background */
+    color: #f44336; /* Red text */
+}
+
 
 .grid-container {
     display: grid;
@@ -341,7 +383,9 @@ form {
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     align-items: center;
-
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
 }
 
 .form-group {

@@ -1,4 +1,10 @@
-from functions import create_the_suitable_pathway, send_the_call_on_number_demo, get_conversational_pathway_data
+from functions import add_pathway_to_phone, create_the_suitable_pathway_script, send_the_call_on_number_demo, get_conversational_pathway_data, pathway_serving_a_to_z
+import requests
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+from pymongo import MongoClient
+import os
+
 
 where_to_call = "+3548425192"
 restaurant_name = "Floppy Cockumber"
@@ -16,6 +22,8 @@ opening_hours = """
                 Sunday - day off
                 """
 timezone = "GMT+2"
+unique_azz_id = "matronins_nyje"
+
 restaurant_menu = """ 
                     Format: Item Name   Item ingredients   Item price in EUR
                     BIRYANI CHICKEN	Yellow rice, chicken, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.	15.34
@@ -55,7 +63,6 @@ restaurant_menu = """
 
                   """
 
-import requests
 def test_posting_voice_order():
     # Define the endpoint URL
     url = "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/post-voice-order"
@@ -82,9 +89,103 @@ def test_posting_voice_order():
         print("Failed to place order")
         print("Response:", response.text)
 
-test_posting_voice_order()
+import re
 
-# create_the_suitable_pathway(restaurant_name, timezone, opening_hours, store_location, restaurant_menu)
+def replace_markdown_images(text):
+    # Regular expression pattern to find ![text](url)
+    pattern = r'!\[(.*?)\]\((.*?)\)'
+    
+    # Function to replace the matched pattern with the desired <img> tag
+    def replace_match(match):
+        alt_text = match.group(1)
+        src_url = match.group(2)
+        return f'<img src="{src_url}" alt="Image of {alt_text}" width="170" height="auto">'
+    
+    # Use re.sub to replace all occurrences of the pattern
+    return re.sub(pattern, replace_match, text)
+
+
+
+def extract_text_from_file(file_path):
+    file_extension = file_path.split('.')[-1].lower()
+
+    if file_extension == 'txt':
+        with open(file_path, 'rb') as f:
+            result = chardet.detect(f.read())
+            encoding = result['encoding']
+        with open(file_path, 'r', encoding=encoding) as f:
+            return f.read()
+    
+    elif file_extension == 'xlsx':
+        df = pd.read_excel(file_path)
+        return df.to_string(index=False)
+    
+    elif file_extension == 'docx':
+        doc = docx.Document(file_path)
+        full_text = []
+        for paragraph in doc.paragraphs:
+            full_text.append(paragraph.text)
+        return '\n'.join(full_text)
+    
+    elif file_extension == 'pdf':
+        with open(file_path, 'rb') as f:
+            reader = PyPDF2.PdfReader(f)
+            text = []
+            for page in reader.pages:
+                text.append(page.extract_text())
+            return '\n'.join(text)
+    
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+
+
+
+# Example usage:
+# text = extract_text_from_file('menu_examples/menu.xlsx')
+# print(text)
+
+
+# Example usage
+#text = "Check out this image ![SHAWARMA MIX](https://i.ibb.co/P90SVMs/800-6012d21eefaf5.jpg)"
+#updated_text = replace_markdown_images(text)
+#print(updated_text)
+
+
+
+
+
+
+
+
+mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
+
+# Connect to MongoDB
+client_db = MongoClient(mongodb_connection_string)
+
+# Specify the database name
+db_mongo = client_db['MOM_AI_Restaurants']
+
+# Specify the collection name
+collection = db_mongo[os.environ.get("DB_VERSION")]
+
+dicts = collection.find_one({"unique_azz_id":unique_azz_id}).get("html_menu_tuples")
+
+#item_lines = [f"Item Name - {item['Item Name']}\nItem Description - {item['Item Description']}\nItem Price - {item['Item Price (EUR)']}\n\n\n" for item in dicts]
+
+item_lines = [{"Item Name" :item['Item Name'], "Item Description": item['Item Description'], "Item Price": item['Item Price (EUR)']} for item in dicts]
+
+print(item_lines)
+
+
+# success = add_pathway_to_phone("+14153017040", "5c01d028-8f2b-4560-8aec-ddad5de31a9f", "uk")
+
+# success = pathway_serving_a_to_z(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id)
+
+# print("Success??? ", success)
+
+#test_posting_voice_order()
+
+# create_the_suitable_pathway_script(restaurant_name, timezone, opening_hours, store_location, restaurant_menu, unique_azz_id)
 
 # result = send_the_call_on_number_demo(where_to_call, restaurant_name, language)
 

@@ -136,6 +136,13 @@ function downloadImage() {
             <hr>
             <p>Your Referral ID - <b>{{ referral_id }}</b></p>
             <p style="font-size: 12px;">(give it to a new restaurant and earn passively!)</p>
+            {% if num_of_referees > 0 %}
+            <hr>
+            <div style="font-size: 10px;">
+            <p>Bravo, your restaurant is earning passively💸</p>
+            <p><b>{{ num_of_referees }} restaurants have registered with your code</b></p>
+            </div>
+            {% endif %}
         </div>
         
 

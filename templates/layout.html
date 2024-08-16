@@ -68,13 +68,15 @@
     </nav>
 
     <main>
-        {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <div class="flash-messages">
-            <div class="flash-message">{{ messages[-1] }}</div>
-        </div>
-    {% endif %}
-{% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         {% block content %}
         <!-- Content overridden in child templates -->
@@ -270,11 +272,12 @@
     -->
     <script>
         setTimeout(function() {
-                var flashMessage = document.querySelector('.flash-message');
-                if (flashMessage) {
-                    flashMessage.style.display = "none";
-                }
-            }, 7000);
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(function(flashMessage) {
+            flashMessage.style.display = "none";
+        });
+    }, 7000);
+
     </script>
 </body>
 </html>

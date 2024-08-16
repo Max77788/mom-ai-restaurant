@@ -1,7 +1,145 @@
 {% extends "layout_no_land.html" %}
 
 {% block content %}
+<!-- Modal container -->
+<div id="paypal-modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div>
+            <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
+            <input type="number" id="top-up-amount" value="50" min="10" step="1" style="width: 200px;">
+        </div>
+        <div id="paypal-button-container" style="margin-top: 10px;"></div>
+    </div>
+</div>
+
+<!-- Include the PayPal JavaScript SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=EUR"></script>
+        
+<!-- Styles for the modal -->
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0,0,0);
+        background-color: rgba(0,0,0,0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 600px;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+</style>
+
+<script>
+    document.getElementById('activate-paypal-button').addEventListener('click', function() {
+        // Display the modal
+        var modal = document.getElementById('paypal-modal');
+        modal.style.display = 'block';
+
+        // Clear any previously rendered PayPal buttons
+        var paypalButtonContainer = document.getElementById('paypal-button-container');
+        paypalButtonContainer.innerHTML = '';
+
+        paypal.Buttons({
+            style: {
+                size: 'small', // small | medium | large | responsive
+                shape: 'pill', // rect | pill
+                color: 'silver', // gold | blue | silver | black
+                label: 'paypal', // paypal | checkout | buynow | pay | installment
+                tagline: false // Show the tagline text at the bottom
+            },
+            // Call your server to set up the transaction
+            createOrder: function(data, actions) {
+                const totalToPay = document.getElementById('top-up-amount').value;
+                return fetch('/create_order', {
+                    method: 'post',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ total_to_pay: totalToPay })
+                }).then(function(res) {
+                    return res.json();
+                }).then(function(orderData) {
+                    return orderData.id;
+                }).catch(function(error) {
+                    console.error('Error:', error);  // Handle any errors
+                });
+            },
+            // Call your server to finalize the transaction
+            onApprove: function(data, actions) {
+                const totalToPay = document.getElementById('top-up-amount').value;
+                const unique_azz_id = "{{ res_unique_azz_id }}";
+
+                return fetch(`/capture_order/${data.orderID}?top-up-balance=yes&unique_azz_id=${unique_azz_id}&amount=${totalToPay}`, {
+                    method: 'post'
+                }).then(function(res) {
+                    console.log("1")
+                    return res.json();
+                }).then(function(orderData) {
+                    console.log("2")
+                    var errorDetail = Array.isArray(orderData.details) && orderData.details[0];
+                    if (errorDetail && errorDetail.issue === 'INSTRUMENT_DECLINED') {
+                        return actions.restart(); // Recoverable state
+                    }
+                    console.log("3")
+                    if (errorDetail) {
+                        var msg = 'Sorry, your transaction could not be processed.';
+                        if (errorDetail.description) msg += '\n\n' + errorDetail.description;
+                        if (orderData.debug_id) msg += ' (' + orderData.debug_id + ')';
+                        return alert(msg); // Show a failure message
+                    }
+                    console.log("4")
+                    // var transaction = orderData.purchase_units[0].payments.captures[0];
+                    // const unique_azz_id = "{{ unique_azz_id }}";
+                    console.log("5")
+                    console.log("Order Data itself: ", orderData)
+                    if (orderData.topped_up_balance_manual){
+                        console.log("6")
+                        // This will reload the current page
+                        location.reload();
+                        return;
+                    } 
+                    // window.location.href = `/success_payment_backend/${unique_azz_id}`;
+                    // alert('Transaction '+ transaction.status + ': ' + transaction.id + '\n\nSee console for all available details');
+                });
+            }
+        }).render('#paypal-button-container');
+    });
+
+    // Close the modal
+    document.querySelector('.close').addEventListener('click', function() {
+        document.getElementById('paypal-modal').style.display = 'none';
+    });
+</script>
+
+
 <div class="container mt-5" style="align-items: center; text-align: center; justify-content: center;">
+    {% if not ai_phone_number %}
     <h1 class="text-center">AI Call Demo</h1>
     <div style="display: flex; align-items: center; justify-content: center;">
     <form method="POST" action="{{ url_for('trigger_demo_call') }}" style="text-align: center; align-items: center; justify-items: center;">
@@ -13,11 +151,12 @@
         -->
         <div class="form-group" style="text-align: center; align-items: start;">
             <label for="phone_number">Phone Number</label>
-            <input type="tel" class="form-control" id="phone_number" name="phone_number" required>
-            <small class="form-text text-muted">Please include your country code (e.g., +1 for US).</small>
+            <input type="tel" class="form-control" id="phone_number" name="phone_number" placeholder="Input Your Phone Number" required>
+            <small class="form-text text-muted">*Please include your country code (e.g., +1 for US).</small>
         </div>
         <div class="form-group">
-            <label for="language">Select Language</label>
+            <label for="language">Select Language<br> 
+                of the AI Voice Agent(for demo only)</label>
             <select class="form-control" id="language" name="language" required>
                 <option value="en">English</option>
                 <option value="en-US">English (US)</option>
@@ -62,9 +201,139 @@
                 <option value="sk">Slovak</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-primary">Submit</button>
+        <button type="submit" class="btn btn-primary">Get a Call</button>
         <p style="margin-top: 7px;">Have {{ restaurant_name }}'s AI Agent call you now!</p>
     </form>
 </div>
 </div>
+<hr>
+{% endif %}
+
+<div style="display: flex; flex-direction: column; align-items: center; text-align: center; margin-top: 7px; align-items: center; justify-content: center;">
+{% if not voice_pathway_id and not ai_phone_number %}
+    <form method="POST" action="{{ url_for('post_create_pathway') }}">
+        <button type="submit" class="btn btn-success">Create {{ restaurant_name }}'s AI Voice Agent</button>
+    </form>
+{% elif voice_pathway_id and not ai_phone_number %}
+<h2>{{ restaurant_name }}'s Voice Agent is Created!</h2>
+<p>Now it is time to obtain the phone number for your agent to make it accessible for {{ restaurant_name }}'s Customers</p>
+<div class="form-group">
+<form method="POST" action="/purchase-phone-number">
+    <label for="language">Select Language<br> 
+        of {{ restaurant_name }}'s AI Voice Agent<br>
+        <i>(you can modify it later)</i></label>
+    <select class="form-control" id="language" name="language" style="margin-bottom: 10px;" required>
+        <option value="en">English</option>
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="en-AU">English (Australia)</option>
+        <option value="en-NZ">English (New Zealand)</option>
+        <option value="en-IN">English (India)</option>
+        <option value="zh">Chinese (Mandarin, Simplified)</option>
+        <option value="zh-CN">Chinese (Mandarin, Simplified, China)</option>
+        <option value="zh-Hans">Chinese (Mandarin, Simplified, Hans)</option>
+        <option value="zh-TW">Chinese (Mandarin, Traditional)</option>
+        <option value="zh-Hant">Chinese (Mandarin, Traditional, Hant)</option>
+        <option value="es">Spanish</option>
+        <option value="es-419">Spanish (Latin America)</option>
+        <option value="fr">French</option>
+        <option value="fr-CA">French (Canada)</option>
+        <option value="de">German</option>
+        <option value="el">Greek</option>
+        <option value="hi">Hindi</option>
+        <option value="hi-Latn">Hindi (Latin script)</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="ko-KR">Korean (Korea)</option>
+        <option value="pt">Portuguese</option>
+        <option value="pt-BR">Portuguese (Brazil)</option>
+        <option value="it">Italian</option>
+        <option value="nl">Dutch</option>
+        <option value="pl">Polish</option>
+        <option value="ru">Russian</option>
+        <option value="sv">Swedish</option>
+        <option value="sv-SE">Swedish (Sweden)</option>
+        <option value="da">Danish</option>
+        <option value="da-DK">Danish (Denmark)</option>
+        <option value="fi">Finnish</option>
+        <option value="id">Indonesian</option>
+        <option value="ms">Malay</option>
+        <option value="tr">Turkish</option>
+        <option value="uk">Ukrainian</option>
+        <option value="bg">Bulgarian</option>
+        <option value="cs">Czech</option>
+        <option value="ro">Romanian</option>
+        <option value="sk">Slovak</option>
+    </select>
+    <button type="submit" class="btn btn-success" {% if restaurant["balance"] < 23 %} style='cursor: not-allowed; opacity: 0.5;' disabled{% endif %}>Obtain Phone Number for {{ restaurant_name }}'s AI Voice Agent</button>
+</form>
+</div>
+{% if restaurant["balance"] < 23 %}
+<p style="font-size: large">You must have <b>AT LEAST <u>23€</u> on your balance</b> to obtain the number. <b>Your current balance is {{ restaurant["balance"] | round(2) }}€</b></p>
+{% endif %}
+<p style="font-size: small">Renting provided US phone number will cost you <s>90€</s> 20€ per month + <s>0.99€</s> 0.15€ per every minute spoken with {{ restaurant_name }}'s AI Voice Agent</p>
+<p style="font-size: medium"><b>We will show you how to setup your country's phone number after obtaining the assistant's phone number</b></p>
+
+{% else %}
+
+<h2>Here is the phone number your customers can call and place the order in {{ restaurant_name }}</h2>
+<div style="text-align: center; font-size: 24px; margin: 20px 0;">
+    <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">{{ ai_phone_number }}</strong>
+</div>
+<p>Check out this video on how to forward calls on this number from your non-US phone number</p>
+<div class="form-group">
+    <form method="POST" action="/purchase-phone-number">
+        <label for="language">Update Language<br> 
+            of {{ restaurant_name }}'s AI Voice Agent<br></label>
+        <select class="form-control" id="language" name="language" style="margin-bottom: 10px;" required>
+            <option value="en">English</option>
+            <option value="en-US">English (US)</option>
+            <option value="en-GB">English (UK)</option>
+            <option value="en-AU">English (Australia)</option>
+            <option value="en-NZ">English (New Zealand)</option>
+            <option value="en-IN">English (India)</option>
+            <option value="zh">Chinese (Mandarin, Simplified)</option>
+            <option value="zh-CN">Chinese (Mandarin, Simplified, China)</option>
+            <option value="zh-Hans">Chinese (Mandarin, Simplified, Hans)</option>
+            <option value="zh-TW">Chinese (Mandarin, Traditional)</option>
+            <option value="zh-Hant">Chinese (Mandarin, Traditional, Hant)</option>
+            <option value="es">Spanish</option>
+            <option value="es-419">Spanish (Latin America)</option>
+            <option value="fr">French</option>
+            <option value="fr-CA">French (Canada)</option>
+            <option value="de">German</option>
+            <option value="el">Greek</option>
+            <option value="hi">Hindi</option>
+            <option value="hi-Latn">Hindi (Latin script)</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="ko-KR">Korean (Korea)</option>
+            <option value="pt">Portuguese</option>
+            <option value="pt-BR">Portuguese (Brazil)</option>
+            <option value="it">Italian</option>
+            <option value="nl">Dutch</option>
+            <option value="pl">Polish</option>
+            <option value="ru">Russian</option>
+            <option value="sv">Swedish</option>
+            <option value="sv-SE">Swedish (Sweden)</option>
+            <option value="da">Danish</option>
+            <option value="da-DK">Danish (Denmark)</option>
+            <option value="fi">Finnish</option>
+            <option value="id">Indonesian</option>
+            <option value="ms">Malay</option>
+            <option value="tr">Turkish</option>
+            <option value="uk">Ukrainian</option>
+            <option value="bg">Bulgarian</option>
+            <option value="cs">Czech</option>
+            <option value="ro">Romanian</option>
+            <option value="sk">Slovak</option>
+        </select>
+        <button type="submit" class="btn btn-success" {% if restaurant["balance"] < 23 %} style='cursor: not-allowed; opacity: 0.5;' disabled{% endif %}>Obtain Phone Number for {{ restaurant_name }}'s AI Voice Agent</button>
+    </form>
+    </div>
+
+{% endif %}
+</div>
+
 {% endblock %}
+

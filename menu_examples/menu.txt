@@ -1,0 +1,21 @@
+Restaurant   MENU
+
+1. Appetizers 
+  - Garlic Bread  -    $5.99
+  -Bruschetta - 7.99 $
+  -    Caesar   Salad-   $8.99
+
+2. Main     Courses
+- Margherita Pizza- $12.99
+     - Spaghetti Carbonara  $ 14.99
+- Grilled SALMON  - $18.99
+
+  3. DESSERTS
+- Tiramisu-  $6.99
+     -Chocolate   Lava  Cake- $7.99
+ -Gelato- $5.99
+
+  4. beverages
+-   coffee- $2.99
+-Tea -2.49 $
+     -SOFT DRINK- $1.99

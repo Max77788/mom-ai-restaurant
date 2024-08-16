@@ -5,15 +5,14 @@
     {% with messages = get_flashed_messages() %}
         {% if messages %}
             <div class="flash-messages">
-                    <div class="flash-message">{{ messages[-1] }}</div>
+                <div class="flash-message">{{ messages[-1] }}</div>
             </div>
         {% endif %}
     {% endwith %}
     <h1 class="mb-4" style="text-align: center;">Upload the new menu</h1>
     <form action="/update_menu" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
-        <!-- <h3>How to form the menu file correctly - <a href="{{ url_for('serve_excel_guide') }}" target="_blank"><u>Press Here to Find Out</u></a></h3> -->
-        <h3><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and have your menu file formed!</u></a></h3>
+        <h3><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and Get Extra Assistance!</u></a></h3>
         <div>
             {% if default_menu %}
             <label for="menu_update">⬇️Please, upload the menu to start generating orders on autopilot.</label>
@@ -31,90 +30,164 @@
         <h1 class="mb-4" style="text-align: center;">That's the example of the menu you should provide</h1>
         {% else %}
         <h1 class="mb-4" style="text-align: center;">That's the menu the assistant refers to now</h1>
-        <h2 class="mb-4" style="text-align: center;">⬇️You can edit the right in the table⬇️</h2>
-        <h4 class="mb-4" style="text-align: center;">Save Changes on the Bottom</h4>
+        <h2 class="mb-4" style="text-align: center;">⬇️Edit the menu right in the table⬇️</h2>
+        <h4 class="mb-4" style="text-align: center;">Save Changes and Add New Items at the Bottom</h4>
         {% endif %}    
         <div class="mt-4">
-                <div class="menu-content table-responsive">
-                    <table id="menuTable" border="1" class="dataframe table table-striped">
-                        <thead>
-                          <tr style="text-align: right;">
-                            <th>Item Name</th>
-                            <th>Item Description</th>
-                            <th>Item Price (EUR)</th>
-                            <th>Link to Image</th>
-                            <th>Image</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                            {% if not default_menu %}
-                            {% for item in html_menu_tuples %}
-                            <tr>
-                              <td contenteditable="true" data-column="Item Name">{{ item["Item Name"] }}</td>
-                              <td contenteditable="true" data-column="Item Description">{{ item["Item Description"] }}</td>
-                              <td contenteditable="true" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
-                              <td contenteditable="true" data-column="Link to Image">{{ item["Link to Image"] }}</td>
-                              <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
-                            </tr>
-                            {% endfor %}
-                            {% else %}
-                            {% for item in html_menu_tuples %}
-                            <tr>
-                              <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
-                              <td contenteditable="false" data-column="Item Description">{{ item["Item Description"] }}</td>
-                              <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
-                              <td contenteditable="false" data-column="Link to Image">{{ item["Link to Image"] }}</td>
-                              <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+            <div class="menu-content table-responsive">
+                <table id="menuTable" border="1" class="dataframe table table-striped">
+                    <thead>
+                      <tr style="text-align: right;">
+                        <th>Item Name</th>
+                        <th>Item Description</th>
+                        <th>Item Price (EUR)</th>
+                        <th>Link to Image</th>
+                        <th>Image</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                        {% if not default_menu %}
+                        {% for item in html_menu_tuples %}
+                        <tr>
+                          <td contenteditable="true" data-column="Item Name">{{ item["Item Name"] }}</td>
+                          <td contenteditable="true" data-column="Item Description">{{ item["Item Description"] }}</td>
+                          <td contenteditable="true" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
+                          <td contenteditable="true" data-column="Link to Image">{{ item["Link to Image"] }}</td>
+                          <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        {% for item in html_menu_tuples %}
+                        <tr>
+                          <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
+                          <td contenteditable="false" data-column="Item Description">{{ item["Item Description"] }}</td>
+                          <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
+                          <td contenteditable="false" data-column="Link to Image">{{ item["Link to Image"] }}</td>
+                          <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                        </tr>
+                        {% endfor %}
+                        {% endif %}
+                    </tbody>
+                  </table>
 
-                            </tr>
-                            {% endfor %}
-                            {% endif %}
-                        </tbody>
-                      </table>
-                      <button id="saveChangesBtn">Save Changes</button>
+                  <!-- New Item Form -->
+                  <h3 style="text-align: center;">Add a New Menu Item</h3>
+                  <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+                    <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+                    <input type="text" id="newItemDescription" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+                    <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price (EUR)" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+                    <input type="url" id="newItemImageLink" placeholder="Link to Image" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+                    <button id="addNewItemBtn">Add Item</button>
+                </div>
+                
 
-                      <script>
-                        document.getElementById('saveChangesBtn').addEventListener('click', function() {
-                            console.log("Pressed the button")
-                            let rows = document.querySelectorAll('#menuTable tbody tr');
-                            let updatedItems = [];
-                        
-                            rows.forEach(function(row) {
-                                let item = {};
-                                row.querySelectorAll('td').forEach(function(cell) {
-                                    if (cell.getAttribute('data-column') !== "Image"){
+                  <button id="saveChangesBtn" style="margin-top: 20px;">Save Changes</button>
+
+                  <script>
+                    document.getElementById('addNewItemBtn').addEventListener('click', function() {
+                    // Get the values from the form inputs
+                    let itemName = document.getElementById('newItemName').value.trim();
+                    let itemDescription = document.getElementById('newItemDescription').value.trim();
+                    let itemPrice = document.getElementById('newItemPrice').value.trim();
+                    let itemImageLink = document.getElementById('newItemImageLink').value.trim();
+
+                    // Validation
+                    if (!itemName || !itemDescription) {
+                        alert('Item Name and Item Description are required and must be valid strings.');
+                        return;
+                    }
+
+                    if (isNaN(itemPrice) || itemPrice <= 0) {
+                        alert('Item Price must be a valid number greater than 0.');
+                        return;
+                    }
+
+                    if (itemImageLink && !isValidUrl(itemImageLink)) {
+                        alert('The Image Link must be a valid URL or leave it empty.');
+                        return;
+                    }
+
+                    let newItem = {
+                        "Item Name": itemName,
+                        "Item Description": itemDescription,
+                        "Item Price (EUR)": parseFloat(itemPrice).toFixed(2),
+                        "Link to Image": itemImageLink,
+                    };
+
+                    // Add new item to the table
+                    let table = document.getElementById('menuTable').getElementsByTagName('tbody')[0];
+                    let newRow = table.insertRow();
+
+                    Object.keys(newItem).forEach(function(key) {
+                        let cell = newRow.insertCell();
+                        cell.contentEditable = "true";
+                        cell.setAttribute('data-column', key);
+                        cell.innerText = newItem[key];
+                    });
+
+                    let imgCell = newRow.insertCell();
+                    imgCell.setAttribute('data-column', "Image");
+                    if (newItem['Link to Image']) {
+                        imgCell.innerHTML = '<img src="'+newItem['Link to Image']+'" alt="Image of '+newItem['Item Name']+'" width="170" height="auto">';
+                    } else {
+                        imgCell.innerText = 'No Image Provided';
+                    }
+
+                    // Clear the form after adding the item
+                    document.getElementById('newItemForm').reset();
+                    });
+
+                    // Function to validate URL
+                    function isValidUrl(string) {
+                    try {
+                        new URL(string);
+                        return true;
+                    } catch (_) {
+                        return false;
+                    }
+                    }
+
+
+                    document.getElementById('saveChangesBtn').addEventListener('click', function() {
+                        let rows = document.querySelectorAll('#menuTable tbody tr');
+                        let updatedItems = [];
+
+                        rows.forEach(function(row) {
+                            let item = {};
+                            row.querySelectorAll('td').forEach(function(cell) {
+                                if (cell.getAttribute('data-column') !== "Image"){
                                     item[cell.getAttribute('data-column')] = cell.innerText;
-                                    }
-                                });
-                                updatedItems.push(item);
-                            });
-
-                            const data_to_send = {
-                                "unique_azz_id":"{{ unique_azz_id }}",
-                                "updatedItems": updatedItems
-                            }
-                        
-                            fetch('/update_menu_manual', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(data_to_send)
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.success) {
-                                    alert('Menu updated successfully!');
-                                    location.reload()
-                                } else {
-                                    alert('Failed to update the menu.');
                                 }
                             });
+                            updatedItems.push(item);
                         });
-                        </script>
-                </div>
+
+                        const data_to_send = {
+                            "unique_azz_id":"{{ unique_azz_id }}",
+                            "updatedItems": updatedItems
+                        }
+
+                        fetch('/update_menu_manual', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data_to_send)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('Menu updated successfully!');
+                                location.reload();
+                            } else {
+                                alert('Failed to update the menu.');
+                            }
+                        });
+                    });
+                  </script>
             </div>
-            <hr>
+        </div>
+        <hr>
     </div>
 </body>
 <script>
