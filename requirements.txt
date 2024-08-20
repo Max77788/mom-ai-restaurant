@@ -39,3 +39,4 @@ langdetect
 markdown2
 geopy
 statistics
+flask-migrate
