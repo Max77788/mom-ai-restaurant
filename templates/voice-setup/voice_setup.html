@@ -67,7 +67,7 @@
         </div>
         <div class="form-group">
             <label for="language">Select Language<br> 
-                of the AI Voice Agent(for demo only)</label>
+                of the AI Voice Agent</label>
             <select class="form-control" id="language" name="language" required>
                 <option value="en">English</option>
                 <option value="en-US">English (US)</option>
@@ -180,7 +180,7 @@
 </form>
 </div>
 <p>*IMPORTANT - if you choose the language other than English your AI-agent won't capture orders, but will stull be able to provide the commong customer support.</p>
-{% if restaurant["balance"] < 23 %}
+{% if restaurant["balance"] <= 23 %}
 <p style="font-size: large">You must have <b>AT LEAST <u>23€</u> on your balance</b> to obtain the number. <b>Your current balance is {{ restaurant["balance"] | round(2) }}€</b></p>
 <div style="margin-top: 10px; margin-bottom: 10px; text-align: center">
     <button id="activate-paypal-button" class="btn btn-primary">Top Up the Balance Now📈</button>
@@ -331,7 +331,7 @@
         <span class="close">&times;</span>
         <div>
             <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
-            <input type="number" id="top-up-amount" value="50" min="5" step="1" style="width: 200px;">
+            <input type="number" id="top-up-amount" value="25" min="5" step="1" style="width: 200px;">
         </div>
         <div id="paypal-button-container" style="margin-top: 10px;"></div>
     </div>

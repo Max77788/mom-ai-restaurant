@@ -61,6 +61,7 @@ def send_the_call_on_number_demo(where_to_call, restaurant_name, language, store
     payload = {
     "phone_number": where_to_call,
     "task": f"""
+              Speak in this language - {language_codes[language]}.
               You are Maya, a customer service agent at {restaurant_name} restaurant 
               calling the manager of {restaurant_name} to introduce yourself 
               as an AI-empowered voice agent capable of taking orders,
@@ -73,7 +74,7 @@ def send_the_call_on_number_demo(where_to_call, restaurant_name, language, store
               """,
     #"pathway_id": "e9d3bda5-2c57-484f-8443-bd0ed3e26435",
     #"start_node_id": "<string>",
-    "voice": "maya",
+    "voice": "alexa",
     #"first_sentence": f"""
                         #Hi, my name is Maya - 
                         #I am a customer service agent at 
@@ -82,7 +83,7 @@ def send_the_call_on_number_demo(where_to_call, restaurant_name, language, store
                         #""",
     #"wait_for_greeting": True,
     "block_interruptions": True,
-    "interruption_threshold": 100,
+    "interruption_threshold": 70,
     "model": "enhanced",
     "temperature": 0.5,
     #"keywords": ["<string>"],
