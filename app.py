@@ -770,7 +770,7 @@ def login():
             session["res_email"] = user.get('email')
             session["password"] = user.get('password')
             print('You have been successfully logged in!')
-            flash('You have been successfully logged in!')
+            flash('You have been successfully logged in!', "success")
             return redirect(url_for('dashboard_display'))
         else:
             print('Login failed. Check your email and password.')
@@ -1567,9 +1567,10 @@ def toggle_payment_gateway():
     
 @app.route('/profile_update/<attribute>', methods=['GET','POST'])
 def update_profile(attribute, tg_setup=None):
-    tg_setup = False
+    
     if attribute == "notif_destin":
-        tg_setup = request.args.get("tg_setup") == "True"
+        if tg_setup is None:
+            tg_setup = request.args.get("tg_setup") == "True"
     if tg_setup:
         session["access_for_setup_public_profile_page"] = False
     form = RestaurantFormUpdate()
@@ -1929,7 +1930,7 @@ def update_menu():
 
     
     if upload_response["success"]:
-        voice_pathway_id = restaurant.get("voice_pathway_id")
+        voice_pathway_id = restaurant.get("voice_pathway_id", None)
 
         if voice_pathway_id:
             unique_azz_id = session.get("unique_azz_id")
