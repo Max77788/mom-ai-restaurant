@@ -1,0 +1,3 @@
+from app import charge_for_ai_phone_number
+
+charge_for_ai_phone_number()

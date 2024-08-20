@@ -11,13 +11,6 @@ Enter Confirmation Code
 <div style="max-width: 600px; margin: auto; padding-top: 50px; text-align: center;">
     <h1>Enter Your Confirmation Code</h1>
     <p>Please enter the confirmation code we sent on <b>{{ res_email }}</b></p>
-    {% with messages = get_flashed_messages() %}
-    {% if messages[-1] == 'Invalid confirmation code. Please try again.' %}
-        <div class="flash-messages">
-            <div class="flash-message">{{ messages[-1] }}</div>
-        </div>
-    {% endif %}
-    {% endwith %}
     <form action="{{ url_for('enter_code_full') }}" method="post">
         {{ form.hidden_tag() }}
         <div>

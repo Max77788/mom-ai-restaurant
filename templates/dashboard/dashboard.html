@@ -9,6 +9,9 @@
         <span class="close-button">&times;</span>
         <h1>Congratulations!</h1>
         <h2>✅Your Account Has Been Successfully Created✅</h2>
+        <p>You can setup the features you have not so far on the dashboard in "Profile" section</p>
+        <p>As long as you have provided your restaurant's menu(if not yet), you can start earning money with MOM AI Restaurant</p>
+        <!--
         <h3>Next Steps:</h3>
         <h2 style="margin-top: 10px;">1. Setup Notifications in 30 seconds🔔</h2>
         <p>- Visit <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u>MOM AI Restaurant Bot</u></a> in Telegram and copy received code</p>
@@ -24,6 +27,8 @@
         <h2 style="margin-top: 10px;">4. Activate the assistant in right upper corner<br>&<br>begin generating orders with MOM AI Restaurant📈</h2>
         <img src="/static/images/turn_on_ass.png" alt="Turn On Assistant" style="max-width: 100%; height: auto;">
         <p>*you can check out this guide anytime at the bottom of the dashboard page♻️</p>
+        -->
+        <h2>Happy Earning💲 and Welcome to the Future🛰️</h2>
     </div>
 </div>
 
@@ -143,21 +148,6 @@ function downloadImage() {
             <p><b>{{ num_of_referees }} restaurants have registered with your code</b></p>
             </div>
             {% endif %}
-        </div>
-        
-
-        
-        
-        <!-- Modal container -->
-        <div id="paypal-modal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div>
-                    <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
-                    <input type="number" id="top-up-amount" value="50" min="10" step="1" style="width: 200px;">
-                </div>
-                <div id="paypal-button-container" style="margin-top: 10px;"></div>
-            </div>
         </div>
         
         <!-- Include the PayPal JavaScript SDK -->
@@ -551,6 +541,18 @@ function downloadImage() {
             }
         }
     </style>
+
+    <!-- Modal container -->
+    <div id="paypal-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div>
+                <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
+                <input type="number" id="top-up-amount" value="50" min="10" step="1" style="width: 200px;">
+            </div>
+            <div id="paypal-button-container" style="margin-top: 10px;"></div>
+        </div>
+    </div>
 
     <script>
         // Other currencies display

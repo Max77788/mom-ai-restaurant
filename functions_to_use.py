@@ -43,8 +43,6 @@ from pymongo import MongoClient
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-
-app = Flask(__name__)
 #socketio = SocketIO(app, async_mode='eventlet')
 
 
@@ -315,7 +313,8 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "profile_visible": True,
             "paymentGatewayTurnedOn": False,
             "addFees": True,
-            "assistant_turned_on":False
+            "assistant_turned_on":False,
+            "notif_destin":[]
             # "stripe_secret_test_key": stripe_secret_test_key
         }
 
@@ -1728,56 +1727,6 @@ def convert_hours_to_time(hour_string):
         return f"{converted_hours}:{minutes:02d}"
     else:
         return f"{hour_string}:00"
-
-
-def charge_for_ai_phone_number():
-    for res_instance in list(collection.find()):
-        
-        start_ai_phone_number = res_instance.get("start_ai_phone_number")
-        end_work = res_instance.get("end_work")
-        timezone = res_instance.get("timezone")
-        
-        # Convert timezone to the correct format for pytz
-        if timezone.startswith("Etc/GMT-"):
-            timezoneG = timezone.replace("-", "+", 1)
-        elif timezone.startswith("Etc/GMT+"):
-            timezoneG = timezone.replace("+", "-", 1)
-        
-        # Get the current date and time in the restaurant's timezone
-        now_tz = datetime.now(pytz.timezone(timezoneG))
-        current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
-        current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
-        
-        # Adjust current_day to match our list index where Sunday is 0
-        # current_day = (current_day + 1) % 7
-
-        # Determine if the restaurant is open
-        start = start_work[current_day]
-        end = end_work[current_day]
-
-        previous_day_end = end_work[current_day-1]
-
-        if previous_day_end > 24 and current_hour < previous_day_end-24:
-            isWorkingHours = current_hour < previous_day_end-24
-        else:       
-            # Check if the current time falls within the working hours
-            if start <= end:
-                # Same day operation
-                isWorkingHours = start <= current_hour < end
-                # Update the restaurant's open status in the database
-                collection.update_one(
-                    {"unique_azz_id": res_instance.get("unique_azz_id")},
-                    {"$set": {"isOpen": isWorkingHours}}
-                )
-                #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
-            else:
-                # Spans to the next day
-                isWorkingHours = current_hour >= start or current_hour < end
-                # Update the restaurant's open status in the database
-                collection.update_one(
-                    {"unique_azz_id": res_instance.get("unique_azz_id")},
-                    {"$set": {"isOpen": isWorkingHours}}
-                )
 
 
 def setup_working_hours():

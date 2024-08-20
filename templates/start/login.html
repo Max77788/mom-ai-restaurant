@@ -13,7 +13,11 @@
             </div>
             <div class="form-group">
                 <label for="password" style="text-align: left;">Password:</label>
-                {{ form.password(size=23) }}
+                <div class="input-container">
+                    {{ form.password(size=23) }}
+                    <!-- <input type="password" id="confirm_password" class="password-input"> -->
+                    <span class="toggle-password" onclick="togglePassword('password')">👁️</span>
+                </div>
             </div>
             <div style="margin-top: 7px;">
                 {{ form.submit }}
@@ -21,14 +25,35 @@
         </form>
         <p style="margin-top: 7px;">Not registered yet? <a href="{{ url_for('landing_page') }}"><b><u>Register Now</u></b></a>.</p>
     </div>
-{% endblock %}
 
-<style>
-    .form-group {
-        margin-bottom: 15px;
-        max-width: 300px;
-        width: 100%;
-        text-align: left;
+    <style>
+        .form-group {
+            margin-bottom: 15px;
+            max-width: 300px;
+            width: 80%;
+            text-align: left;
+        }
+        .input-container {
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .password-input {
+            flex: 1;
+            padding-right: 10px;
+            box-sizing: border-box;
+        }
+        .toggle-password {
+            cursor: pointer;
+            padding: 0 10px;
+        }
+    </style>
+    <script>
+        function togglePassword(fieldId) {
+        var passwordField = document.getElementById(fieldId);
+        var type = passwordField.type === "password" ? "text" : "password";
+        passwordField.type = type;
     }
-</style>
+    </script>
+{% endblock %}
 

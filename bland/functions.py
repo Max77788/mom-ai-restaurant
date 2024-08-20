@@ -1,5 +1,6 @@
 import requests
 import os
+from deep_translator import GoogleTranslator
 import json
 from dotenv import load_dotenv, find_dotenv
 from flask import jsonify
@@ -9,9 +10,50 @@ BLAND_AI_API_KEY = os.environ.get("BLAND_AI_API_KEY")
 
 BLAND_BASE_URL = "https://api.bland.ai/v1"
 
-PATHWAY_NODES = f"""
-               
-"""
+language_codes = {
+    "en": "English",
+    "en-US": "English (US)",
+    "en-GB": "English (UK)",
+    "en-AU": "English (Australia)",
+    "en-NZ": "English (New Zealand)",
+    "en-IN": "English (India)",
+    "zh": "Chinese (Mandarin, Simplified)",
+    "zh-CN": "Chinese (Mandarin, Simplified, China)",
+    "zh-Hans": "Chinese (Mandarin, Simplified, Hans)",
+    "zh-TW": "Chinese (Mandarin, Traditional)",
+    "zh-Hant": "Chinese (Mandarin, Traditional, Hant)",
+    "es": "Spanish",
+    "es-419": "Spanish (Latin America)",
+    "fr": "French",
+    "fr-CA": "French (Canada)",
+    "de": "German",
+    "el": "Greek",
+    "hi": "Hindi",
+    "hi-Latn": "Hindi (Latin script)",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "ko-KR": "Korean (Korea)",
+    "pt": "Portuguese",
+    "pt-BR": "Portuguese (Brazil)",
+    "it": "Italian",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "ru": "Russian",
+    "sv": "Swedish",
+    "sv-SE": "Swedish (Sweden)",
+    "da": "Danish",
+    "da-DK": "Danish (Denmark)",
+    "fi": "Finnish",
+    "id": "Indonesian",
+    "ms": "Malay",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "bg": "Bulgarian",
+    "cs": "Czech",
+    "ro": "Romanian",
+    "sk": "Slovak"
+}
+
 
 def send_the_call_on_number_demo(where_to_call, restaurant_name, language, store_location, opening_hours, timezone):
     url = BLAND_BASE_URL+"/calls"
@@ -102,7 +144,9 @@ def get_conversational_pathway_data():
 
     return response.json()
 
-def create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id):
+def create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, restaurant_language_code="en-US"):
+    restaurant_language = language_codes[restaurant_language_code]
+    
     # Define the replacement values
     replacements = {
         "{{ restaurant_name }}": restaurant_name,
@@ -110,7 +154,8 @@ def create_the_suitable_pathway_script(restaurant_name, store_location, opening_
         "{{ opening_hours }}": opening_hours,
         "{{ timezone }}": timezone,
         "{{ restaurant_menu }}": restaurant_menu,
-        "{{ unique_azz_id }}": unique_azz_id
+        "{{ unique_azz_id }}": unique_azz_id,
+        "{{ restaurant_language }}": restaurant_language
     }
 
     # Open the file and load its JSON content into a dictionary
@@ -140,7 +185,7 @@ def create_the_suitable_pathway_script(restaurant_name, store_location, opening_
     print("Everything is transformed.")
 
     return None
-    
+
     
 def create_fully_new_pathway(restaurant_name):
     url = BLAND_BASE_URL+"/convo_pathway/create"
@@ -170,7 +215,7 @@ def insert_the_nodes_and_edges_in_new_pathway(pathway_id, unique_azz_id):
         payload = json.load(file)
 
     headers = {
-        "authorization": f"{BLAND_AI_API_KEY}",
+        "authorization": BLAND_AI_API_KEY,
         "Content-Type": "application/json"
     }
 
@@ -209,7 +254,7 @@ def purchase_phone_number():
 
     payload = {
         "country_code": "US",
-        "webhook": "https://mom-ai-restaurant.pro/purchase-phone-numbe"
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-phone-assistant"
     }
 
     headers = {
@@ -221,12 +266,107 @@ def purchase_phone_number():
 
     return response.json()["phone_number"]
 
-def add_pathway_to_phone(phone_number, pathway_id, language):
+
+def update_phone_number(phone_number, language, timezone, pathway_id):
     url = BLAND_BASE_URL + f"/inbound/{phone_number}"
 
     payload = {
         "pathway_id":pathway_id,
-        "language":language
+        "voice": "e1289219-0ea2-4f22-a994-c542c2a48a0f",
+        "language":language,
+        "timezone":timezone,
+        "interruption_threshold":70,
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-phone-assistant"
+    }
+
+    headers = {
+    "authorization": BLAND_AI_API_KEY,
+    "Content-Type": "application/json"
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers)
+
+    response_json = response.json()
+
+    print(response.text)
+
+    if response_json["status"] == "success":
+        return True
+    else:
+        return False
+    
+def get_data_for_pathway_change(restaurant):   
+    restaurant_menu_tuples = restaurant.get("html_menu_tuples")
+
+    menu_string = ""
+
+    for item in restaurant_menu_tuples:
+        item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
+        menu_string += item_text
+    
+    restaurant_name = restaurant.get("name")
+    store_location = restaurant.get("location_name")
+    timezone = restaurant.get("timezone")
+    restaurant_menu = menu_string
+    
+    opening_hours_string = ""
+
+    opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+
+    day_of_weeks = {
+        0: 'Monday',
+        1: 'Tuesday',
+        2: 'Wednesday',
+        3: 'Thursday',
+        4: 'Friday',
+        5: 'Saturday',
+        6: 'Sunday'
+    }
+
+    for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+        day_of_week = day_of_weeks[index]
+        opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+        opening_hours_string += opening_hours_line + "\n"
+    
+    return restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu
+    
+def update_phone_number_non_english(phone_number, restaurant_name, restaurant_menu, working_hours, store_location, language, timezone):
+    url = BLAND_BASE_URL + f"/inbound/{phone_number}"
+    
+    NON_ENGLISH_INSTRUCTIONS_BASE = f"""
+    You the customer service agent at '{restaurant_name}' restaurant.
+    You are able to provide the customer with the information on the menu, location and working hours of the restaurant.
+    You do not take orders.
+    There are menu, working schedule, timezone and location of the restaurant:
+     """
+    
+    # translator = GoogleTranslator(source="auto", target=language[:2]) 
+    # translated_instruction = translator.translate(NON_ENGLISH_INSTRUCTIONS_BASE)
+    
+    translated_instruction += f"""
+    -------------------------
+    Restaurant Menu:
+    {restaurant_menu}
+    -------------------------
+    Working Schedule:
+    {working_hours}
+    -------------------------
+    Timezone:
+    {timezone}
+    -------------------------
+    Store Location:
+    {store_location}
+    """
+
+    NON_ENGLISH_INSTRUCTIONS_TRANSLATED = translated_instruction
+
+    payload = {
+        "prompt": NON_ENGLISH_INSTRUCTIONS_TRANSLATED,
+        "voice": "e1289219-0ea2-4f22-a994-c542c2a48a0f",
+        "language":language,
+        "timezone":timezone,
+        "interruption_threshold":70,
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-phone-assistant"
     }
 
     headers = {
@@ -246,10 +386,52 @@ def add_pathway_to_phone(phone_number, pathway_id, language):
         return False
 
 
-def buy_and_update_phone(pathway_id, language):
+def get_call_length_and_phone_number(call_id):
+    url = f"https://api.bland.ai/v1/calls/{call_id}"
+
+    headers = {"authorization": BLAND_AI_API_KEY}
+
+    response = requests.request("GET", url, headers=headers)
+
+    response_json = response.json()
+
+    call_length = response_json["call_length"]
+    restaurant_phone_number = response_json["to"]
+
+    return call_length, restaurant_phone_number
+
+
+def add_pathway_to_phone(phone_number, pathway_id, language, timezone):
+    url = BLAND_BASE_URL + f"/inbound/{phone_number}"
+
+    payload = {
+        "pathway_id":pathway_id,
+        "language":language,
+        "timezone": timezone,
+        "interruption_threshold":70
+    }
+
+    headers = {
+    "authorization": BLAND_AI_API_KEY,
+    "Content-Type": "application/json"
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers)
+
+    response_json = response.json()
+
+    print(response.text)
+
+    if response_json["status"] == "success":
+        return True
+    else:
+        return False
+
+
+def buy_and_update_phone(pathway_id, language, timezone):
     phone_number = purchase_phone_number()
 
-    success = add_pathway_to_phone(phone_number, pathway_id, language)
+    success = add_pathway_to_phone(phone_number, pathway_id, language, timezone)
 
     return {"success":success, "phone_number":phone_number}
 

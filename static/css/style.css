@@ -177,9 +177,9 @@ a {
     justify-content: center;
     align-items: center;
     width: 100%; /* Ensure it takes full width of the page */
+    margin-top: 20px; /* Add some margin to separate it from the top content */
 }
 
-/* Base style for all flash messages */
 .flash-message {
     padding: 10px 20px;
     border: 1px solid #ccc;
@@ -187,22 +187,21 @@ a {
     font-weight: bold;
     margin-bottom: 15px;
     background-color: #f0f0f0;
-    max-width: 80%;
+    max-width: 80%; /* Ensure it doesn't take up the full width */
     text-align: center;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add a shadow for better visibility */
 }
 
-/* Success message style */
 .flash-message.success {
     border-color: #4CAF50; /* Green border */
     background-color: #DFF2BF; /* Light green background */
     color: #4CAF50; /* Green text */
 }
 
-/* Danger message style */
 .flash-message.danger {
     border-color: #f44336; /* Red border */
     background-color: #FFBABA; /* Light red background */
-    color: #f44336; /* Red text */
+    color: #000; /* Red text */
 }
 
 

@@ -138,7 +138,9 @@ def extract_text_from_file(file_path):
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
+response = get_conversational_pathway_data()
 
+print(response)
 
 # Example usage:
 # text = extract_text_from_file('menu_examples/menu.xlsx')

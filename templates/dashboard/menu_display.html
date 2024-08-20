@@ -46,7 +46,6 @@
                           </tr>
                         </thead>
                         <tbody>
-                            {% if not default_menu %}
                             {% for item in html_menu_tuples %}
                             <tr>
                               <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
@@ -56,18 +55,6 @@
                               <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
                             </tr>
                             {% endfor %}
-                            {% else %}
-                            {% for item in html_menu_tuples %}
-                            <tr>
-                              <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
-                              <td contenteditable="false" data-column="Item Description">{{ item["Item Description"] }}</td>
-                              <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
-                              <td contenteditable="false" data-column="Link to Image">{{ item["Link to Image"] }}</td>
-                              <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
-
-                            </tr>
-                            {% endfor %}
-                            {% endif %}
                         </tbody>
                       </table>
                 </div>

@@ -9,10 +9,33 @@
             </div>
         {% endif %}
     {% endwith %}
-    <h1 class="mb-4" style="text-align: center;">Upload the new menu</h1>
+    <h1 class="mb-4" style="text-align: center; position: relative;">
+        Upload the new menu
+        <!-- Add your element here -->
+        {% if initial_setup %}
+        <a href="/dashboard?show_popup=True" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
+            <u>Skip for Now -></u>
+        </a>
+        {% else %}
+        <a href="/dashboard" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
+            <u>Go to Dashboard -></u>
+        </a>
+        {% endif %}
+    </h1>
     <form action="/update_menu" method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
-        <h3><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and Get Extra Assistance!</u></a></h3>
+        <h3 style="text-align: center;"><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and Get Extra Assistance!</u></a>
+            <br>&amp;<br>
+            Watch This Quick Tutorial on How to Form Menu!</h3>
+        <div style="margin-bottom: 10px;">
+        <iframe width="560" height="315" 
+            src="https://www.youtube.com/embed/dy4DO92oTcU" 
+            title="YouTube video player" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+            allowfullscreen>
+        </iframe>
+        </div>
         <div>
             {% if default_menu %}
             <label for="menu_update">⬇️Please, upload the menu to start generating orders on autopilot.</label>
@@ -71,6 +94,8 @@
                   </table>
 
                   <!-- New Item Form -->
+                  {% if default_menu %}
+                  <div style="display:flex; flex-direction: column; align-items: center;">
                   <h3 style="text-align: center;">Add a New Menu Item</h3>
                   <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
                     <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
@@ -79,9 +104,13 @@
                     <input type="url" id="newItemImageLink" placeholder="Link to Image" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
                     <button id="addNewItemBtn">Add Item</button>
                 </div>
+                  
+                
                 
 
                   <button id="saveChangesBtn" style="margin-top: 20px;">Save Changes</button>
+                  </div>
+                  {% endif %}
 
                   <script>
                     document.getElementById('addNewItemBtn').addEventListener('click', function() {

@@ -30,14 +30,24 @@
         color: #007BFF; /* A bright blue color that stands out against black text */
     }
 
-
     .content-wrapper h1 {
         text-align: center; /* Adjust the value as needed */
+    }
+
+    .content-wrapper img {
+        display: block;
+        margin: 0 auto 20px auto; /* Center the image and add margin to the bottom */
+        max-width: 100%; /* Ensure the image is responsive */
+        height: auto; /* Maintain the aspect ratio */
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* Optional: Add a box shadow to the image */
     }
 </style>
 <!-- <p><em>Posted on {{ created_at }}</em></p> -->
 <article>
     <div class="content-wrapper">
+        <!-- Insert your image here -->
+        <img src="{{ image_url }}" alt="Descriptive Alt Text" width="500" height="auto">
+
         {{ content | safe }}
         
         <h2>Thank you for your attention! Like this kind of content?</h2>
@@ -53,8 +63,8 @@
         <div id="loadingContainer" style="align-items:center;">
            <img id="loadingGif" src="/static/assets/loading-gif.gif" alt="Loading..." style="display:none;" width="70" height="auto">
         </div>
-        </div>
         
+        <p style="text-align: left; margin-top: 7px;"><a href="/all_posts"><u><- All articles</u></a></p>
         
     </div>
 

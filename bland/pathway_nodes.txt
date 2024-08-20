@@ -1,15 +1,15 @@
 {
-    "name": "{{ restaurant_name }}'s Voice Agent",
-    "description": "Designed to take orders and loyally serve customers of {{ restaurant_name }} restaurant",
+    "name": "MOM AI Restaurant Voice Genie",
+    "description": "",
     "nodes": [
         {
             "id": "1",
             "data": {
                 "name": "Start",
                 "active": false,
-                "prompt": "Greet the customer and explain that you can assist with providing information about the menu of {{ restaurant_name }}, its hours, and location, as well as placing orders for pickup. Keep it short, up to 30 words.",
+                "prompt": "Greet the customer and explain that you can help with providing information about Matronin's menu, hours and location, as well as placing a takeout order. Keep it short, under 30 words.",
                 "isStart": true,
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -25,7 +25,7 @@
                 "name": "Provide Menu Information",
                 "active": false,
                 "prompt": "Provide an overview of the restaurant's menu, including popular dishes and any dietary options (vegetarian, gluten-free, etc.). Ask if the customer needs any other information or if they would like to place an order.\n\nKnowledge base (menu):\n\n{{ restaurant_menu }}\n\nPrices are in Euros.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -41,7 +41,7 @@
                 "name": "Provide Hours Information",
                 "active": false,
                 "prompt": "Provide the restaurant's hours of operation. Ask if the customer needs any other information or if they would like to place an order.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -57,7 +57,7 @@
                 "name": "Provide Location Information",
                 "active": false,
                 "prompt": "Provide the restaurant's address and directions. Ask if the customer needs any other information or if they would like to place an order.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -86,7 +86,7 @@
                         "Extract the array of the items the user has ordered. Example: [{\"name\":\"Biryani Lamb\", \"quantity\":2, \"price\":price per one item}]"
                     ]
                 ],
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -100,9 +100,9 @@
             "id": "733f7e19-b01c-487d-9824-b22ed6b30827",
             "data": {
                 "name": "End Call",
-                "active": false,
+                "active": true,
                 "prompt": "Thank the customer for their order. Wish them a good day and let them know their food is being expertly prepared by the chefs. And the user can come at {{ store_location }} to get his food. Send the conversation transcript to the provided API endpoint.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -121,7 +121,7 @@
                 "active": false,
                 "method": "POST",
                 "prompt": "Notify the customer that you are registering the order in the restaurant's system",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -148,7 +148,7 @@
             "data": {
                 "name": "Finalize Order",
                 "active": false,
-                "prompt": "Finalize the order taken and confirm that the customer agrees with it. Capture user's name definitively. DO NOT ASK WHEN THE USER WANTS TO PICK UP THE ORDER. Simply tell him that the food will be ready soon.",
+                "prompt": "Finalize the order taken and confirm that the customer agrees with it. Capture user's name definitively. DO NOT ASK WHEN THE USER WANTS TO PICK UP THE ORDER. Simply tell him that the food will be ready soon. Ask whether the formed so far order is absolutely correct.",
                 "condition": "You have received the definite list of items along with the quantity of each dish the customer wants to order. Also, you have obtained the name of the customer. The condition is failed if you do not have both customer's name and list of items along with quantity.",
                 "extractVars": [
                     [
@@ -162,7 +162,7 @@
                         "Extract the array of the items the user has ordered. Example: [{\"name\":\"Biryani Lamb\", \"quantity\":2, \"price\":price per one item}]"
                     ]
                 ],
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -178,7 +178,7 @@
                 "name": "Modify the current order",
                 "active": false,
                 "prompt": "Specify what the customer would like to add to, change in or remove from the currently formed order.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -194,10 +194,10 @@
                 "kb": "Awaiting Time until the food is ready:\nfrom 15 to 30 minutes\n\nOpening Hours:\n{{ opening_hours }}\n\nStore Location:\n{{ store_location }}\n\nTimezone:\n{{ timezone }}\n\nMenu of the restaurant:\n{{ restaurant_menu }}\n\nPrices are in Euros.",
                 "name": "New Knowledge Base Node",
                 "active": false,
-                "prompt": "This is a phone call. Do not use exclamation marks. Keep your responses 80 words or less. DO NOT ask the customer: \"Would you like to pick up your order?\" DO NOT EVER include the total price of the order, simply state the price of the item on the menu.\n\nPronounce prices in Euros. Example: price - 22,90ï¿½ = You pronounce \"twenty-two euros and ninety cents.\"\n\nIf the customer asks whether we are open or not, simply check {{ now_utc }} against the working hours and provide the deducted answer.\n\nConvert 24HR format timings to 12 HR format - e.g 14:00 should be written as 2 PM.\n\nOFFER ONLY PICKUP. ALWAYS ASK FOR THE CUSTOMER'S NAME WHEN REGISTERING THE ORDER.\n\nALWAYS ASK FOR THE CUSTOMER'S NAME WHEN TAKING ORDER.\n\nYou work in the restaurant named {{ restaurant_name }}. Your name is Amina.",
+                "prompt": "This is a phone call. Do not use exclamation marks. Keep your responses 80 words or less. DO NOT ask the customer: \"Would you like to pick up your order?\" DO NOT EVER include the total price of the order, simply state the price of the item on the menu.\n\nPronounce prices in Euros. Example: price - 22,90€ = You pronounce \"twenty-two euros and ninety cents.\"\n\nIf the customer asks whether we are open or not, simply check {{ now_utc }} against the working hours and provide the deducted answer.\n\nConvert 24HR format timings to 12 HR format - e.g 14:00 should be written as 2 PM.\n\nOFFER ONLY PICKUP. ALWAYS ASK FOR THE CUSTOMER'S NAME WHEN REGISTERING THE ORDER.\n\nALWAYS ASK FOR THE CUSTOMER'S NAME WHEN TAKING ORDER.\n\nYou work in the restaurant named {{ restaurant_name }}.",
                 "isGlobal": true,
                 "globalLabel": "",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -213,7 +213,7 @@
                 "name": "Offer a Customer to Order in the Restaurant",
                 "active": false,
                 "prompt": "Offer to make the order in {{ restaurant_name }} very certainly.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,
@@ -229,7 +229,7 @@
                 "name": "End Call without the Order",
                 "active": false,
                 "prompt": "Thank a customer for his time and say that he is welcome to come in {{ restaurant_name }} at any time.",
-                "globalPrompt": "",
+                "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
                 "modelOptions": {
                     "modelType": "smart",
                     "temperature": 0.2,

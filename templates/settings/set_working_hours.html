@@ -2,7 +2,23 @@
 
 {% block content %}
 
-<h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Set Working Hours for {{ restaurant['name'] }} Assistant</h1>
+{% if start_setup %}
+<div style="display: flex; flex-direction: column; align-items: center;">
+<p>After this 10-minutes straight forward setup you will receive:</p>
+<ul>
+    <li>💸 3 Euros to start generating orders on autopilot</li>
+    <li>🌍 Public MOM AI Restaurant Network profile so your customer reach is unlimited</li>
+    <li>🔔 Working notification system to always be aware of new orders
+    <li>🤖 AI-employee which works on all frontiers of your business: online, in-store and over the phone</li>
+    <li>🏆 Title of being "Revolutionary AI-empowered restaurant"</li>
+</ul>
+
+<p>Let's start with the schedule:</p>
+
+</div>
+{% endif %}
+
+<h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Set Working Hours for {{ restaurant['name'] }} AI-Assistant</h1>
 <form id="scheduleForm" style="max-width: 600px; margin: auto; background: #ecf0f1; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div style="margin-bottom: 20px;">
         <label for="timezone" style="font-family: 'Arial', sans-serif; color: #34495e; font-size: 16px;">Select Timezone:</label>
@@ -121,7 +137,16 @@
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                window.location.href = "/dashboard";
+                
+                const start_setup = "{{ start_setup }}" === "True"
+
+                console.log("Start setup = ", start_setup)
+                
+                if (start_setup) {
+                 window.location.href = "/setup_public_profile"
+                } else {
+                 window.location.href = "/dashboard";
+                }
             })
             .catch(error => console.error('Error:', error));
         });

@@ -10,6 +10,7 @@
         padding: 0; /* Remove default padding */
     }
     .post-container {
+        position: relative; /* Set relative position for absolute positioning of child elements */
         margin: 0 auto; /* Center the container */
         max-width: 800px; /* Set a maximum width */
         padding: 20px;
@@ -66,6 +67,13 @@
     .pagination a:hover {
         background-color: #003;
     }
+    .youtube-logo {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 40px; /* Adjust size as needed */
+        height: auto;
+    }
 </style>
 
 <div class="posts-wrapper">
@@ -75,8 +83,16 @@
         {% for post in posts %}
             <li class="post-container">
                 <h2 class="post-title">{{ post.title }}</h2>
+                <img src="{{ post.image_url }}" alt="Descriptive Alt Text" width="300" height="auto">
                 <p class="post-meta"><em>Posted on {{ post.created_at }} UTC</em></p>
                 <p class="post-meta"><em>(approximately <u>3 minutes to read</u>)</em></p>
+                {% if post.image_url %}
+                    {% if 'ytimg' in post.image_url %}
+                        <img src="/static/youtube-logo.png" alt="YouTube Logo" style="width:40px">
+                    {% else %}
+                        <img src="/static/book-emoji.webp" alt="YouTube Logo" style="width:40px">
+                    {% endif %}
+                {% endif %}
                 <p class="post-excerpt">{{ post.excerpt }}...</p>
                 <a class="read-now" href="{{ post.link }}">Read Now</a>
             </li>

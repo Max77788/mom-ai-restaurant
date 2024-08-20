@@ -1,6 +1,26 @@
 {% extends "layout_no_land.html" %}
 
 {% block content %}
+{% if tg_setup %}
+<div class="mb-4" style="text-align: center; position: relative;">
+<div style="display: flex; flex-direction: column; align-items: center;">
+<p>It is time to setup your device which will receive notifications when your AI-assistant captures the order</p>
+<p>Here is how you do it quickly</p>
+<img src="/static/images/bulls_logos/Telegram_logo.webp" alt="Telegram Logo" width="170">
+<p>Tutorial video here</p>
+</div>
+    <!-- Add your element here -->
+    {% if tg_setup %}
+    <a href="/update_menu_gui?initial_setup=True" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
+        <u>Skip for now -></u>
+    </a>
+    {% else %}
+    <a href="/dashboard" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
+        <u>Go to Dashboard -></u>
+    </a>
+    {% endif %}
+</div>
+{% endif %}
 <h2 style="text-align: center; font-family: Arial, sans-serif; color: #000; margin-bottom: 10px;">Update Profile</h2>
 {% with messages = get_flashed_messages() %}
         {% if messages %}
@@ -9,6 +29,8 @@
             </div>
         {% endif %}
     {% endwith %}
+
+
 <form method="POST" action="{{ url_for('update_profile', attribute=attribute) }}" enctype="multipart/form-data">
     {{ form.hidden_tag() }}
     {{ form.csrf_token }}
@@ -22,13 +44,21 @@
             width: 80%; /* Adjust the width as needed */
             box-sizing: border-box; /* Ensure padding and border are included in the width */
         }
+
+        .input-cell{
+            width: 80%
+        }
     </style>
     <table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif;">
         <thead>
             <tr style="background-color: #000; color: #fff;">
                 <th style="text-align: left; padding: 12px; border: 1px solid #000;">Attribute</th>
                 <th style="text-align: left; padding: 12px; border: 1px solid #000;">Current Value</th>
+                {% if attribute == "notif_destin" %}
+                <th style="text-align: left; padding: 12px; border: 1px solid #000;">Set New Value<br>(if multiple devices insert separated by commas)</th>
+                {% else %}
                 <th style="text-align: left; padding: 12px; border: 1px solid #000;">Set New Value</th>
+                {% endif %}
                 <th style="text-align: left; padding: 12px; border: 1px solid #000;"></th>
             </tr>
         </thead>

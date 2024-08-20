@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import statistics
+from flask_migrate import Migrate
 import os
 # from google.cloud import speech
 import qrcode
@@ -25,9 +26,9 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
-from bland.functions import buy_and_update_phone, pathway_serving_a_to_z, send_the_call_on_number_demo, create_the_suitable_pathway_script
-from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate 
-from functions_to_use import charge_for_ai_phone_number, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, app, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
+from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z, send_the_call_on_number_demo, create_the_suitable_pathway_script
+from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
+from functions_to_use import send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -63,11 +64,14 @@ scheduler_logger.setLevel(logging.DEBUG)
 scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
 """
 
+app = Flask(__name__)
+
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL_CORRECT', 'sqlite:///blog.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL_CORRECT')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 
 # Define the Post model
@@ -76,23 +80,19 @@ class Post(db.Model):
     url_slug = db.Column(db.String(150), nullable=True, unique=True, index=True)
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    image_url = db.Column(db.String(2048), nullable=True)  # New column for image URL
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
+DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
 
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-
-# DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
-
-# print("Drop the existing tables = ", DROP_THE_EXISTING_TABLES)
+print("Drop the existing tables = ", DROP_THE_EXISTING_TABLES)
 
 # Ensure the tables are created
 with app.app_context():
-    #if DROP_THE_EXISTING_TABLES:
-        #db.drop_all()
-        #print("Dropped the tables")
+    if DROP_THE_EXISTING_TABLES:
+        db.drop_all()
+        print("Dropped the tables")
     db.create_all()
-
 
 CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
 SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
@@ -121,7 +121,7 @@ mail = Mail(app)
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.mkdir(app.config['UPLOAD_FOLDER'])
 
-mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
+mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI", "mongodb://localhost:27017")
 
 # Connect to MongoDB
 client_db = MongoClient(mongodb_connection_string)
@@ -150,6 +150,8 @@ CLIENT_OPENAI = AzureOpenAI(
 EXCHANGE_API_KEY = os.environ.get("EXCHANGE_API_KEY")
 GOOGLE_MAPS_API_KEY = os.environ.get("GOOGLE_MAPS_API_KEY")
 AZURE_SUBSCRIPTION_ID = os.environ.get("AZURE_SUBSCRIPTION_ID")
+
+PRICE_OF_MINUTE_PHONE_CALL = 0.15
 
 fs = gridfs.GridFS(db_mongo)
 
@@ -185,15 +187,56 @@ def internal_server_error(error):
     # Log the error if necessary
     app.logger.error(f"Server Error: {error}")
     # Redirect to the main page
-    flash("Internal Server Error Occurred - you were redirected to the main page")
-    return redirect(url_for('landing_page'))
+    flash("Internal Server Error Occurred - you were redirected to the error page")
+    return render_template("errors/500_error_template.html", title="Error 500"), 500
+
+
+
+def charge_for_ai_phone_number():
+    # Get today's date
+    today = datetime.today()
+    formatted_date_today = today.strftime('%Y-%m-%d')
+
+    # Extract the day number
+    day_number = today.day
+
+    today_day = day_number
+
+    if day_number > 28:
+        today_day = 28
+    
+    for res_instance in list(collection.find()):
+        
+        start_ai_phone_number = res_instance.get("ai_phone_number")
+        
+        if start_ai_phone_number:
+            date_of_sub = res_instance.get("ai_subscription_date")
+
+            date_format = "%Y-%m-%d"
+
+            # Parsing the date
+            parsed_date_of_sub = datetime.strptime(date_of_sub, date_format)
+
+            if parsed_date_of_sub.day == today_day and not formatted_date_today == parsed_date_of_sub:
+                unique_azz_id = res_instance.get("unique_azz_id")
+                if res_instance.get("balance") > 23:
+                    collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc":{"balance": -20}})
+                    # print(f"Deducted 20 Euros from account of {res_instance.get('email')}")
+                else:
+                    message_html = f'<p>Bruv, top up {res_instance.get("name")}\'s balance to keep benefitting from autopilot phone orders'
+                    send_email_raw(mail, res_instance.get("email"), message_html, f"URGENT! {res_instance.get('name')}'s AI phone assistant continuation failed! You can lose automated phone order taking!", FROM_EMAIL)
+                    # print(f"Sent Warning email on {res_instance.get('email')}")
+
+        # print(f"Skimmed through {res_instance.get('name')}")
+
 
 
 def schedule_tasks():
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
-    scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=15)
-    scheduler.add_job(func=charge_for_ai_phone_number, trigger="interval", hours=4)
+    scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=20)
+    # Run once per day at 12:00 PM
+    scheduler.add_job(func=charge_for_ai_phone_number, trigger="cron", hour=12, minute=0)
     scheduler.start()
     print("The scheduler started")
 
@@ -678,9 +721,7 @@ def register():
             os.remove(script_path)
         print("Temporary files removed")
         """
-        
-        messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
-        session['messages'] = messages
+    
         
         users_email = form.email.data
 
@@ -752,7 +793,8 @@ def post(url_slug):
     title = post.title.replace('(', '').replace(')', '').replace("'", '')
     content = post.content
     created_at = post.created_at.strftime('%d.%m.%Y %H:%M')
-    return render_template('blog-posts/post.html', content=content, title=title, created_at=created_at)
+    image_url = post.image_url
+    return render_template('blog-posts/post.html', content=content, title=title, created_at=created_at, image_url=image_url)
 
                            
 
@@ -763,7 +805,7 @@ def all_posts():
     # Get the total count of all posts
     total_posts_count = Post.query.count()
 
-    posts_pagination = Post.query.paginate(page=page, per_page=10)
+    posts_pagination = Post.query.order_by(Post.created_at.desc()).paginate(page=page, per_page=10)
     posts = posts_pagination.items
 
     print(len(posts))
@@ -790,7 +832,8 @@ def all_posts():
             'title': post.title,
             'excerpt': excerpt,
             'link': url_for('post', url_slug=post.url_slug),
-            'created_at': post.created_at.strftime('%d.%m.%Y %H:%M')  # Format the created_at field
+            'created_at': post.created_at.strftime('%d.%m.%Y %H:%M'),  # Format the created_at field
+            'image_url': post.image_url
         })
     
     next_url = url_for('all_posts', page=posts_pagination.next_num) if posts_pagination.has_next else None
@@ -1051,7 +1094,7 @@ def enter_code():
                 session["access_granted_email_confirm_page"] = True
                 return redirect(url_for('confirm_email', res_email=res_email))
             else:
-                flash('Invalid confirmation code. Please try again.', 'error')
+                flash('Invalid confirmation code. Please try again.', 'danger')
 
     return render_template('email_confirm/enter_code.html', form=form, res_email=res_email, title="Enter Confirmation Code")
 
@@ -1206,16 +1249,20 @@ def assistant_demo_chat():
     
     #ai_assist_response = get_assistants_response(user_message)
 
-    messages = session.get('messages')
+    messages = session.get('messages', [])
+    messages = []
 
-    print(len(messages))
+    # print(len(messages))
 
     #if len(messages) >= 4:
         #return redirect(url_for("setup_web_payments"))
     
     #response = get_assistants_response(user_message, CLIENT_OPENAI)
 
+    restaurant_name = session.get('restaurant_name')
+    
     if user_message:
+        messages.append({'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s AI-Assistant! Talk to me!'})
         messages.append({'sender': 'user', 'content': user_message})
         # Simulate the assistant's response
         messages.append({'sender': 'assistant', 'content': "I do not know what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen."})
@@ -1227,7 +1274,6 @@ def assistant_demo_chat():
 
     # Clear the session variable after access
     session.pop('access_granted_assistant_demo_chat', None)
-    restaurant_name = session.get('restaurant_name')
       
     session["access_granted_waitlist_page"] = True
     
@@ -1311,11 +1357,9 @@ def get_restaurants(page, per_page, search_query='', user_lat=None, user_lng=Non
 
 
 @app.route('/dashboard', methods=['POST', 'GET'])
-def dashboard_display():
+def dashboard_display(show_popup=None):
     if request.args.get("show_popup") == "True":
         show_popup = True
-    else:
-        show_popup = False
       
     PAYPAL_CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID")
 
@@ -1522,7 +1566,12 @@ def toggle_payment_gateway():
 '''
     
 @app.route('/profile_update/<attribute>', methods=['GET','POST'])
-def update_profile(attribute):
+def update_profile(attribute, tg_setup=None):
+    tg_setup = False
+    if attribute == "notif_destin":
+        tg_setup = request.args.get("tg_setup") == "True"
+    if tg_setup:
+        session["access_for_setup_public_profile_page"] = False
     form = RestaurantFormUpdate()
     print(request.form)
     print(f"Request files: {request.files}")
@@ -1541,9 +1590,18 @@ def update_profile(attribute):
         elif attribute == 'description' and new_value:
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'description': new_value}})    
         elif attribute == 'notif_destin' and new_value:
-            collection.update_one({'unique_azz_id': current_uni_azz_id},{'$push': {'notif_destin': new_value}})
-            NEW_CHAT_MESSAGE = f"🔝You are the best\n\nYou have successfully setup notifications!\n\nMOM AI bot will notify you upon upcoming of new orders in this chat.\n\nNow you should go to the 'Assistant' tab and start using your MOM AI Restaurant Assistant!"
-            send_telegram_notification(new_value, message=NEW_CHAT_MESSAGE)
+            # Step 1: Remove extra spaces and split by comma
+            str_list = new_value.split(',')
+
+            # Step 2: Convert each element to an integer, strip any leading/trailing whitespace
+            id_list = [num.strip() for num in str_list]
+            for id in id_list:
+                if id not in restaurant.get("notif_destin", []):
+                    collection.update_one({'unique_azz_id': current_uni_azz_id},{'$push': {'notif_destin': id}})
+                    NEW_CHAT_MESSAGE = f"🔝You are the best\n\nYou have successfully setup notifications!\n\nMOM AI bot will notify you upon upcoming of new orders in this chat.\n\nNow you should go to the 'Assistant' tab and start using your MOM AI Restaurant Assistant!"
+                    send_telegram_notification(id, message=NEW_CHAT_MESSAGE)
+            if tg_setup:
+                return redirect(url_for("update_menu_gui", initial_setup=True))
         elif attribute == 'pp_account' and new_value:
             if restaurant.get('pp_account', "nope") == "nope":
                collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'earned_on_own_paypal':0}})
@@ -1557,20 +1615,69 @@ def update_profile(attribute):
             file_id = fs.put(image, filename=filename)
             print(f'Raw file id {file_id} and string file id {str(file_id)}')
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'res_logo': file_id}})   
-        
         print('Profile updated successfully!')
         flash('Profile updated successfully!', 'success')
-        return redirect(url_for('dashboard_display'))
+        return redirect(url_for('dashboard_display', show_popup=True))
     else:
         print('Error in form submission!')
         for field, errors in form.errors.items():
             for error in errors:
                 flash(f"Error in the {getattr(form, field).label.text} field - {error}", 'danger')
                 print(f"Error in the {getattr(form, field).label.text} field - {error}")
-    return render_template('settings/profile_update.html', form=form, attribute=attribute, restaurant=restaurant, title="Update Profile")
+    return render_template('settings/profile_update.html', 
+                           form=form, 
+                           attribute=attribute, 
+                           restaurant=restaurant, 
+                           title="Update Profile",
+                           tg_setup=tg_setup)
+
+
+@app.route('/setup_public_profile', methods=['GET', 'POST'])
+def setup_public_profile():
+    if not session.get("access_for_setup_public_profile_page"):
+        abort(403)  # Forbidden
+    
+    form = ProfileForm()
+    unique_azz_id = session.get("unique_azz_id")
+    
+    if form.validate_on_submit():
+        website_url = form.website_url.data
+        logo = form.logo.data
+        description = form.description.data
+
+        print(website_url, logo, description)
+        
+        # Handle file upload and other logic here
+        if logo:
+            image = form.logo.data
+            filename = secure_filename(image.filename)
+            file_id = fs.put(image, filename=filename)
+            print(f'Raw file id {file_id} and string file id {str(file_id)}')
+            collection.update_one({'unique_azz_id': unique_azz_id}, {'$set': {'res_logo': file_id}}) 
+        
+        if website_url:
+            collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"website_url": website_url}})
+        
+        if description:
+            collection.update_one({'unique_azz_id': unique_azz_id}, {'$set': {'description': description}}) 
+        
+        # flash('Public profile setup successfully!', 'success')
+        return redirect(url_for('update_profile', attribute="notif_destin", tg_setup=True))
+
+    
+    return render_template('start/setup_public_profile.html', form=form,
+                           title="Setup Public Profile")
+
+
+
+
+
+
 
 @app.route('/set-working-hours')
 def set_working_hours():
+    start_setup = request.args.get("start_setup") == "True"
+    print("Start setup on server: ", start_setup)
     current_uni_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({'unique_azz_id': current_uni_azz_id})
 
@@ -1580,7 +1687,16 @@ def set_working_hours():
     current_rest_timezone = restaurant.get('timezone', None)
     print(f"Current restaurant timezone: ", current_rest_timezone)
 
-    return render_template('settings/set_working_hours.html', title="Set Working Hours", start_hours=start_hours, end_hours=end_hours, restaurant=restaurant, current_rest_timezone=current_rest_timezone)
+    if start_setup:
+        session["access_for_setup_public_profile_page"] = True
+
+    return render_template('settings/set_working_hours.html', 
+                           title="Set Working Hours", 
+                           start_hours=start_hours, 
+                           end_hours=end_hours, 
+                           restaurant=restaurant, 
+                           current_rest_timezone=current_rest_timezone,
+                           start_setup=start_setup)
 
 
 @app.route('/submit_hours', methods=['POST'])
@@ -1807,8 +1923,53 @@ def update_menu():
 
     upload_response = upload_new_menu(menu_xlsx_path, menu_save_txt_path, currency, restaurant_name, collection, unique_azz_id, assistant_id)
     print(upload_response)
+
+    
+        
+
     
     if upload_response["success"]:
+        voice_pathway_id = restaurant.get("voice_pathway_id")
+
+        if voice_pathway_id:
+            unique_azz_id = session.get("unique_azz_id")
+            restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+            
+            restaurant_menu_tuples = restaurant.get("html_menu_tuples")
+
+            menu_string = ""
+
+            for item in restaurant_menu_tuples:
+                item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
+                menu_string += item_text
+            
+            restaurant_name = restaurant.get("name")
+            store_location = restaurant.get("location_name")
+            timezone = restaurant.get("timezone")
+            restaurant_menu = menu_string
+            
+            opening_hours_string = ""
+
+            opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+
+            day_of_weeks = {
+                0: 'Monday',
+                1: 'Tuesday',
+                2: 'Wednesday',
+                3: 'Thursday',
+                4: 'Friday',
+                5: 'Saturday',
+                6: 'Sunday'
+            }
+
+            for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+                day_of_week = day_of_weeks[index]
+                opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+                opening_hours_string += opening_hours_line + "\n"
+            
+            create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+
+            success = insert_the_nodes_and_edges_in_new_pathway(voice_pathway_id, unique_azz_id)
         flash("Menu updated successfully!", category="success")
     else:
         flash("Error updating menu. Please check the file for validity.", category="danger")
@@ -1875,11 +2036,54 @@ def update_menu_manual():
                                 "menu_vector_id": vector_store.id, 
                                 "html_menu_tuples": updated_items, 
                                 "average_menu_price": average_menu_price}})
+    
+    voice_pathway_id = restaurant.get("voice_pathway_id")
+
+    if voice_pathway_id:
+        unique_azz_id = session.get("unique_azz_id")
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+        
+        restaurant_menu_tuples = restaurant.get("html_menu_tuples")
+
+        menu_string = ""
+
+        for item in restaurant_menu_tuples:
+            item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
+            menu_string += item_text
+        
+        restaurant_name = restaurant.get("name")
+        store_location = restaurant.get("location_name")
+        timezone = restaurant.get("timezone")
+        restaurant_menu = menu_string
+        
+        opening_hours_string = ""
+
+        opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+
+        day_of_weeks = {
+            0: 'Monday',
+            1: 'Tuesday',
+            2: 'Wednesday',
+            3: 'Thursday',
+            4: 'Friday',
+            5: 'Saturday',
+            6: 'Sunday'
+        }
+
+        for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+            day_of_week = day_of_weeks[index]
+            opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+            opening_hours_string += opening_hours_line + "\n"
+        
+        create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+
+        success = insert_the_nodes_and_edges_in_new_pathway(voice_pathway_id, unique_azz_id)
     # Return a success response
     return jsonify(success=True)
 
 @app.route('/update_menu_gui')
-def update_menu_gui():
+def update_menu_gui(initial_setup=None):
+    initial_setup = request.args.get("initial_setup")
     form = UpdateMenuForm()
     default_menu = session.get("default_menu")
     unique_azz_id = session.get("unique_azz_id")
@@ -1892,7 +2096,8 @@ def update_menu_gui():
                            form=form,
                            default_menu=default_menu,
                            unique_azz_id=unique_azz_id,
-                           title="Edit Menu")
+                           title="Edit Menu",
+                           initial_setup=initial_setup)
 
 
 
@@ -2041,12 +2246,17 @@ def capture_order(orderID):
     unique_azz_id = request.args.get("unique_azz_id")
     amount = request.args.get('amount', default=0, type=int)
     topped_up_balance = False
+    print(top_up_balance, unique_azz_id, amount)
     if top_up_balance:
-        id_of_who_referred = collection.find_one({'unique_azz_id': unique_azz_id})["id_of_who_referred"]
-
+        id_of_who_referred_ = collection.find_one({'unique_azz_id': unique_azz_id})
+        
         result_main = collection.update_one({'unique_azz_id': unique_azz_id}, {"$inc": {"balance": amount}})
+        print("Updated the balance of the restaurant with ", unique_azz_id, " id")
 
-        result_add_to_referral = collection.update_one({"referral_code":id_of_who_referred}, {"$inc": {"balance": amount*0.01}})
+        if id_of_who_referred_:
+            id_of_who_referred = id_of_who_referred_.get("id_of_who_referred")
+            if id_of_who_referred:
+                result_add_to_referral = collection.update_one({"referral_code":id_of_who_referred}, {"$inc": {"balance": amount*0.01}})
         
         """
         if result_main.matched_count > 0:
@@ -2059,9 +2269,9 @@ def capture_order(orderID):
         
         topped_up_balance = True
     # Now you can use the orderID variable in your function
-    print(f"Received orderID: {orderID}")
+    # print(f"Received orderID: {orderID}")
     captured_order = captureOrder(orderID).json()
-    print("Captured Order: ", captured_order)
+    # print("Captured Order: ", captured_order)
 
     if captured_order["status"] == "COMPLETED":
         return jsonify({"captured_order":captured_order, "topped_up_balance_manual":topped_up_balance})
@@ -2093,7 +2303,14 @@ def assistant_dashboard_route():
 def charge_for_call():
     data = request.json
     call_id = data.get("call_id")
-    return call_id
+
+    call_length, ai_phone_number = get_call_length_and_phone_number(call_id)
+
+    price_of_call = call_length * PRICE_OF_MINUTE_PHONE_CALL
+
+    collection.update_one({"ai_phone_number": ai_phone_number}, {"$inc":{"balance": -price_of_call}})
+
+    return {"success": True}
 
 
 @app.route('/purchase-phone-number', methods=['POST'])
@@ -2101,7 +2318,6 @@ def purchase_phone_number():
     data = request.form
 
     language = data.get("language")
-
     
     unique_azz_id = session.get("unique_azz_id")
     
@@ -2111,11 +2327,13 @@ def purchase_phone_number():
 
     pathway_id = restaurant.get("voice_pathway_id")
 
+    timezone = restaurant.get("timezone")
+
     if restaurant.get("balance") < 23:
         flash("Please top up your balance. You need at least 23 Euros on your account.", "danger")
         return redirect("/voice-setup")
     
-    dict_response = buy_and_update_phone(pathway_id, language)
+    dict_response = buy_and_update_phone(pathway_id, language, timezone)
 
     if not dict_response["success"]:
         flash("There is an error on our side. Try again!", "danger")
@@ -2125,23 +2343,106 @@ def purchase_phone_number():
 
     # Get today's date
     today = datetime.today()
-    formatted_date = today.strftime('%Y-%m-%d')
 
     # Extract the day number
     day_number = today.day
 
-    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"ai_phone_number": phone_number, "ai_phone_subscription_date": formatted_date} ,"$inc":{"balance": -20}})
+    # Modify the day if it exceeds 28
+    if day_number > 28:
+        today = today.replace(day=28)
+
+    # Format the date as 'YYYY-MM-DD'
+    formatted_date = today.strftime('%Y-%m-%d')
+
+    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"ai_phone_number": phone_number, "ai_phone_subscription_date": formatted_date, "voice_pathway_lang":"en"} ,"$inc":{"balance": -20}})
 
     
     
     if result.matched_count > 0:
-        flash(f"Congratulations! You have successfully setup {restaurant_name}' Voice Assistant", "success")
+        flash(f"Congratulations! You have successfully setup {restaurant_name}'s Voice Assistant", "success")
         return redirect("/voice-setup")
     else:
         flash("We have got the phone number for you! It will arrive soon", "success")
         return redirect("/voice-setup")
 
 
+
+@app.route('/update-ai-phone', methods=["POST"])
+def update_phone_number_endpoint():
+    language = request.form.get("language")
+    unique_azz_id = session.get("unique_azz_id")
+
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    phone_number = restaurant.get("ai_phone_number")
+    pathway_id = restaurant.get("voice_pathway_id")
+    timezone = restaurant.get("timezone")
+
+    print("Language we passed: ", language)
+    
+    restaurant_name = restaurant.get("restaurant_name")
+
+    
+    restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu = get_data_for_pathway_change(restaurant)
+    
+    create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id, language)
+    success_insert = insert_the_nodes_and_edges_in_new_pathway(pathway_id, unique_azz_id)
+
+    assert success_insert
+    
+    success = update_phone_number(phone_number, language, timezone, pathway_id)
+
+    collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"voice_pathway_lang":language}})
+    
+    """
+    if "en" in language:
+        success = update_phone_number(phone_number, language, timezone, pathway_id)
+    else:
+        restaurant_menu_tuples = restaurant.get("html_menu_tuples")
+
+        menu_string = ""
+
+        for item in restaurant_menu_tuples:
+            item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
+            menu_string += item_text
+        
+        restaurant_name = restaurant.get("name")
+        store_location = restaurant.get("location_name")
+        timezone = restaurant.get("timezone")
+        restaurant_menu = menu_string
+        
+        opening_hours_string = ""
+
+        opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+
+        day_of_weeks = {
+            0: 'Monday',
+            1: 'Tuesday',
+            2: 'Wednesday',
+            3: 'Thursday',
+            4: 'Friday',
+            5: 'Saturday',
+            6: 'Sunday'
+        }
+
+        for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+            day_of_week = day_of_weeks[index]
+            opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+            opening_hours_string += opening_hours_line + "\n"
+        success = update_phone_number_non_english(phone_number, restaurant_name, restaurant_menu, opening_hours_string, store_location, language, timezone)
+        print("Went through non-english path")
+    """
+    
+    # print("Success: ", success, "New language: ", language)
+
+    # success = False
+
+    if success:
+        flash("You have successfully updated the language of AI Phone Agent", "success")
+        return redirect("/voice-setup")
+    else:
+        flash("Something went wrong. Try again!", "danger")
+        return redirect("/voice-setup")
     
 
 
@@ -2149,39 +2450,9 @@ def purchase_phone_number():
 def post_create_pathway():
     unique_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    restaurant_name, store_location, timezone, restaurant_menu, opening_hours_string = get_data_for_pathway_change(restaurant)
     
-    restaurant_menu_tuples = restaurant.get("html_menu_tuples")
-
-    menu_string = ""
-
-    for item in restaurant_menu_tuples:
-        item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
-        menu_string += item_text
-    
-    restaurant_name = restaurant.get("name")
-    store_location = restaurant.get("location_name")
-    timezone = restaurant.get("timezone")
-    restaurant_menu = menu_string
-    
-    opening_hours_string = ""
-
-    opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
-
-    day_of_weeks = {
-        0: 'Monday',
-        1: 'Tuesday',
-        2: 'Wednesday',
-        3: 'Thursday',
-        4: 'Friday',
-        5: 'Saturday',
-        6: 'Sunday'
-    }
-
-    for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
-        day_of_week = day_of_weeks[index]
-        opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
-        opening_hours_string += opening_hours_line + "\n"
-
     result = pathway_serving_a_to_z(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
 
     print("Success Creating Pathway??? ", result["success"])
@@ -2198,7 +2469,7 @@ def post_create_pathway():
     return redirect('/voice-setup')
     
 
-@app.route('/post-voice-order', methods=['POST'])
+@app.route('/post-phone-order', methods=['POST'])
 def post_voice_order():
     raw_data = request.data
     print("Raw Data: ", raw_data)
@@ -2264,17 +2535,24 @@ def voice_setup_page():
     unique_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
 
+
+    voice_pathway_lang = restaurant.get("voice_pathway_lang")
     voice_pathway_id = restaurant.get("voice_pathway_id")
     ai_phone_number = restaurant.get("ai_phone_number")
 
-    print(voice_pathway_id)
+    print(voice_pathway_lang)
+
+    PAYPAL_CLIENT_ID = CLIENT_ID
 
     return render_template('voice-setup/voice_setup.html', 
                            title="Setup Phone Assistant",
                            restaurant_name=restaurant_name,
                            voice_pathway_id=voice_pathway_id,
                            restaurant=restaurant,
-                           ai_phone_number=ai_phone_number)
+                           ai_phone_number=ai_phone_number,
+                           unique_azz_id=unique_azz_id,
+                           voice_pathway_lang=voice_pathway_lang,
+                           PAYPAL_CLIENT_ID = PAYPAL_CLIENT_ID)
 
 @app.route('/trigger_demo_call', methods=['POST'])
 def trigger_demo_call():
@@ -3084,9 +3362,7 @@ def show_restaurant_profile_public(unique_azz_id):
     latitude = res_coords["lat"]
     longitude = res_coords["lng"]
 
-    html_menu = restaurant.get("html_menu")
-    if html_menu:
-        wrapped_html_table = wrap_images_in_html_table(html_menu)
+    html_menu = restaurant.get("html_menu_tuples")
 
     restaurant_reviews = db_rest_reviews[unique_azz_id]
     
@@ -3130,7 +3406,7 @@ def show_restaurant_profile_public(unique_azz_id):
                            start_working_hours=start_working_hours,
                            end_working_hours=end_working_hours,
                            unique_azz_id=unique_azz_id,
-                           html_menu=wrapped_html_table,
+                           html_menu=html_menu,
                            reviews=reviews,
                            there_are_reviews=there_are_reviews)
 

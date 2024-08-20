@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, FileField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField, RadioField
-from wtforms.validators import Email, DataRequired, URL, EqualTo, Length, Optional
+from wtforms import StringField, FileField, SubmitField, PasswordField, SelectField, ValidationError, IntegerField, RadioField, TextAreaField
+from wtforms.validators import Email, DataRequired, URL, EqualTo, Length, Optional, InputRequired
 
 def OptionalURL(message=None):
     def _optional_url(form, field):
@@ -86,3 +86,11 @@ class ChangeCredentialsForm(FlaskForm):
     new_email = StringField('New Email', validators=[Email(), Optional()])
     new_password = PasswordField('New Password', validators=[Optional(), Length(min=8, message='Password must be at least 8 characters long')])
     submit = SubmitField('Change Credentials')
+
+class ProfileForm(FlaskForm):
+    website_url = StringField('Website URL', validators=[URL(), Optional()], description="Must follow 'https://yourrestaurantsite.com'")
+    logo = FileField('Logo', validators=[Optional(), FileAllowed(['jpg', 'png'], 'Images only!')])
+    description = TextAreaField('Description', validators=[
+        InputRequired(message="Description is required."),
+        Length(min=100, max=350, message="Description must be between 100 and 350 characters.")
+    ])
