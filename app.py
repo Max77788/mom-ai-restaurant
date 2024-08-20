@@ -2482,10 +2482,10 @@ def post_voice_order():
 
     data = json.loads(raw_data.decode('utf-8'))
 
-    unique_azz_id = data.get("unique_azz_id")
+    # unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
 
-    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+    restaurant = collection.find_one({"ai_phone_number": from_number})
     timezone = restaurant.get("timezone")
     if "+" in timezone:
         timezone = timezone.replace("+","-")
