@@ -180,7 +180,7 @@
 </form>
 </div>
 <p>*IMPORTANT - if you choose the language other than English your AI-agent won't capture orders, but will stull be able to provide the commong customer support.</p>
-{% if restaurant["balance"] <= 23 %}
+{% if restaurant["balance"] <= 22.95 %}
 <p style="font-size: large">You must have <b>AT LEAST <u>23€</u> on your balance</b> to obtain the number. <b>Your current balance is {{ restaurant["balance"] | round(2) }}€</b></p>
 <div style="margin-top: 10px; margin-bottom: 10px; text-align: center">
     <button id="activate-paypal-button" class="btn btn-primary">Top Up the Balance Now📈</button>
