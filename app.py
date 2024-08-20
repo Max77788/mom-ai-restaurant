@@ -2330,7 +2330,7 @@ def purchase_phone_number():
 
     timezone = restaurant.get("timezone")
 
-    if restaurant.get("balance") < 23:
+    if restaurant.get("balance") <= 22.95:
         flash("Please top up your balance. You need at least 23 Euros on your account.", "danger")
         return redirect("/voice-setup")
     
