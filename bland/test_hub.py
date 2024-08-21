@@ -138,9 +138,9 @@ def extract_text_from_file(file_path):
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
-response = get_conversational_pathway_data()
+# response = get_conversational_pathway_data()
 
-print(response)
+# print(response)
 
 # Example usage:
 # text = extract_text_from_file('menu_examples/menu.xlsx')
@@ -153,12 +153,16 @@ print(response)
 #print(updated_text)
 
 
+opening_hours_string = "From 1 to twoooooooo"
+
+result = pathway_serving_a_to_z(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+
+print(result)
 
 
 
 
-
-
+"""
 mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
 
 # Connect to MongoDB
@@ -175,8 +179,9 @@ dicts = collection.find_one({"unique_azz_id":unique_azz_id}).get("html_menu_tupl
 #item_lines = [f"Item Name - {item['Item Name']}\nItem Description - {item['Item Description']}\nItem Price - {item['Item Price (EUR)']}\n\n\n" for item in dicts]
 
 item_lines = [{"Item Name" :item['Item Name'], "Item Description": item['Item Description'], "Item Price": item['Item Price (EUR)']} for item in dicts]
+"""
 
-print(item_lines)
+# print(item_lines)
 
 
 # success = add_pathway_to_phone("+14153017040", "5c01d028-8f2b-4560-8aec-ddad5de31a9f", "uk")

@@ -26,7 +26,7 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
-from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z, send_the_call_on_number_demo, create_the_suitable_pathway_script
+from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
 from functions_to_use import send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
@@ -2303,6 +2303,9 @@ def assistant_dashboard_route():
 @app.route('/charge-for-call', methods=['POST'])
 def charge_for_call():
     data = request.json
+ 
+    print("Data we received: ", data)
+
     call_id = data.get("call_id")
 
     call_length, ai_phone_number = get_call_length_and_phone_number(call_id)
@@ -2383,13 +2386,11 @@ def update_phone_number_endpoint():
     
     restaurant_name = restaurant.get("restaurant_name")
 
-    
     restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu = get_data_for_pathway_change(restaurant)
     
-    create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id, language)
-    success_insert = insert_the_nodes_and_edges_in_new_pathway(pathway_id, unique_azz_id)
+    success_update = pathway_proper_update(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id, pathway_id, language)
 
-    assert success_insert
+    assert success_update
     
     success = update_phone_number(phone_number, language, timezone, pathway_id)
 
@@ -2454,7 +2455,7 @@ def post_create_pathway():
 
     restaurant_name, store_location, timezone, restaurant_menu, opening_hours_string = get_data_for_pathway_change(restaurant)
     
-    result = pathway_serving_a_to_z(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+    result = pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
 
     print("Success Creating Pathway??? ", result["success"])
 
@@ -2482,10 +2483,10 @@ def post_voice_order():
 
     data = json.loads(raw_data.decode('utf-8'))
 
-    # unique_azz_id = data.get("unique_azz_id")
+    unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
 
-    restaurant = collection.find_one({"ai_phone_number": from_number})
+    restaurant = collection.find_one({"ai_phone_number": unique_azz_id})
     timezone = restaurant.get("timezone")
     if "+" in timezone:
         timezone = timezone.replace("+","-")

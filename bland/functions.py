@@ -140,10 +140,10 @@ def get_conversational_pathway_data():
 
     response_json = response.json()
 
-    with open("bland/pathway_nodes.txt", "w") as file:
-        json.dump(response_json, file, ensure_ascii=False, indent=4)
+    # with open("bland/pathway_nodes.txt", "w") as file:
+        # json.dump(response_json, file, ensure_ascii=False, indent=4)
 
-    return response.json()
+    return response_json
 
 def create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, restaurant_language_code="en-US"):
     restaurant_language = language_codes[restaurant_language_code]
@@ -159,9 +159,11 @@ def create_the_suitable_pathway_script(restaurant_name, store_location, opening_
         "{{ restaurant_language }}": restaurant_language
     }
 
+    file_contents = get_conversational_pathway_data()
+
     # Open the file and load its JSON content into a dictionary
-    with open("bland/pathway_nodes.txt", 'r') as file:
-        file_contents = json.load(file)
+    # with open("bland/pathway_nodes.txt", 'r') as file:
+        # file_contents = json.load(file)
         
     # Replace placeholders in all string values within the JSON structure
     def replace_placeholders(obj):
@@ -180,12 +182,12 @@ def create_the_suitable_pathway_script(restaurant_name, store_location, opening_
     updated_contents = replace_placeholders(file_contents)
 
     # Write the modified JSON content to a new file with double-quoted keys
-    with open(f"bland/pathways/pathways_{unique_azz_id}.txt", "w") as file:
-        json.dump(updated_contents, file, ensure_ascii=False, indent=4, separators=(',', ': '))
+    # with open(f"bland/pathways/pathways_{unique_azz_id}.txt", "w") as file:
+        # json.dump(updated_contents, file, ensure_ascii=False, indent=4, separators=(',', ': '))
 
-    print("Everything is transformed.")
+    # print("Everything is transformed.")
 
-    return None
+    return updated_contents
 
     
 def create_fully_new_pathway(restaurant_name):
@@ -209,18 +211,15 @@ def create_fully_new_pathway(restaurant_name):
 
 
 
-def insert_the_nodes_and_edges_in_new_pathway(pathway_id, unique_azz_id):
+def insert_the_nodes_and_edges_in_new_pathway(pathway_id, new_script):
     url = BLAND_BASE_URL+ f"/convo_pathway/{pathway_id}"
-
-    with open(f"bland/pathways/pathways_{unique_azz_id}.txt", "r") as file:
-        payload = json.load(file)
 
     headers = {
         "authorization": BLAND_AI_API_KEY,
         "Content-Type": "application/json"
     }
 
-    response = requests.request("POST", url, json=payload, headers=headers)
+    response = requests.request("POST", url, json=new_script, headers=headers)
 
     # print(response.text)
 
@@ -234,28 +233,43 @@ def insert_the_nodes_and_edges_in_new_pathway(pathway_id, unique_azz_id):
         return False
 
 
-def pathway_serving_a_to_z(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id):
+def pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id):
     
-    create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id)
+    new_script = create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id)
 
     pathway_id = create_fully_new_pathway(restaurant_name)
+    
+    new_script["name"] = f"{restaurant_name}'s Voice Agent",
+    new_script["description"] = f"Designed to take orders and loyally serve customers of {restaurant_name} restaurant"
 
-    success = insert_the_nodes_and_edges_in_new_pathway(pathway_id, unique_azz_id)
+    success = insert_the_nodes_and_edges_in_new_pathway(pathway_id, new_script)
 
-    print("Pathway ID at the end: ", pathway_id)
+    #print("Pathway ID at the end: ", pathway_id)
     
     if success:
         return {"success":True, "pathway_id": pathway_id}
     else:
         return {"success":False, "pathway_id": None}
 
+def pathway_proper_update(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, pathway_id, language_code):
+    new_script = create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, language_code)
+
+    new_script["name"] = '{}\'s Voice Agent'.format(restaurant_name),
+    new_script["description"] = f"Designed to take orders and loyally serve customers of {restaurant_name} restaurant"
+
+    success = insert_the_nodes_and_edges_in_new_pathway(pathway_id, new_script)
+
+    if success:
+        return True
+    else:
+        return False
 
 def purchase_phone_number():
     url = BLAND_BASE_URL + "/inbound/purchase"
 
     payload = {
         "country_code": "US",
-        "webhook": "https://mom-ai-restaurant.pro/charge-for-phone-assistant"
+        "webhook": "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/charge-for-call"
     }
 
     headers = {
@@ -277,7 +291,7 @@ def update_phone_number(phone_number, language, timezone, pathway_id):
         "language":language,
         "timezone":timezone,
         "interruption_threshold":70,
-        "webhook": "https://mom-ai-restaurant.pro/charge-for-phone-assistant"
+        "webhook": "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/charge-for-call"
     }
 
     headers = {
@@ -406,6 +420,7 @@ def add_pathway_to_phone(phone_number, pathway_id, language, timezone):
     url = BLAND_BASE_URL + f"/inbound/{phone_number}"
 
     payload = {
+        "voice": "e1289219-0ea2-4f22-a994-c542c2a48a0f",
         "pathway_id":pathway_id,
         "language":language,
         "timezone": timezone,
