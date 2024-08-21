@@ -2312,9 +2312,14 @@ def charge_for_call():
 
     price_of_call = call_length * PRICE_OF_MINUTE_PHONE_CALL
 
-    collection.update_one({"ai_phone_number": ai_phone_number}, {"$inc":{"balance": -price_of_call}})
+    print("Price of call and ai phone number: ", price_of_call, " Euros, ", ai_phone_number)
 
-    return {"success": True}
+    result = collection.update_one({"ai_phone_number": ai_phone_number}, {"$inc":{"balance": -price_of_call}})
+
+    if result.matched_count > 0:
+        print("Successfully charged for the call.")
+    
+    return jsonify({"success": True})
 
 
 @app.route('/purchase-phone-number', methods=['POST'])
