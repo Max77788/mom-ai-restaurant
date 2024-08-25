@@ -290,7 +290,18 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
     """Insert a document into MongoDB that includes a name and two files."""
     # Replace spaces with underscores
     #name = name.replace(" ", "_")
+    
     referral_id = generate_random_string()
+
+    dafault_schedule = [{"start": 10, "end":20, "dayOff":False}, 
+                        {"start": 10, "end":20, "dayOff":False}, 
+                        {"start": 10, "end":20, "dayOff":False}, 
+                        {"start": 10, "end":20, "dayOff":False}, 
+                        {"start": 10, "end":20, "dayOff":False}, 
+                        {"start": 10, "end":20, "dayOff":True}, 
+                        {"start": 10, "end":20, "dayOff":True}]
+    
+
     try:
         # Document to insert
         document = {
@@ -312,8 +323,7 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "location_name":location_name, 
             "web3_wallet_address": wallet_public_key_address,
             "web3_private_key": wallet_private_key,
-            "start_work":[10, 10, 10, 10, 10, 10, 10],
-            "end_work":[20, 20, 20, 20, 20, 20, 20],
+            "working_schedule": dafault_schedule,
             "qr_code": qr_code,
             "description":None,
             "referral_code": referral_id,
@@ -325,6 +335,7 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "paymentGatewayTurnedOn": False,
             "addFees": True,
             "assistant_turned_on":False,
+            "discovery_mode": False,
             "notif_destin":[]
             # "stripe_secret_test_key": stripe_secret_test_key
         }
