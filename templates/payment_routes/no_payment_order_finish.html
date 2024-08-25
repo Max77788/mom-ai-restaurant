@@ -2,6 +2,44 @@
 
 {% block content %}
     <style>
+        /* Modal styles */
+    .modal {
+        display: none; /* Hidden by default */
+        position: fixed; /* Stay in place */
+        z-index: 1; /* Sit on top */
+        left: 0;
+        top: 0;
+        width: 100%; /* Full width */
+        height: 100%; /* Full height */
+        overflow: auto; /* Enable scroll if needed */
+        background-color: rgb(0, 0, 0); /* Fallback color */
+        background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto; /* 15% from the top and centered */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%; /* Could be more or less, depending on screen size */
+        max-width: 600px;
+        text-align: center;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+        
         .success-order-message {
             max-width: 600px;
             margin: 0 auto;
@@ -87,6 +125,16 @@
         }
     </style>
 
+<div id="web3Modal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Connect Your Web3 Wallet</h2>
+        <p>🪙You have earned 50 MOM tokens by making this order<br>🔌Connect your Web3 wallet in one click and redeem your prize!</p>
+        <button id="walletOrGetTokensButton" class="web3-button" onclick="connectWalletAndSendTokens()">Connect Web3 Wallet &<br>Get 50 MOM tokens</button>
+        <div id="response-message"></div>
+    </div>
+</div>
+
     <div class="success-order-message">
         <h1>✅ Your order in {{ restaurant_name }} has been successfully placed.</h1>
         <h2>These are your items:</h2>
@@ -120,6 +168,29 @@
         
     
         <script>
+            // Get the modal element
+    const modal = document.getElementById("web3Modal");
+
+    const suggest_web3_bonus = "{{ suggest_web3_bonus }}" === "True"
+
+    if (suggest_web3_bonus) modal.style.display = "block"
+
+    // Get the close button element
+    const closeButton = document.querySelector(".close");
+
+    // Function to close the modal
+    closeButton.onclick = function() {
+        modal.style.display = "none";
+    };
+
+    // Optional: Close the modal when the user clicks anywhere outside of the modal
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+            
+            
             document.getElementById('orderIdForm').addEventListener('submit', async function(event) {
                 event.preventDefault();
                 const email = document.getElementById('email').value;
@@ -154,6 +225,78 @@
                     loadingGif.style.display = 'none';
                 }
             });
+
+            if (localStorage.getItem('walletAddress')){
+        console.log("Entered loop")
+        document.getElementById("walletOrGetTokensButton").innerHTML = "Get 50 MOM tokens"
+    }
+
+
+            async function connectWalletAndSendTokens() {
+        if (typeof window.ethereum !== 'undefined') {
+        try {
+            const account = localStorage.getItem('walletAddress')
+            
+            if (!account) { 
+            
+            // Request account access if needed
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // Assuming the first account is the one we want
+            const account = accounts[0];
+
+            // Store the account in localStorage or session as needed
+            localStorage.setItem('walletAddress', account);
+            localStorage.setItem('hide_wallet_section', true);
+
+            // Display success message and hide the wallet button section
+            // document.getElementById('wallet-button-section').style.display = 'none';
+            document.getElementById('successful-top-up').style.display = 'block';
+
+            // Optional: Display a response message
+            document.getElementById('response-message').innerHTML = `<p style="color: #00ff00;">Wallet connected successfully! Address: ${account}</p>`;
+            }
+
+            // Data to send in the POST request
+            const data = {
+                wallet_address: account,
+                amount: 50
+            };
+
+            console.log("data we sent: ", data)
+
+            // Making a POST request
+            fetch('/mint-send-tokens', {
+                method: 'POST', // or 'PUT'
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data) // Convert data to JSON string
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json(); // Parse the JSON from the response
+            })
+            .then(data => {
+                // console.log('Success:', data);
+                location.reload()
+                // Handle the data here, for example, store it or display it in the UI
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+
+        } catch (error) {
+            console.error('User denied account access or there was an error:', error);
+            document.getElementById('response-message').innerHTML = "<p style='color: #ff0000;'>Failed to connect wallet. Please try again.</p>";
+        }
+    } else {
+        console.error('No Ethereum provider detected. Please install MetaMask.');
+        document.getElementById('response-message').innerHTML = "<p style='color: #ff0000;'>No Ethereum provider detected. Please install MetaMask.</p>";
+    }
+}
             </script>
             
         

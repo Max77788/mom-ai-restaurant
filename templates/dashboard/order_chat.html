@@ -149,7 +149,7 @@
     -->
 
     <header style="background-color: #000000; color: white; padding: 10px; text-align: center;" id="orderHeader">
-        Make the Order in {{ restaurant_name.replace("_"," ") }}
+        Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </header>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
@@ -173,7 +173,7 @@
             {% else %}
                 {% if assistant_turned_on and isWorkingHours %}
                 {% else %}
-                <p id="offMessage"><b>We are currently off. You will be able to take the order later.</b></p>
+                <p id="offMessage"><b>We are currently off. You will be able to make the order later.</b></p>
                 {% endif %}
             {% endif %}
         </div>
@@ -201,7 +201,6 @@
 
 <script>
     window.onload = function() {
-    console.log("Window loaded");
     
     
     let currentThreadId = null;
@@ -213,88 +212,92 @@
     let userLanguage = 'en-US';
 
     // Dictionary for translations (can be expanded)
+    const restaurant_name = "{{ restaurant_name }}";
+    
     const translations = {
     'en-US': {
         initialMessage: "Hello, welcome in",
-        phrase: "Feel free to check out the menu",
-        makeOrder: "Make the Order in",
+        phrase: "How can I help you?",
+        makeOrder: `Conversate with ${restaurant_name} AI-Assistant`,
         typeMessage: "Type your message here✍️",
         send: "Send",
-        offMessage: "We are currently off. You will be able to take the order later."
+        offMessage: "We are currently off. You will be able to make the order later."
     },
     'es-ES': {
         initialMessage: "Hola, bienvenido a",
-        phrase: "Siéntase libre de ver el menú",
-        makeOrder: "Hacer el pedido en",
+        phrase: "¿Cómo puedo ayudarte?",
+        makeOrder: `Converse con el asistente AI de ${restaurant_name}`,
         typeMessage: "Escriba su mensaje aquí✍️",
         send: "Enviar",
         offMessage: "Actualmente estamos cerrados. Podrá hacer el pedido más tarde."
     },
     'zh-CN': {
         initialMessage: "您好，欢迎来到",
-        phrase: "随时查看菜单",
-        makeOrder: "在这里下订单",
+        phrase: "我能帮您什么？",
+        makeOrder: `与 ${restaurant_name} AI 助手对话`,
         typeMessage: "在这里输入您的消息✍️",
         send: "发送",
         offMessage: "我们现在不营业。稍后您可以下订单。"
     },
     'hi-IN': {
         initialMessage: "नमस्ते, में आपका स्वागत है",
-        phrase: "मेनू देखने के लिए स्वतंत्र महसूस करें",
-        makeOrder: "यहां ऑर्डर करें",
+        phrase: "मैं आपकी कैसे सहायता कर सकता हूँ?",
+        makeOrder: `${restaurant_name} AI-सहायक के साथ बातचीत करें`,
         typeMessage: "यहां अपना संदेश टाइप करें✍️",
         send: "भेजें",
         offMessage: "हम फिलहाल बंद हैं। आप बाद में ऑर्डर कर पाएंगे।"
     },
     'ar-SA': {
         initialMessage: "مرحبا، مرحبا بكم في",
-        phrase: "لا تتردد في الاطلاع على القائمة",
-        makeOrder: "اطلب هنا",
+        phrase: "كيف يمكنني مساعدتك؟",
+        makeOrder: `تحدث مع مساعد الذكاء الاصطناعي لـ${restaurant_name}`,
         typeMessage: "اكتب رسالتك هنا✍️",
         send: "إرسال",
         offMessage: "نحن حاليا مغلقون. ستتمكن من تقديم الطلب لاحقًا."
     },
     'fr-FR': {
         initialMessage: "Bonjour, bienvenue à",
-        phrase: "N'hésitez pas à consulter le menu",
-        makeOrder: "Passez la commande à",
+        phrase: "Comment puis-je vous aider?",
+        makeOrder: `Discutez avec l'assistant AI de ${restaurant_name}`,
         typeMessage: "Tapez votre message ici✍️",
         send: "Envoyer",
         offMessage: "Nous sommes actuellement fermés. Vous pourrez passer la commande plus tard."
     },
     'ru-RU': {
         initialMessage: "Здравствуйте, добро пожаловать в",
-        phrase: "Не стесняйтесь просмотреть меню",
-        makeOrder: "Сделайте заказ в",
+        phrase: "Чем могу помочь?",
+        makeOrder: `Общайтесь с AI-ассистентом ${restaurant_name}`,
         typeMessage: "Введите ваше сообщение здесь✍️",
         send: "Отправить",
         offMessage: "Мы сейчас закрыты. Вы сможете сделать заказ позже."
     },
     'ja-JP': {
         initialMessage: "こんにちは、ようこそ",
-        phrase: "メニューを確認してください",
-        makeOrder: "ここで注文",
+        phrase: "どのようにお手伝いできますか？",
+        makeOrder: `${restaurant_name} AIアシスタントと対話する`,
         typeMessage: "ここにメッセージを入力✍️",
         send: "送信",
         offMessage: "現在営業時間外です。後で注文できます。"
     },
     'de-DE': {
         initialMessage: "Hallo, willkommen in",
-        phrase: "Schauen Sie sich das Menü an",
-        makeOrder: "Bestellen Sie in",
+        phrase: "Wie kann ich Ihnen helfen?",
+        makeOrder: `Unterhalten Sie sich mit dem KI-Assistenten von ${restaurant_name}`,
         typeMessage: "Geben Sie hier Ihre Nachricht ein✍️",
         send: "Senden",
         offMessage: "Wir haben derzeit geschlossen. Sie können die Bestellung später aufgeben."
     },
     'pt-BR': {
         initialMessage: "Olá, bem-vindo ao",
-        phrase: "Sinta-se à vontade para conferir o menu",
-        makeOrder: "Faça o pedido em",
+        phrase: "Como posso ajudar?",
+        makeOrder: `Converse com o Assistente de IA de ${restaurant_name}`,
         typeMessage: "Digite sua mensagem aqui✍️",
         send: "Enviar",
         offMessage: "Estamos atualmente fechados. Você poderá fazer o pedido mais tarde."
     }
 };
+
+
 
 
     function startChat() {
@@ -326,12 +329,12 @@
 
     function translateTexts(language) {
         const translation = translations[language];
-        document.getElementById('orderHeader').textContent = `${translation.makeOrder} {{ restaurant_name.replace('_', ' ') }}`;
+        document.getElementById('orderHeader').textContent = `${translation.makeOrder}`;
         document.getElementById('userMessage').placeholder = translation.typeMessage;
         document.getElementById('sendButton').textContent = translation.send;
-        {% if not assistant_turned_on and not isWorkingHours %}
+        if (document.getElementById('offMessage')){
         document.getElementById('offMessage').textContent = translation.offMessage;
-        {% endif %}
+        }
     }
 
     function startConversation() {
@@ -496,97 +499,110 @@
     footer.insertBefore(wittyPhraseDiv, footer.firstChild);
 
     function appendMessage(message, sender) {
-        if (message.includes("/payment_buffer")) {
-            const isIframeRaw = "{{ iframe }}";
-            let isIframe = isIframeRaw === "True";
+    // Insert line breaks between sentences
+    message = message.replace(/([.!?])\s*(?=[A-Z])/g, "$1<br>");
 
-            if (isIframe) {
-                let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
-                message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
-            } else {
-                window.location.href = message;
-                return;
-            }
-        } else if (message.includes("Come to the restaurant and pick up")) {
-            const isIframeRaw = "{{ iframe }}";
-            let isIframe = isIframeRaw === "True";
+    if (message.includes("/payment_buffer")) {
+        const isIframeRaw = "{{ iframe }}";
+        let isIframe = isIframeRaw === "True";
 
-            if (isIframe) {
-                message = message;
-                document.getElementById('userMessage').disabled = true;
-                document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                document.getElementById('micButton').disabled = true;
-            } else {
-                const unique_azz_id = "{{ unique_azz_id }}";
-                window.location.href = `/no-payment-order-placed/${unique_azz_id}`;
-                return;
-            }
+        if (isIframe) {
+            let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
+            message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
+        } else {
+            window.location.href = message;
+            return;
         }
+    } else if (message.includes("Come to the restaurant and pick up")) {
+        const isIframeRaw = "{{ iframe }}";
+        let isIframe = isIframeRaw === "True";
 
-        const messageDiv = document.createElement('div');
-        messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
-        
-        try {
-            const htmlContent = marked.parse(message);
-            messageDiv.innerHTML = htmlContent;
-        } catch (error) {
-            console.error("Marked conversion error: ", error);
-            messageDiv.textContent = message;
+        if (isIframe) {
+            message = message;
+            document.getElementById('userMessage').disabled = true;
+            document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+            document.getElementById('micButton').disabled = true;
+        } else {
+            const unique_azz_id = "{{ unique_azz_id }}";
+            window.location.href = `/no-payment-order-placed/${unique_azz_id}`;
+            return;
         }
-
-        const iconDiv = document.createElement('div');
-        iconDiv.style.cssText = 'width: 30px; height: 30px; border-radius: 50%; overflow: hidden; margin: 10px;';
-
-        const messageContainer = document.createElement('div');
-
-        if (sender === 'user') {
-            messageDiv.style.backgroundColor = '#e5e5e5';
-            messageDiv.style.textAlign = 'left';
-
-            const userIcon = document.createElement('img');
-            userIcon.src = '/static/images/user_icon.png';
-            userIcon.style.width = '100%';
-            userIcon.style.height = '100%';
-            userIcon.style.objectFit = 'cover';
-            iconDiv.appendChild(userIcon);
-
-            messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-start;';
-            messageContainer.appendChild(messageDiv);
-            messageContainer.appendChild(iconDiv);
-
-            document.getElementById('chatBox').appendChild(messageContainer);
-
-        } else if (sender === 'assistant') {
-            messageDiv.style.backgroundColor = '#000000';
-            messageDiv.style.color = 'white';
-            messageDiv.style.textAlign = 'right';
-
-            const assistantIcon = document.createElement('img');
-            assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
-            assistantIcon.style.width = '100%';
-            assistantIcon.style.height = '100%';
-            assistantIcon.style.objectFit = 'cover';
-            iconDiv.appendChild(assistantIcon);
-
-            messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end;';
-            messageContainer.appendChild(messageDiv);
-            messageContainer.appendChild(iconDiv);
-
-            document.getElementById('chatBox').appendChild(messageContainer);
-
-        } else if (sender === 'system') {
-            messageDiv.style.backgroundColor = '#4CAF50';
-            messageDiv.style.color = 'white';
-            messageDiv.style.textAlign = 'center';
-
-            messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
-            messageContainer.appendChild(messageDiv);
-
-            document.getElementById('chatBox').appendChild(messageContainer);
-        }
-
-        scrollToBottom(messageContainer);
     }
+
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        margin-top: 10px; 
+        margin-right: 10px; 
+        margin-left: 10px;     
+        margin-bottom: 40px; 
+        padding: 15px; 
+        border-radius: 15px;
+        font-family: 'Arial', sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        word-wrap: break-word;
+        max-width: 80%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    `;
+    
+    try {
+        const htmlContent = marked.parse(message);
+        messageDiv.innerHTML = htmlContent;
+    } catch (error) {
+        console.error("Marked conversion error: ", error);
+        messageDiv.textContent = message;
+    }
+
+    const iconDiv = document.createElement('div');
+    iconDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin: 10px;';
+
+    const messageContainer = document.createElement('div');
+
+    if (sender === 'user') {
+        messageDiv.style.backgroundColor = '#f1f1f1';
+        messageDiv.style.color = '#333';
+        messageDiv.style.textAlign = 'left';
+
+        const userIcon = document.createElement('img');
+        userIcon.src = '/static/images/user_icon.png';
+        userIcon.style.width = '100%';
+        userIcon.style.height = '100%';
+        userIcon.style.objectFit = 'cover';
+        iconDiv.appendChild(userIcon);
+
+        messageContainer.style.cssText = 'display: flex; flex-direction: row; align-items: flex-start;';
+        messageContainer.appendChild(iconDiv);
+        messageContainer.appendChild(messageDiv);
+
+    } else if (sender === 'assistant') {
+        messageDiv.style.backgroundColor = '#333';
+        messageDiv.style.color = '#ffffff';
+        messageDiv.style.textAlign = 'right';
+
+        const assistantIcon = document.createElement('img');
+        assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
+        assistantIcon.style.width = '100%';
+        assistantIcon.style.height = '100%';
+        assistantIcon.style.objectFit = 'contain';
+        iconDiv.appendChild(assistantIcon);
+
+        messageContainer.style.cssText = 'display: flex; flex-direction: row-reverse; align-items: flex-start;';
+        messageContainer.appendChild(iconDiv);
+        messageContainer.appendChild(messageDiv);
+
+    } else if (sender === 'system') {
+        messageDiv.style.backgroundColor = '#4CAF50';
+        messageDiv.style.color = 'white';
+        messageDiv.style.textAlign = 'center';
+
+        messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+        messageContainer.appendChild(messageDiv);
+    }
+
+    document.getElementById('chatBox').appendChild(messageContainer);
+    scrollToBottom(messageContainer);
+}
+
 
     window.appendMessage = appendMessage;
 

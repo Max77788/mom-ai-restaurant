@@ -1,6 +1,7 @@
 #import eventlet
 #eventlet.monkey_patch()
 from flask import Flask, jsonify, session, request, url_for, flash, redirect
+from flask_mail import Mail, Message
 import pandas as pd
 import openpyxl
 import gridfs
@@ -45,6 +46,16 @@ load_dotenv(find_dotenv())
 
 #socketio = SocketIO(app, async_mode='eventlet')
 
+app = Flask(__name__)
+
+# Initialize Flask-Mail
+app.config['MAIL_SERVER'] = 'mail.privateemail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'contact@mom-ai-agency.site'
+app.config['MAIL_PASSWORD'] = os.environ.get("PRIVATEEMAIL_PASSWORD")
+FROM_EMAIL = app.config['MAIL_USERNAME']
+mail = Mail(app)
 
 mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
 
@@ -1141,7 +1152,7 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
 
 
 
-def get_assistants_response(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id):
+def get_assistants_response(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, discovery_mode=False):
     client = client_openai
     print("Entered assistants response function")
 
@@ -1272,19 +1283,56 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
     '''
     
     # print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
-
-    message_to_compare_menu_items = f"""
-    Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
-    from this list and use the images from this list:
-    {list_of_all_items} 
-    Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
-    """
+    messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
+    
+    
+    if discovery_mode:
+       message_to_compare_menu_items = f"""
+        Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
+        from this list and use the images from this list:
+        {list_of_all_items} 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+        Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
+        """
+    else:
+        message_to_compare_menu_items = f"""
+        Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
+        from this list and use the images from this list:
+        {list_of_all_items} 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        """
  
     print("Message to compare menu items: ", message_to_compare_menu_items)
 
     response = client.beta.threads.messages.create(thread_id=thread_id,
                                                    role="user",
                                                    content=translated_user_message,
+                                                   attachments=[{
+                                                       "file_id":menu_file_id,
+                                                       "tools":[{"type":"file_search"}]
+                                                   }])
+    
+    if discovery_mode:
+        if len(list(messages_gpt)) < 2:
+            print("Nif-nif1")
+            user_message = f"""
+            Context:  You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+            Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
+
+            Customer\'s message: {translated_user_message}    
+            """
+        else:
+            print("Naf-naf1")
+            user_message = f"""
+            Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+
+            Customer\'s message: {translated_user_message}    
+            """
+        
+        response = client.beta.threads.messages.create(thread_id=thread_id,
+                                                   role="user",
+                                                   content=user_message,
                                                    attachments=[{
                                                        "file_id":menu_file_id,
                                                        "tools":[{"type":"file_search"}]
@@ -1302,6 +1350,8 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
             return jsonify({"response": response}), 0
         run_status = client.beta.threads.runs.retrieve(thread_id=thread_id,
                                                        run_id=run.id)
+        print(run_status.status)
+        
         if run_status.status == 'completed':
             print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
             print("--------------------------------------------------------")
@@ -1320,6 +1370,9 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
             response = 'O-oh, little issues, repeat the message now'
             return jsonify({"response": response}), 0
         elif run_status.status == "requires_action":
+            if discovery_mode:
+                print("Action interrupted because of discovery mode.")
+                continue
             print("Action in progress...")
 
             messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
@@ -1437,6 +1490,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         
                         for chat_id in all_ids_chats:
                             send_telegram_notification(chat_id)
+                        session["suggest_web3_bonus"] = True
 
                         return no_payment_order_finish_message, total_tokens_used 
                 if run_status.status == 'failed':
@@ -1727,6 +1781,28 @@ def convert_hours_to_time(hour_string):
         return f"{converted_hours}:{minutes:02d}"
     else:
         return f"{hour_string}:00"
+    
+def turn_assistant_off_low_balance():
+    for restaurant in list(collection.find()):
+        balance = restaurant.get("balance")
+        if balance < 0.50:
+           collection.update_one({"unique_azz_id": restaurant.get("unique_azz_id")}, {"$set": {"assistant_turned_on": False}})
+           to_email = restaurant.get("email")
+           subject_line = f"❌You are almost out of the funds. {restaurant.get('name')} assistant is OFF!"
+           main_body = f"""
+           <p>Alert! Your balance is lower than 0.50, therefore {restaurant.get('name')} assistant is turned off.</p>
+           <p>Simply top up the balance on the dashboard page and continue enjoying and earning with multilingual AI-assistant</p>
+           """
+
+           send_email_raw(mail, to_email, main_body, subject_line, FROM_EMAIL)
+
+
+
+
+def previous_or_first(lst, current_index):
+    # If the current index is 0, return the last element (i.e., the first element is previous)
+    # Otherwise, return the element before the current one
+    return lst[current_index - 1] if current_index > 0 else lst[-1]
 
 
 def setup_working_hours():
@@ -1751,8 +1827,9 @@ def setup_working_hours():
 
     for res_instance in list(collection.find()):
         
-        start_work = res_instance.get("start_work")
-        end_work = res_instance.get("end_work")
+        working_schedule = res_instance.get("working_schedule")
+        # start_work = res_instance.get("start_work")
+        # end_work = res_instance.get("end_work")
         timezone = res_instance.get("timezone")
         
         # Convert timezone to the correct format for pytz
@@ -1769,17 +1846,29 @@ def setup_working_hours():
         # Adjust current_day to match our list index where Sunday is 0
         # current_day = (current_day + 1) % 7
 
+        
         # Determine if the restaurant is open
-        start = start_work[current_day]
-        end = end_work[current_day]
+        current_days_hours = working_schedule[current_day]
+        
+        start = current_days_hours["start"]
+        end = current_days_hours["end"]
+        dayOff = current_days_hours["dayOff"]
 
-        previous_day_end = end_work[current_day-1]
+        previous_day_end = previous_or_first(working_schedule, current_day)["end"]
 
-        if previous_day_end > 24 and current_hour < previous_day_end-24:
+        if previous_day_end > 24 and current_hour < previous_day_end-24.1:
             isWorkingHours = current_hour < previous_day_end-24
         else:       
-            # Check if the current time falls within the working hours
-            if start <= end:
+            if dayOff:
+                isWorkingHours = False
+                collection.update_one(
+                    {"unique_azz_id": res_instance.get("unique_azz_id")},
+                    {"$set": {"isOpen": isWorkingHours}}
+                )
+                continue
+
+            # Check if the current time falls within the working hours (10 minutes earlie)
+            if start <= end-0.1:
                 # Same day operation
                 isWorkingHours = start <= current_hour < end
                 # Update the restaurant's open status in the database
@@ -1841,8 +1930,8 @@ def generate_code():
 
 
 # Function to send the confirmation email
-def send_email_raw(mail, email, main_html, subject_line, from_email):
-    msg = Message(subject_line, recipients=[email], sender=("MOM AI Restaurant",from_email))
+def send_email_raw(mail_service, to_email, main_html, subject_line, from_email):
+    msg = Message(subject_line, recipients=[to_email], sender=("MOM AI Restaurant",from_email))
     # HTML content with bold and centered confirmation code
     msg.html = f'''
     <html>
@@ -1860,7 +1949,7 @@ def send_email_raw(mail, email, main_html, subject_line, from_email):
     </body>
     </html>
     '''
-    mail.send(msg)
+    mail_service.send(msg)
 
 
 

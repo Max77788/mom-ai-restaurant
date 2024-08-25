@@ -126,17 +126,16 @@
     }
 </style>
 
-<!-- Modal HTML 
+
 <div id="web3Modal" class="modal">
     <div class="modal-content">
         <span class="close">&times;</span>
         <h2>Connect Your Web3 Wallet</h2>
-        <p>Btw, you have earned 50 MOM tokens by making this order - connect your Web3 wallet in one click and redeem your prize!</p>
-        <button class="web3-button" onclick="connectWallet()">Connect Web3 Wallet</button>
+        <p>🪙You have earned 50 MOM tokens by making this order<br>🔌Connect your Web3 wallet in one click and redeem your prize!</p>
+        <button id="walletOrGetTokensButton" class="web3-button" onclick="connectWalletAndSendTokens()">Connect Web3 Wallet &<br>Get 50 MOM tokens</button>
         <div id="response-message"></div>
     </div>
 </div>
--->
 
 <div class="success-order-message">
     <h1>✅ Your order in {{ restaurant_name }} has been successfully placed.</h1>
@@ -145,6 +144,9 @@
         {% for item in items %}
             <li>
                 <b>{{ item['name'] }}</b>: <b>{{ item['quantity'] }} serving(s)</b><br>
+                {% if item['image_url'] %}
+                <br><img src="{{ item['image_url'] }}" alt="Image of {{ item['name'] }}" width="170" height="auto">
+                {% endif %}
                 <!-- <b>{{ item['amount'] }} EUR <u>per 1 item</u></b> -->
             </li>
         {% endfor %}
@@ -168,16 +170,39 @@
     </div>
     <div id="message"></div>
     
-    <p>You can make another order by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
+    <p>You can make another order in {{ restaurant_name }} by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
+    <p style="margin-top: 8px;">To explore the family of AI-empowered restaurants click <a href="/ai-restaurants" target="_blank" style="color: darkred;">this link</a>.</p>
     
     <hr>
 
     <div id="successful-top-up" style="display: none">
-        <h2>Perfect! You have received 50 MOM Tokens</h2>
+        <h2 style="color:#4CAF50">Perfect! You have received 50 MOM Tokens</h2>
     </div>
 </div>
 
 <script>
+    // Get the modal element
+    const modal = document.getElementById("web3Modal");
+
+    const suggest_web3_bonus = "{{ suggest_web3_bonus }}" === "True"
+    
+    if (suggest_web3_bonus) modal.style.display = "block"
+
+    // Get the close button element
+    const closeButton = document.querySelector(".close");
+
+    // Function to close the modal
+    closeButton.onclick = function() {
+        modal.style.display = "none";
+    };
+
+    // Optional: Close the modal when the user clicks anywhere outside of the modal
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = "none";
+        }
+    };
+        
     document.getElementById('orderIdForm').addEventListener('submit', async function(event) {
         event.preventDefault();
         const email = document.getElementById('email').value;
@@ -212,6 +237,77 @@
             loadingGif.style.display = 'none';
         }
     });
+
+    if (localStorage.getItem('walletAddress')){
+        console.log("Entered loop")
+        document.getElementById("walletOrGetTokensButton").innerHTML = "Get 50 MOM tokens"
+    }
+
+    async function connectWalletAndSendTokens() {
+        if (typeof window.ethereum !== 'undefined') {
+        try {
+            const account = localStorage.getItem('walletAddress')
+            
+            if (!account) { 
+            
+            // Request account access if needed
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+            // Assuming the first account is the one we want
+            const account = accounts[0];
+
+            // Store the account in localStorage or session as needed
+            localStorage.setItem('walletAddress', account);
+            localStorage.setItem('hide_wallet_section', true);
+
+            // Display success message and hide the wallet button section
+            // document.getElementById('wallet-button-section').style.display = 'none';
+            document.getElementById('successful-top-up').style.display = 'block';
+
+            // Optional: Display a response message
+            document.getElementById('response-message').innerHTML = `<p style="color: #00ff00;">Wallet connected successfully! Address: ${account}</p>`;
+            }
+
+            // Data to send in the POST request
+            const data = {
+                wallet_address: account,
+                amount: 50
+            };
+
+            console.log("data we sent: ", data)
+
+            // Making a POST request
+            fetch('/mint-send-tokens', {
+                method: 'POST', // or 'PUT'
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data) // Convert data to JSON string
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json(); // Parse the JSON from the response
+            })
+            .then(data => {
+                // console.log('Success:', data);
+                location.reload()
+                // Handle the data here, for example, store it or display it in the UI
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+            });
+
+        } catch (error) {
+            console.error('User denied account access or there was an error:', error);
+            document.getElementById('response-message').innerHTML = "<p style='color: #ff0000;'>Failed to connect wallet. Please try again.</p>";
+        }
+    } else {
+        console.error('No Ethereum provider detected. Please install MetaMask.');
+        document.getElementById('response-message').innerHTML = "<p style='color: #ff0000;'>No Ethereum provider detected. Please install MetaMask.</p>";
+    }
+}
 
     /*
     let hide_wallet_section = localStorage.getItem("hide_wallet_section")

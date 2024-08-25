@@ -53,7 +53,11 @@
                     {% for i in range(7) %}
                     <tr style="border: 1px solid #ddd;">
                         <td style="border: 1px solid #ddd; padding: 12px;">{{ days[i] }}</td>
+                        {% if start_working_hours[i] != "777:00" %}
                         <td style="border: 1px solid #ddd; padding: 12px;">{{ start_working_hours[i] }} - {{ end_working_hours[i] }}</td>
+                        {% else %}
+                        <td style="border: 1px solid #ddd; padding: 12px;"><b>DAY OFF</b></td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </table>
@@ -62,8 +66,7 @@
             <!-- Reviews Section -->
             <div class="reviews">
                 <h2>Submit a Review</h2>
-                <h4>Rewards Soon...</h4>
-                <!--
+                
                 {% if there_are_reviews %}
                     <p style="color: #808080"><i>(and get 50 MOM tokens easily after this 15-seconds web3 wallet connection)</i></p>
                 {% else %}
@@ -71,10 +74,10 @@
                 {% endif %}
     
                 <div style="text-align: center; margin-bottom: 20px;">
-                    <button id="connectWalletButton" style="padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px;">Connect Web3 Wallet</button>
+                    <button id="connectWalletButton" style="padding: 10px 20px; background-color: #000; color: white; border: none; border-radius: 5px;">Connect Web3 Wallet</button>
                     <p id="walletAddress" style="margin-top: 10px; color: #2c3e50;"></p>
                 </div>
-                -->
+
                 <form id="review-form">
                     <label for="order-id">Order ID:</label>
                     <input placeholder="Provide the ID of your order in this restaurant" type="text" id="order-id" name="order_id" required><br><br>
@@ -167,7 +170,7 @@
                     .then(data => {
                         const responseMessageDiv = document.getElementById('response-message');
                         if (data.success) {
-                            responseMessageDiv.innerHTML = `<p style="color: green;">${data.message}</p>`;
+                            responseMessageDiv.innerHTML = data.message;
                         } else {
                             responseMessageDiv.innerHTML = `<p style="color: red;">${data.message}</p>`;
                         }
@@ -179,7 +182,7 @@
                     });
                 }
                 
-                /*
+                
                 // Web3 Wallet Connection
                 async function connectWallet() {
                     if (window.ethereum) {
@@ -211,7 +214,7 @@
                         modal.style.display = "none";
                     }
                 }
-                */
+                
                 </script>
                 
                 <style>
@@ -377,12 +380,29 @@
 
             <hr>
 
-            <div class="menu">
-                <h2>Menu</h2>
-                <div class="menu-content table-responsive" id="menu-content">
-                    {{ html_menu|safe or "Menu is expected soon" }}
+            <div class="mt-4">
+                <div class="menu-content table-responsive">
+                    <table id="menuTable" border="1" class="dataframe table table-striped">
+                        <thead>
+                          <tr style="text-align: right;">
+                            <th>Item Name</th>
+                            <th>Item Description</th>
+                            <th>Item Price (EUR)</th>
+                            <th>Image</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in html_menu_tuples %}
+                            <tr>
+                              <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
+                              <td contenteditable="false" data-column="Item Description">{{ item["Item Description"] }}</td>
+                              <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
+                              <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                      </table>
                 </div>
-                <button id="show-more-button" class="ai-button" style="display: none;">Show More</button>
             </div>
         </div>
     </div>

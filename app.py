@@ -28,7 +28,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
+from functions_to_use import app, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -64,7 +64,7 @@ scheduler_logger.setLevel(logging.DEBUG)
 scheduler_logger.addHandler(logging.StreamHandler())  # Also log to the console
 """
 
-app = Flask(__name__)
+
 
 app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -107,14 +107,7 @@ class Config:
 app.config.from_object(Config)
 
 
-# Initialize Flask-Mail
-app.config['MAIL_SERVER'] = 'mail.privateemail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'contact@mom-ai-agency.site'
-app.config['MAIL_PASSWORD'] = os.environ.get("PRIVATEEMAIL_PASSWORD")
-FROM_EMAIL = app.config['MAIL_USERNAME']
-mail = Mail(app)
+
 
 
 
@@ -235,6 +228,7 @@ def schedule_tasks():
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
     scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=20)
+    scheduler.add_job(func=turn_assistant_off_low_balance, trigger="interval", seconds=15)
     # Run once per day at 12:00 PM
     scheduler.add_job(func=charge_for_ai_phone_number, trigger="cron", hour=12, minute=0)
     scheduler.start()
@@ -1386,6 +1380,7 @@ def dashboard_display(show_popup=None):
         awaiting_withdrawal = restaurant_instance.get("await_withdrawal")
         res_currency = restaurant_instance.get("res_currency")
         html_menu = restaurant_instance.get("html_menu_tuples")
+        discovery_mode = restaurant_instance.get("discovery_mode")
         assistant_spent = restaurant_instance.get("assistant_fund")
         default_menu = False
         menu_vector_id = restaurant_instance.get("menu_vector_id")
@@ -1454,7 +1449,8 @@ def dashboard_display(show_popup=None):
                            PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID,
                            default_menu=default_menu,
                            referral_id=referral_id,
-                           num_of_referees=num_of_referees)
+                           num_of_referees=num_of_referees,
+                           discovery_mode=discovery_mode)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -1549,6 +1545,19 @@ def toggle_add_fee_payment():
     # Respond with the new state
     return jsonify({'add_fee_payment': add_fee_payment})
 
+@app.route('/discovery_mode_toggler', methods=['POST'])
+def toggle_discovery_mode():
+    data = request.get_json()
+    discovery_mode = data.get('discovery_mode')
+    print(f"discovery_mode: {discovery_mode}")
+
+    unique_azz_id = session.get("unique_azz_id")
+    print(unique_azz_id)
+    collection.update_one({"unique_azz_id":unique_azz_id}, 
+                          {"$set":{"discovery_mode": discovery_mode}})
+
+    # Respond with the new state
+    return jsonify({'discovery_mode': discovery_mode})
 
 '''
 @app.route('/payment_gateway_toggler', methods=['POST'])
@@ -1567,9 +1576,11 @@ def toggle_payment_gateway():
     
 @app.route('/profile_update/<attribute>', methods=['GET','POST'])
 def update_profile(attribute, tg_setup=None):
+    print("Tg setup on start: ", tg_setup )
     
     if attribute == "notif_destin":
         if tg_setup is None:
+            print("Request args get tg setup: ", request.args.get("tg_setup"))
             tg_setup = request.args.get("tg_setup") == "True"
     if tg_setup:
         session["access_for_setup_public_profile_page"] = False
@@ -1593,6 +1604,10 @@ def update_profile(attribute, tg_setup=None):
         elif attribute == 'notif_destin' and new_value:
             # Step 1: Remove extra spaces and split by comma
             str_list = new_value.split(',')
+
+            print("entered tg route")
+
+            print("Tg setup is ", tg_setup)
 
             # Step 2: Convert each element to an integer, strip any leading/trailing whitespace
             id_list = [num.strip() for num in str_list]
@@ -1635,8 +1650,8 @@ def update_profile(attribute, tg_setup=None):
 
 @app.route('/setup_public_profile', methods=['GET', 'POST'])
 def setup_public_profile():
-    if not session.get("access_for_setup_public_profile_page"):
-        abort(403)  # Forbidden
+    #if not session.get("access_for_setup_public_profile_page"):
+        #abort(403)  # Forbidden
     
     form = ProfileForm()
     unique_azz_id = session.get("unique_azz_id")
@@ -1682,8 +1697,10 @@ def set_working_hours():
     current_uni_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({'unique_azz_id': current_uni_azz_id})
 
-    start_hours = restaurant["start_work"]
-    end_hours = restaurant["end_work"]
+    start_hours = [day["start"] for day in restaurant["working_schedule"]]
+    end_hours = [day["end"] for day in restaurant["working_schedule"]]
+    dayOffzz = [day["dayOff"] for day in restaurant["working_schedule"]]
+    print(dayOffzz)
 
     current_rest_timezone = restaurant.get('timezone', None)
     print(f"Current restaurant timezone: ", current_rest_timezone)
@@ -1697,7 +1714,8 @@ def set_working_hours():
                            end_hours=end_hours, 
                            restaurant=restaurant, 
                            current_rest_timezone=current_rest_timezone,
-                           start_setup=start_setup)
+                           start_setup=start_setup,
+                           day_Offzz=dayOffzz)
 
 
 @app.route('/submit_hours', methods=['POST'])
@@ -1710,14 +1728,21 @@ def submit_hours():
     current_uni_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({'unique_azz_id': current_uni_azz_id})
     
-    start_values = []
-    end_values = []
+    working_hours = list(working_hours.values())
+    """
+    for day, times, dayOff in working_hours.items():
+        if not times['start'] is None and not times['end'] is None:
+            start_values.append(times['start'])
+            end_values.append(times['end'])
+            day_off_bool.append(times['dayOff'])
+        else: 
+            start_values.append(777)
+            end_values.append(777)
+    print("Lists we passed: ", start_values, end_values)
+    """
     
-    for day, times in working_hours.items():
-        start_values.append(times['start'])
-        end_values.append(times['end'])
-    result = collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set':{"start_work":start_values, "end_work":end_values, "timezone":timezone}})
-    print("\nUpdated successfully\n")
+    result = collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set':{"working_schedule": working_hours, "timezone":timezone}})
+    # print("\nUpdated successfully\n")
     flash("The working hours were updated successfully")
 
     return jsonify({"status": "success", "data": working_hours}), 200
@@ -1796,9 +1821,9 @@ def submit_review():
     restaurant_reviews.insert_one(review_to_pass)
 
     if tx_hash:
-        return jsonify({"message":f"The review has been successfully placed and token added to your balance.\nCheck the transaction on https://amoy.polygonscan.com/tx/{tx_hash}", "tx_hash":tx_hash, "success":True})
+        return jsonify({"message":f"<p style='color: green;'>The review has been successfully placed and {amount_to_send} MOM tokens added to your balance.\nTo check the transaction <a href='https://amoy.polygonscan.com/tx/{tx_hash}' target='_blank'>by clicking here.</a></p>", "tx_hash":tx_hash, "success":True})
     else:
-        return jsonify({"message":f"The review has been successfully placed and token added to your balance.", "tx_hash":tx_hash, "success":True})
+        return jsonify({"message":f"<p>The review has been successfully placed and {amount_to_send} MOM tokens added to your balance.</p>", "tx_hash":tx_hash, "success":True})
 
 @app.route('/settings', methods=['POST', 'GET'])
 def settings_display():
@@ -2116,7 +2141,7 @@ def mint_tokens():
 
     hide_wallet_button = True
 
-    
+    flash(f"Congratulations! You have successfully received 50 MOM tokens!\nTransaction hash: {tx_hash}", "success")
 
     return jsonify({
         'ok': True,
@@ -2162,7 +2187,11 @@ def payment_buffer(unique_azz_id, id):
     else:
         items = item_db.get("data")
     print(f"Items on payment buffer: {items}")
-    CURRENCY = restaurant.get("res_currency", "USD")
+    CURRENCY = restaurant.get("res_currency", "EUR")
+
+    restaurant_menu = restaurant.get("html_menu_tuples")
+
+    # print("Restaurant html menu tuples: \n\n\n", restaurant.get("html_menu_tuples"), "\n\n\n")
 
     #checkout_link = session.get("paypal_link")
     if restaurant['addFees']:
@@ -2187,6 +2216,29 @@ def payment_buffer(unique_azz_id, id):
 
     session["items_ordered"] = items
     session['order_id'] = id
+
+    ordered_items_names = [item["name"] for item in items]
+
+    image_urls = []
+
+    for item_ordered_name in ordered_items_names:
+        for item_menu in restaurant_menu:
+            if sorted(item_menu["Item Name"].lower().split()) == sorted(item_ordered_name.lower().split()):
+                print(sorted(item_menu["Item Name"].lower().split()))
+                print(sorted(item_ordered_name.lower().split()))
+                image_urls.append(item_menu["Link to Image"])
+                found_match = True
+                break
+        if not found_match:
+            image_urls.append(None)
+
+
+    for index, image_url in enumerate(image_urls):
+        items[index]['image_url'] = image_url
+
+    print("Modified Items: ", items)
+        
+
     
     return render_template("payment_routes/payment_buffer.html", total_to_pay_display=total_to_pay_display, items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, addFees=addFees, fees_amount=fees_amount, title="Payment Buffer")
 
@@ -2652,6 +2704,7 @@ def assistant_order_chat(unique_azz_id):
     menu_vector_id = res_instance.get("menu_vector_id")
     res_currency = res_instance.get("res_currency")
     default_menu = False
+    discovery_mode = res_instance.get("discovery_mode")
     menu_vector_id = res_instance.get("menu_vector_id")
     if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
         default_menu = True
@@ -2688,6 +2741,8 @@ def assistant_order_chat(unique_azz_id):
     session["menu_vector_id"] = menu_vector_id
     session["res_currency"] = res_currency
     session["restaurant_name"] = restaurant_name
+
+    print("Discovery mode we passed: ", discovery_mode)
     # Use the restaurant_name from the URL and the full assistant_id from the session
     return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, 
                            lang=lang, 
@@ -2699,7 +2754,8 @@ def assistant_order_chat(unique_azz_id):
                            restaurant=res_instance, 
                            iframe=iframe, 
                            isWorkingHours=isWorkingHours,
-                           default_menu=default_menu)
+                           default_menu=default_menu,
+                           discovery_mode=discovery_mode)
 
 
 
@@ -2821,6 +2877,7 @@ def generate_response(unique_azz_id):
 
     restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    discovery_mode = restaurant_instance.get('discovery_mode')
     
     # Process text input
     if request.form:
@@ -2876,7 +2933,7 @@ def generate_response(unique_azz_id):
     #print(f"\n\nList of all items formed: {list_of_all_items}\n\n")  # Debugging line
 
     print("Thats what we sent to retrieve the gpts response, ", user_input)
-    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id)
+    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id, discovery_mode=discovery_mode)
 
     response_llm = replace_markdown_images(response_llm)
     
@@ -3002,8 +3059,11 @@ def quick_registration():
     return jsonify({"success":True, "message":"Restaurant Added Successfully"})
 
 ################## Payment routes/Order Posting ###################
+
 @app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])
 def no_payment_order_placed(unique_azz_id):
+    suggest_web3_bonus = session.get("suggest_web3_bonus")
+    
     if not session.get('access_granted_no_payment_order'):
         abort(403)  # Forbidden
     # Find the instance in MongoDB
@@ -3017,10 +3077,21 @@ def no_payment_order_placed(unique_azz_id):
     restaurant_name = current_restaurant_instance.get("name")
     MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
     
+    if suggest_web3_bonus:
+        session.pop("suggest_web3_bonus")
 
+    # suggest_web3_bonus = True
+    
     # Get current UTC time and format it as dd.mm hh:mm
     # timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
-    return render_template("payment_routes/no_payment_order_finish.html", title="Ready Order", res_unique_azz_id=unique_azz_id, order_id=order_id, total_price=total_price, restaurant_name=restaurant_name.replace('_', ' '), items=items_ordered)
+    return render_template("payment_routes/no_payment_order_finish.html", 
+                           title="Ready Order", 
+                           res_unique_azz_id=unique_azz_id, 
+                           order_id=order_id, 
+                           total_price=total_price, 
+                           restaurant_name=restaurant_name.replace('_', ' '), 
+                           items=items_ordered,
+                           suggest_web3_bonus=suggest_web3_bonus)
 
 
 
@@ -3085,12 +3156,6 @@ def success_payment_backend(unique_azz_id):
 
     db_order_dashboard[order_dashboard_id].insert_one(order_to_pass)
 
-    all_ids_for_acc = current_restaurant_instance.get('notif_destin')
-
-    if all_ids_for_acc is not None:
-        for chatId in all_ids_for_acc:
-            send_telegram_notification(chat_id=chatId, message=MEW_ORDER_MESSAGE)
-
 
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
@@ -3141,10 +3206,30 @@ def success_payment_display(unique_azz_id, id):
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     restaurant_name = current_restaurant_instance.get("name")
     result = db_items_cache[unique_azz_id].delete_one({"id":id})
+    restaurant_menu = current_restaurant_instance.get("html_menu_tuples")
 
     order = db_order_dashboard[unique_azz_id].find_one({"orderID": id})
 
     items = order.get("items")
+
+    ordered_items_names = [item["name"] for item in items]
+
+    image_urls = []
+
+    for item_ordered_name in ordered_items_names:
+        for item_menu in restaurant_menu:
+            if sorted(item_menu["Item Name"].lower().split()) == sorted(item_ordered_name.lower().split()):
+                print(sorted(item_menu["Item Name"].lower().split()))
+                print(sorted(item_ordered_name.lower().split()))
+                image_urls.append(item_menu["Link to Image"])
+                found_match = True
+                break
+        if not found_match:
+            image_urls.append(None)
+
+
+    for index, image_url in enumerate(image_urls):
+        items[index]['image_url'] = image_url
 
     total_paid = session.get('total')
 
@@ -3377,12 +3462,17 @@ def show_restaurant_profile_public(unique_azz_id):
 
     reviews = list(reviews)
 
-    print("Reviews passed: ", reviews)
+    html_menu_tuples = restaurant.get("html_menu_tuples")
+
+    print("Menu tuples we passed: ", html_menu_tuples)
 
     there_are_reviews = True if len(reviews)>=1 else False
     
-    start_work = restaurant.get("start_work")
-    end_work = restaurant.get("end_work")
+    working_schedule = restaurant.get("working_schedule")
+    
+    start_work = [day['start'] if not day['dayOff'] else 777 for day in working_schedule]
+    end_work = [day['end'] if not day['dayOff'] else 777 for day in working_schedule]
+
     timezone = restaurant.get("timezone")
     if timezone.startswith("Etc/GMT-"):
         timezoneG = timezone.replace("-", "+", 1)
@@ -3399,9 +3489,12 @@ def show_restaurant_profile_public(unique_azz_id):
     # Adjust current_day to match our list index where Sunday is 0
     # current_day = (current_day + 1) % 7
 
-    start_working_hours = [convert_hours_to_time(hour) for hour in restaurant["start_work"]]
-    end_working_hours = [convert_hours_to_time(hour) for hour in restaurant["end_work"]]
+    start_working_hours = [convert_hours_to_time(hour) for hour in start_work]
+    end_working_hours = [convert_hours_to_time(hour) for hour in end_work]
 
+    print(start_work)
+    print(end_work)
+    
     # Check if the current time falls within the working hours
     isWorkingHours = start_work[current_day] <= current_hour < end_work[current_day]
 
@@ -3415,7 +3508,8 @@ def show_restaurant_profile_public(unique_azz_id):
                            unique_azz_id=unique_azz_id,
                            html_menu=html_menu,
                            reviews=reviews,
-                           there_are_reviews=there_are_reviews)
+                           there_are_reviews=there_are_reviews,
+                           html_menu_tuples=html_menu_tuples)
 
     
 if __name__ == '__main__':

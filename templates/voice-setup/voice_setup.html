@@ -328,7 +328,7 @@
 <!-- Modal container -->
 <div id="paypal-modal" class="modal">
     <div class="modal-content">
-        <span class="close">&times;</span>
+        <span id="closeModal" class="close">&times;</span>
         <div>
             <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
             <input type="number" id="top-up-amount" value="25" min="5" step="1" style="width: 200px;">
@@ -339,6 +339,22 @@
 </div>
 
 <script>
+    // Get the close button element
+    const closeButton = document.getElementById("closeModal");
+
+    // Function to close the modal
+    closeButton.onclick = function() {
+        document.getElementById("paypal-modal").style.display = "none";
+    };
+
+    // Optional: Close the modal when the user clicks anywhere outside of the modal
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            document.getElementById("paypal-modal").style.display = "none";
+        }
+    };
+
+
     document.getElementById('activate-paypal-button').addEventListener('click', function() {
         console.log("Pressed the button")
         

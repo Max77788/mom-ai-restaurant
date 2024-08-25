@@ -32,8 +32,6 @@
     </div>
 </div>
 
-
-
 <!-- Add the CSS styles for the popup -->
 <style>
 .popup {
@@ -288,7 +286,7 @@ function downloadImage() {
                 {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
                 <span id="assistantStatus">
                     {% if not default_menu %}
-                        {% if assistant_turned_on %}
+                        {% if assistant_turned_on and current_balance|float >= 0.5 %}
                         Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
                         {% else %}
                         Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
@@ -302,7 +300,8 @@ function downloadImage() {
                 </span>
                 {% if not default_menu %}
                 <label class="switch">
-                    <input type="checkbox" id="assistantToggle" {% if assistant_turned_on %}checked{% endif %}>
+                    <input type="checkbox" id="assistantToggle" {% if assistant_turned_on and current_balance|float >= 0.5 %}checked{% endif %}
+                    {% if current_balance|float < 0.5 %}disabled{% endif %}>
                     <span class="slider round"></span>
                 </label>
                 {% endif %}
@@ -322,6 +321,21 @@ function downloadImage() {
                 <hr>
             {% endif %}
             -->
+
+            <div class="switch-container">
+                <span id="discoveryModeStatus">
+                    {% if restaurant.profile_visible %}
+                    Discovery Mode is ON<br><p style="font-size:0.7em"><i>*Assistant DOES NOT Take orders now<br>your assistant only chat with a customer</i></p>
+                    {% else %}
+                    Discovery Mode is OFF<br><p style="font-size:0.7em"><i>*Assistant takes orders now<br>and notifies you upon registration</i></p>
+                    {% endif %}
+                </span>
+                <label class="switch">
+                    <input type="checkbox" id="discoveryModeToggle" {% if restaurant.discovery_mode %}checked{% endif %}>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <hr>
             
             <div class="switch-container">
                 <span id="profileVisibilityStatus">
@@ -338,8 +352,14 @@ function downloadImage() {
             </div>
             
             <hr>
-        
-            <div class="switch-container">
+          
+        {% if discovery_mode %}
+        <div style="display:none" id="paymentAndFeeDiv">
+        {% else %}
+        <div style="display:block" id="paymentAndFeeDiv">
+        {% endif %}
+           
+            <div id="payment-gateway-toggler" class="switch-container">
                 <span id="paymentGatewayStatus">
                     {% if gateway_is_on %}
                     Payment Gateway is ON<br><p style="font-size:0.7em"><i>*currently the orders are being registered when the customer paid</i></p>
@@ -356,7 +376,7 @@ function downloadImage() {
             </div>
             <hr>
             {% if gateway_is_on %}
-            <div id="addFeesSection" class="switch-container">
+            <div id="add-fees-toggler" class="switch-container">
                 {% else %}
                 <div id="addFeesSection" class="switch-container" style="display: none;">
                     {% endif %}
@@ -537,7 +557,7 @@ function downloadImage() {
     <!-- Modal container -->
     <div id="paypal-modal" class="modal">
         <div class="modal-content">
-            <span class="close">&times;</span>
+            <span id="closeModal" class="close">&times;</span>
             <div>
                 <label for="top-up-amount"><strong>Top Up Amount (in Euros):</strong></label>
                 <input type="number" id="top-up-amount" value="50" min="10" step="1" style="width: 200px;">
@@ -547,6 +567,14 @@ function downloadImage() {
     </div>
 
     <script>
+        // Get the close button element
+        const closeButton = document.getElementById("closeModal");
+
+        // Function to close the modal
+        closeButton.onclick = function() {
+            document.getElementById("paypal-modal").style.display = "none";
+        };
+                
         // Other currencies display
         function toggleVisibilityAndConvert(id, baseCurrency) {
             const element = document.getElementById(id);
@@ -734,6 +762,43 @@ function downloadImage() {
                     xhr.send(JSON.stringify({ add_fee_payment: addFeeToPayment }));
                 });
             }
+
+
+            const discoveryModeToggle = document.getElementById('discoveryModeToggle');
+            const discoveryModeStatus = document.getElementById('discoveryModeStatus');
+
+            if (discoveryModeToggle) {
+                discoveryModeToggle.addEventListener('change', function() {
+                    var discovery_mode = this.checked;
+
+                    if (discovery_mode) {
+                        discoveryModeStatus.innerHTML = 'Discovery Mode is ON<br><p style="font-size:0.7em"><i>*Assistant DOES NOT Take orders now<br>your assistant only chat with a customer</i></p>'
+                        document.getElementById("paymentAndFeeDiv").style.display = 'none';
+
+                    } else {
+                        discoveryModeStatus.innerHTML = 'Discovery Mode is OFF<br><p style="font-size:0.7em"><i>*Assistant takes orders now<br>and notifies you upon registration</i></p>';
+                        document.getElementById("paymentAndFeeDiv").style.display = 'block';
+                    }
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/discovery_mode_toggler', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log('Discovery mode state updated successfully.');
+                            } else {
+                                console.error('Error updating discovery mode state.');
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ discovery_mode: discovery_mode }));
+                    console.log("Sent request")
+                });
+            }
+
+
+
             setTimeout(function() {
                 var flashMessage = document.querySelector('.flash-message');
                 if (flashMessage) {

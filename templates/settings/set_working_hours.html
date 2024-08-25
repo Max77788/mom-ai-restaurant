@@ -4,51 +4,32 @@
 
 {% if start_setup %}
 <div style="display: flex; flex-direction: column; align-items: center;">
-    <h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Let's quickly build your account</h1>
-    <p>After this 10-minutes straight forward setup you will receive:</p>
+    <h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Quickly build your account</h1>
+    <p>After this 10-minutes straight forward setup you will have:</p>
 <ul>
+    <li>🤖 AI-employee which works on all frontiers of your business: online, in-store and over the phone</li>
+    <li>🔔 Working notification system to always be aware of new orders
     <li>💸 3 Euros to start generating orders on autopilot</li>
     <li>🌍 Public MOM AI Restaurant Network profile so your customer reach is unlimited</li>
-    <li>🔔 Working notification system to always be aware of new orders
-    <li>🤖 AI-employee which works on all frontiers of your business: online, in-store and over the phone</li>
     <li>🏆 Title of being "Revolutionary AI-empowered restaurant"</li>
 </ul>
 
-<p>Let's start with the schedule:</p>
+<h3>Let's start with the schedule:</h3>
+
+
 
 </div>
+
+<hr>
 {% endif %}
 
-<h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Set Working Hours for {{ restaurant['name'] }} AI-Assistant</h1>
+<h2 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px; margin-bottom: 5px;">Set Working Hours for {{ restaurant['name'] }} AI-Assistant</h2>
 <form id="scheduleForm" style="max-width: 600px; margin: auto; background: #ecf0f1; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div style="margin-bottom: 20px;">
         <label for="timezone" style="font-family: 'Arial', sans-serif; color: #34495e; font-size: 16px;">Select Timezone:</label>
         <select id="timezone" class="timezone" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; margin-top: 5px;">
             <option value="{{ current_rest_timezone }}">{{ current_rest_timezone.replace("Etc/", "") }} - current option</option>
-            <option value="Etc/GMT+0">GMT+0</option>
-            <option value="Etc/GMT+1">GMT+1</option>
-            <option value="Etc/GMT+2">GMT+2</option>
-            <option value="Etc/GMT+3">GMT+3</option>
-            <option value="Etc/GMT+4">GMT+4</option>
-            <option value="Etc/GMT+5">GMT+5</option>
-            <option value="Etc/GMT+6">GMT+6</option>
-            <option value="Etc/GMT+7">GMT+7</option>
-            <option value="Etc/GMT+8">GMT+8</option>
-            <option value="Etc/GMT+9">GMT+9</option>
-            <option value="Etc/GMT+10">GMT+10</option>
-            <option value="Etc/GMT+11">GMT+11</option>
-            <option value="Etc/GMT-1">GMT-1</option>
-            <option value="Etc/GMT-2">GMT-2</option>
-            <option value="Etc/GMT-3">GMT-3</option>
-            <option value="Etc/GMT-4">GMT-4</option>
-            <option value="Etc/GMT-5">GMT-5</option>
-            <option value="Etc/GMT-6">GMT-6</option>
-            <option value="Etc/GMT-7">GMT-7</option>
-            <option value="Etc/GMT-8">GMT-8</option>
-            <option value="Etc/GMT-9">GMT-9</option>
-            <option value="Etc/GMT-10">GMT-10</option>
-            <option value="Etc/GMT-11">GMT-11</option>
-            <!-- add other timezones as needed -->
+            <!-- other options -->
         </select>
     </div>
     <div style="margin-bottom: 20px;">
@@ -59,6 +40,7 @@
     </div>
     <button type="submit" style="padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer;">Submit</button>
 </form>
+
 <style>
     .day-schedule {
         margin-bottom: 20px;
@@ -82,17 +64,22 @@
         border-radius: 5px;
         border: 1px solid #bdc3c7;
     }
-    select {
-        margin-right: 10px;
+    .day-off-checkbox {
+        margin-left: 10px;
+        cursor: pointer;
     }
     button:hover {
         background-color: #2980b9;
     }
 </style>
+
 <script>
     document.addEventListener("DOMContentLoaded", () => {
         const startHours = {{ start_hours|tojson }};
         const endHours = {{ end_hours|tojson }};
+        const dayOffs = {{ day_Offzz|tojson }};
+        console.log(dayOffs)
+    
         const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
         const scheduleInputs = document.getElementById("scheduleInputs");
 
@@ -109,22 +96,48 @@
             dayDiv.classList.add("day-schedule");
             dayDiv.innerHTML = `
                 <h2>${day}</h2>
+                <label for="day-off-${index}">Day Off:</label>
+                <input type="checkbox" id="day-off-${index}" class="day-off-checkbox">
                 <label for="start-${index}">Start:</label>
                 <select id="start-${index}" class="start-time">${generateTimeOptions(startHours[index])}</select>
                 <label for="end-${index}">End:</label>
                 <select id="end-${index}" class="end-time">${generateTimeOptions(endHours[index])}</select>
+                ${index < daysOfWeek.length - 1 ? '<hr><br><hr>' : ''}
             `;
             scheduleInputs.appendChild(dayDiv);
+
+            const dayOffCheckbox = dayDiv.querySelector(`#day-off-${index}`);
+            
+            const startTimeSelect = dayDiv.querySelector(`#start-${index}`);
+            const endTimeSelect = dayDiv.querySelector(`#end-${index}`);
+
+            console.log(`day off index = ${dayOffs[index]}`)
+            if (dayOffs[index]) {
+                dayOffCheckbox.checked = true; 
+                startTimeSelect.disabled = true;
+                endTimeSelect.disabled = true;
+            }
+            
+            
+
+            dayOffCheckbox.addEventListener("change", () => {
+                const isDayOff = dayOffCheckbox.checked;
+                startTimeSelect.disabled = isDayOff;
+                endTimeSelect.disabled = isDayOff;
+            });
         });
 
         document.getElementById("scheduleForm").addEventListener("submit", (e) => {
             e.preventDefault();
             const newSchedule = {};
             document.querySelectorAll(".day-schedule").forEach((dayDiv, index) => {
+                const isDayOff = dayDiv.querySelector(".day-off-checkbox").checked;
                 const startTime = parseFloat(dayDiv.querySelector(".start-time").value);
                 const endTime = parseFloat(dayDiv.querySelector(".end-time").value);
-                newSchedule[index] = { start: startTime, end: endTime };
+                newSchedule[index] = { start: startTime, end: endTime, dayOff: isDayOff };
             });
+
+            console.log(`Schedule we pass ${newSchedule}`)
 
             const timezone = document.getElementById("timezone").value;
 
@@ -138,15 +151,11 @@
             .then(response => response.json())
             .then(data => {
                 console.log(data);
-                
-                const start_setup = "{{ start_setup }}" === "True"
-
-                console.log("Start setup = ", start_setup)
-                
+                const start_setup = "{{ start_setup }}" === "True";
                 if (start_setup) {
-                 window.location.href = "/setup_public_profile"
+                    window.location.href = "/setup_public_profile";
                 } else {
-                 window.location.href = "/dashboard";
+                    window.location.href = "/set-working-hours";
                 }
             })
             .catch(error => console.error('Error:', error));

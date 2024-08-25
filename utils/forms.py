@@ -38,7 +38,13 @@ class RestaurantForm(FlaskForm):
     submit = SubmitField('Register')
 
 def validate_seven_digit_number(form, field):
-    if len(str(field.data)) < 7:
+    # Remove commas from the input
+    data_without_commas = str(field.data).replace(',', '').replace(' ', '')
+
+    print(data_without_commas)
+    
+    # Check if the remaining data is numeric and at least 7 digits long
+    if not data_without_commas.isdigit() or len(data_without_commas) < 7:
         raise ValidationError('The number must be at least 7 digits long.')
 
 def validate_paypal_string(form, field):
@@ -58,7 +64,7 @@ class RestaurantFormUpdate(FlaskForm):
     name = StringField('Restaurant Name', validators=[Optional()])
     website_url = StringField('Restaurant Website', validators=[Optional(),
         URL()])
-    notif_destin = IntegerField('MOM AI Bot ID', validators=[Optional(), validate_seven_digit_number])
+    notif_destin = StringField('MOM AI Bot ID', validators=[Optional(), validate_seven_digit_number])
     image = FileField('Upload Image', validators=[
         Optional(), FileAllowed(['jpg', 'png'], 'Images only!')  # Restricting the file types to images only
     ])

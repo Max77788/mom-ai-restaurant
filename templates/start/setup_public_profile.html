@@ -1,39 +1,87 @@
 {% extends 'layout_no_land.html' %}
 
 {% block content %}
-<div style="display: flex; flex-direction: column; align-items: center;">
-    <h2>Setup your restaurant global profile</h2>
-    <h4>So people from anywhere in the world🌍 can see YOUR restaurant👀</h4>
+<div style="display: flex; justify-content: space-between; align-items: flex-start;">
+    <!-- Left Column: Form -->
+    <div style="flex: 1; margin-right: 20px;">
+        <h2>Setup your restaurant global profile</h2>
+        <h4>So people from anywhere in the world🌍 can see YOUR restaurant👀</h4>
+
+        <form action="{{ url_for('setup_public_profile') }}" method="POST" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            
+            <!-- Description -->
+            <div>
+                <label for="description">Description of your restaurant (100-350 characters):</label>
+                {{ form.description(cols=50, rows=4, id='description-input') }}
+                {% if form.description.errors %}
+                    <span style="color: red;">{{ form.description.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
+            <!-- Website URL (Optional) -->
+            <div>
+                <label for="website_url">Website URL of your restaurant (optional):</label>
+                {{ form.website_url(size=50, id='website-url-input') }}
+            </div>
+
+            <!-- Logo (Optional) -->
+            <div style="margin-bottom: 5px;">
+                <label for="logo">Logo of your restaurant (optional):</label>
+                {{ form.logo(id='logo-input') }}
+                <p style="font-size: 14px;">The image should be square - for example, 1080x1080, 840x840</p>
+            </div>
+
+            <div style="margin-top: 10px;">
+                <button type="submit">Setup Public Profile</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right Column: Dynamic Profile Preview -->
+    <div style="flex: 1; border-left: 1px solid #ccc; padding-left: 20px;">
+        <h3>Profile Preview</h3>
+        <div id="profile-preview" style="text-align: center;">
+            <div id="profile-logo" style="margin-bottom: 15px;">
+                <img id="logo-preview" src="https://i.ibb.co/fD13tSj/Black-Bold-Initial-AI-Business-Logo.png" alt="Restaurant Logo" style="max-width: 150px; max-height: 150px;">
+            </div>
+            <div id="profile-description" style="margin-bottom: 15px;">
+                <p id="description-preview">This is where your restaurant description will appear. Make it appealing to attract customers!</p>
+            </div>
+            <div id="profile-website-url">
+                <a id="website-url-preview" href="#" target="_blank">www.your-restaurant.com</a>
+            </div>
+        </div>
+    </div>
 </div>
 
-<form action="{{ url_for('setup_public_profile') }}" method="POST" enctype="multipart/form-data">
-    {{ form.hidden_tag() }}
-    
-    <!-- Website URL (Optional) -->
-    <div>
-        <label for="website_url">Website URL of your restaurant (optional):</label>
-        {{ form.website_url(size=50) }}
-    </div>
+<!-- JavaScript for live updating the preview -->
+<script>
+    // Description Update
+    document.getElementById('description-input').oninput = function() {
+        document.getElementById('description-preview').textContent = this.value || 'This is where your restaurant description will appear. Make it appealing to attract customers!';
+    };
 
-    <!-- Logo (Optional) -->
-    <div>
-        <label for="logo">Logo of your restaurant (optional):</label>
-        {{ form.logo() }}
-        <p style="font-size: 14px;">The image should be square - for example, 1080x1080, 840x840</p>
-    </div>
+    // Website URL Update
+    document.getElementById('website-url-input').oninput = function() {
+        const previewElement = document.getElementById('website-url-preview');
+        previewElement.textContent = this.value || 'www.your-restaurant.com';
+        previewElement.href = this.value || '#';
+    };
 
-    <!-- Description -->
-    <div>
-        <label for="description">Description of your restaurant (100-350 characters):</label>
-        {{ form.description(cols=50, rows=4) }}
-        {% if form.description.errors %}
-            <span style="color: red;">{{ form.description.errors[0] }}</span>
-        {% endif %}
-    </div>
-
-    <div style="margin-top: 10px;">
-        <button type="submit">Setup Public Profile</button>
-    </div>
-</form>
-
+    // Logo Update
+    document.getElementById('logo-input').onchange = function(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const logoPreview = document.getElementById('logo-preview');
+            logoPreview.src = e.target.result;
+        };
+        if (file) {
+            reader.readAsDataURL(file);
+        } else {
+            document.getElementById('logo-preview').src = 'https://i.ibb.co/fD13tSj/Black-Bold-Initial-AI-Business-Logo.png';
+        }
+    };
+</script>
 {% endblock %}
