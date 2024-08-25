@@ -1848,7 +1848,10 @@ def setup_working_hours():
 
         
         # Determine if the restaurant is open
-        current_days_hours = working_schedule[current_day]
+        current_days_hours = working_schedule.get("current_day", None)
+
+        if not current_days_hours:
+            continue
         
         start = current_days_hours["start"]
         end = current_days_hours["end"]
