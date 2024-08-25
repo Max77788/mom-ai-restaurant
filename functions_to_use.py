@@ -1828,6 +1828,10 @@ def setup_working_hours():
     for res_instance in list(collection.find()):
         
         working_schedule = res_instance.get("working_schedule")
+
+        if not working_schedule:
+            continue 
+
         # start_work = res_instance.get("start_work")
         # end_work = res_instance.get("end_work")
         timezone = res_instance.get("timezone")
@@ -1849,9 +1853,6 @@ def setup_working_hours():
         
         # Determine if the restaurant is open
         current_days_hours = working_schedule.get("current_day", None)
-
-        if not current_days_hours:
-            continue
         
         start = current_days_hours["start"]
         end = current_days_hours["end"]
