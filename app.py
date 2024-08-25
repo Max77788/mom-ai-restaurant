@@ -746,8 +746,9 @@ def register():
         for field, errors in form.errors.items():
             for error in errors[:1]:
                 print(f"Error in field '{field}': {error}")
+                flash(f"Error in field '{field}': {error}", "danger")
                 if "csrf" in error.lower():
-                    flash(f"Error in field '{field}': {error} - PLEASE, RELOAD THE PAGE!", 'error')
+                    flash(f"Error in field '{field}': {error} - PLEASE, RELOAD THE PAGE!", 'danger')
         print("Form not submitted or validation failed")
     return render_template('start/register.html', form=form, title="Register", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
