@@ -1863,18 +1863,21 @@ def setup_working_hours():
 
         
         # Determine if the restaurant is open
-        current_days_hours = working_schedule.get("current_day", None)
         
-        start = current_days_hours["start"]
-        end = current_days_hours["end"]
-        dayOff = current_days_hours["dayOff"]
+        start_work = [day['start'] for day in working_schedule]
+        end_work = [day['end'] for day in working_schedule]
+        day_offs = [day['dayOff']  for day in working_schedule]
 
-        previous_day_end = previous_or_first(working_schedule, current_day)["end"]
+        today_start = start_work[current_day]
+        today_end = end_work[current_day]
+        
+        
+        previous_day_end = previous_or_first(end_work, current_day)
 
-        if previous_day_end > 24 and current_hour < previous_day_end-24.1:
+        if previous_day_end > 24 and current_hour < previous_day_end-24.15:
             isWorkingHours = current_hour < previous_day_end-24
         else:       
-            if dayOff:
+            if  day_offs[current_day]:
                 isWorkingHours = False
                 collection.update_one(
                     {"unique_azz_id": res_instance.get("unique_azz_id")},
@@ -1883,23 +1886,25 @@ def setup_working_hours():
                 continue
 
             # Check if the current time falls within the working hours (10 minutes earlie)
-            if start <= end-0.1:
+            if today_start <= today_end-0.15:
                 # Same day operation
-                isWorkingHours = start <= current_hour < end
+                isWorkingHours = today_start <= current_hour < today_end
                 # Update the restaurant's open status in the database
                 collection.update_one(
                     {"unique_azz_id": res_instance.get("unique_azz_id")},
                     {"$set": {"isOpen": isWorkingHours}}
                 )
                 #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
+            """
             else:
                 # Spans to the next day
-                isWorkingHours = current_hour >= start or current_hour < end
+                isWorkingHours = current_hour >= today_start or current_hour < today_end
                 # Update the restaurant's open status in the database
                 collection.update_one(
                     {"unique_azz_id": res_instance.get("unique_azz_id")},
                     {"$set": {"isOpen": isWorkingHours}}
                 )
+            """
             #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
     #print(f"Updated working status successfully!")
 

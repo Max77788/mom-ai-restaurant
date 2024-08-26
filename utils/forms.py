@@ -98,5 +98,5 @@ class ProfileForm(FlaskForm):
     logo = FileField('Logo', validators=[Optional(), FileAllowed(['jpg', 'png'], 'Images only!')])
     description = TextAreaField('Description', validators=[
         InputRequired(message="Description is required."),
-        Length(min=100, max=350, message="Description must be between 100 and 350 characters.")
+        Length(min=50, max=350, message="Description must be between 100 and 350 characters.")
     ])

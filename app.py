@@ -1235,8 +1235,8 @@ def create_web_wallet():
 def assistant_demo_chat():
     
     # Check if the session variable is set
-    #if not session.get('access_granted_assistant_demo_chat'):
-        #abort(403)  # Forbidden
+    if not session.get('access_granted_assistant_demo_chat'):
+        abort(403)  # Forbidden
     
     print(request.form)
     data = request.form
@@ -1260,7 +1260,7 @@ def assistant_demo_chat():
         messages.append({'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s AI-Assistant! Talk to me!'})
         messages.append({'sender': 'user', 'content': user_message})
         # Simulate the assistant's response
-        messages.append({'sender': 'assistant', 'content': "I do not know what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen."})
+        messages.append({'sender': 'assistant', 'content': "I do not know what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen.", 'present':True})
     
     session['messages'] = messages
     print(messages)
@@ -2341,11 +2341,13 @@ def assistant_dashboard_route():
     restaurant_name = session.get("restaurant_name")
     qr_code_id = session.get("qr_code_id")
     ai_phone_number = session.get("ai_phone_number")
+    default_menu = session.get("default_menu")
 
     return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, 
                            sub_activated=sub_activated, 
                            qr_code_id=qr_code_id,
-                           ai_phone_number=ai_phone_number) 
+                           ai_phone_number=ai_phone_number,
+                           default_menu=default_menu) 
 
 #######################################################################################################
 
@@ -2733,7 +2735,7 @@ def assistant_order_chat(unique_azz_id):
 
     # Check if the current time falls within the working hours
     isWorkingHours = res_instance.get("isOpen")
-    print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work[current_day]} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
+    # print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work.get(current_day)} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
 
 
     session["unique_azz_id"] = unique_azz_id

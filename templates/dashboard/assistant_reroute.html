@@ -109,7 +109,11 @@
         <!-- <button onclick="downloadImage()" style="margin-top: 7px">Download QR Code as Image</button> -->
         <h2 style="text-align: center; margin-top: 10px;">Or</h2>
         <p>Open this chat on a tablet and put it at the counter in your restaurant: <br>
+        {% if not default_menu %}
         <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name.replace("_"," ") }}'s AI-Assistant</u></b></a></p>
+        {% else %}
+        <p><i>Your assistant is currently OFF. <a href="/update_menu_gui" target="_blank"><u><b>upload your menu now</b></u></a> to start using {{ restaurant_name }} AI-assistant</i></p>
+        {% endif %}
         <div class="image-container">
             <img src="/static/images/tablet_at_the_counter.jpg" alt="AI-Assistant tablet at restaurant counter">
         </div>

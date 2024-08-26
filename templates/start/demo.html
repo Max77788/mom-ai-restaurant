@@ -8,12 +8,23 @@
     <div id="message-container" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
         {% for message in messages %}
             {% if message.sender == 'assistant' %}
+                {% if not message.present %}
                 <div style="margin: 10px; padding: 10px; background-color: #000000; color: white; text-align: right; border-radius: 10px;">
-                    {{ message.content }}
+                    <p>{{ message.content }}</p>
                 </div>
+                {% else %}
+                <div style="margin: 10px; padding: 10px; background-color: #000000; color: white; text-align: right; border-radius: 10px;">
+                    <p>{{ message.content }}</p><br>
+                    <p>That's the example of the taken order</p>
+                    <ol>
+                        <li>Roast Beef - 1 serving</li>
+                    </ol>
+                    <br><img src='/static/images/roast_beef_demo.jpeg' width='170' height='auto'>
+                </div>
+                {% endif %}
             {% else %}
                 <div style="margin: 10px; padding: 10px; background-color: #e5e5e5; text-align: left; border-radius: 10px;">
-                    {{ message.content }}
+                    <p>{{ message.content }}</p>
                 </div>
             {% endif %}
         {% endfor %}
