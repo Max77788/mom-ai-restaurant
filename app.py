@@ -2048,7 +2048,7 @@ def update_menu():
     else:
         flash("Error updating menu. Please check the file for validity.", category="danger")
 
-    return redirect(url_for("dashboard_display"))
+    return redirect(url_for("/update_menu_gui"))
 
 
 @app.route('/update_menu_manual', methods=['POST'])
