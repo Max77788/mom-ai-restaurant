@@ -1869,7 +1869,7 @@ def submit_review():
     restaurant_reviews.insert_one(review_to_pass)
 
     if tx_hash:
-        return jsonify({"message":f"<p style='color: green;'>The review has been successfully placed and {amount_to_send} MOM tokens added to your balance.\nTo check the transaction <a href='https://amoy.polygonscan.com/tx/{tx_hash}' target='_blank'>by clicking here.</a></p>", "tx_hash":tx_hash, "success":True})
+        return jsonify({"message":f"<p style='color: green;'>The review has been successfully placed and {amount_to_send} MOM tokens added to your balance.\nTo check the transaction <a href='https://amoy.polygonscan.com/tx/{tx_hash}' target='_blank'>click here.</a></p>", "tx_hash":tx_hash, "success":True})
     else:
         return jsonify({"message":f"<p>The review has been successfully placed and {amount_to_send} MOM tokens added to your balance.</p>", "tx_hash":tx_hash, "success":True})
 
