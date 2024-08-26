@@ -250,7 +250,7 @@ def charge_for_ai_phone_number():
 def schedule_tasks():
     scheduler = BackgroundScheduler()
     scheduler.add_job(func=clear_collection, trigger="interval", minutes=15)
-    scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=20)
+    scheduler.add_job(func=setup_working_hours, trigger="interval", seconds=10)
     scheduler.add_job(func=turn_assistant_off_low_balance, trigger="interval", seconds=15)
     # Run once per day at 12:00 PM
     scheduler.add_job(func=charge_for_ai_phone_number, trigger="cron", hour=12, minute=0)
@@ -1791,7 +1791,7 @@ def submit_hours():
     
     result = collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set':{"working_schedule": working_hours, "timezone":timezone}})
     # print("\nUpdated successfully\n")
-    flash("The working hours were updated successfully")
+    flash("The working hours were updated successfully", "success")
 
     return jsonify({"status": "success", "data": working_hours}), 200
 
