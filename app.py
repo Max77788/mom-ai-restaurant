@@ -91,7 +91,7 @@ google = oauth.register(
     access_token_params=None,
     authorize_url='https://accounts.google.com/o/oauth2/auth',
     authorize_params=None,
-    redirect_uri='http://localhost:5000/login/callback',
+    redirect_uri=GOOGLE_OAUTH_CLIENT_REDIRECT_URI,
     jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
     client_kwargs={'scope': 'email'}  # Disable state validation (not recommended for production)
 )

@@ -29,11 +29,34 @@
         <label for="timezone" style="font-family: 'Arial', sans-serif; color: #34495e; font-size: 16px;">Select Timezone:</label>
         <select id="timezone" class="timezone" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; margin-top: 5px;">
             <option value="{{ current_rest_timezone }}">{{ current_rest_timezone.replace("Etc/", "") }} - current option</option>
-            <!-- other options -->
+            <option value="Etc/GMT-0">UTC +0</option>
+            <option value="Etc/GMT-1">UTC -1</option>
+            <option value="Etc/GMT-2">UTC -2</option>
+            <option value="Etc/GMT-3">UTC -3</option>
+            <option value="Etc/GMT-4">UTC -4</option>
+            <option value="Etc/GMT-5">UTC -5</option>
+            <option value="Etc/GMT-6">UTC -6</option>
+            <option value="Etc/GMT-7">UTC -7</option>
+            <option value="Etc/GMT-8">UTC -8</option>
+            <option value="Etc/GMT-9">UTC -9</option>
+            <option value="Etc/GMT-10">UTC -10</option>
+            <option value="Etc/GMT-11">UTC -11</option>
+            <option value="Etc/UTC">UTC +0</option>
+            <option value="Etc/GMT+1">UTC +1</option>
+            <option value="Etc/GMT+2">UTC +2</option>
+            <option value="Etc/GMT+3">UTC +3</option>
+            <option value="Etc/GMT+4">UTC +4</option>
+            <option value="Etc/GMT+5">UTC +5</option>
+            <option value="Etc/GMT+6">UTC +6</option>
+            <option value="Etc/GMT+7">UTC +7</option>
+            <option value="Etc/GMT+8">UTC +8</option>
+            <option value="Etc/GMT+9">UTC +9</option>
+            <option value="Etc/GMT+10">UTC +10</option>
+            <option value="Etc/GMT+11">UTC +11</option>
         </select>
     </div>
     <div style="margin-bottom: 20px;">
-        <a id="timeLink" href="https://time.is/GMT" target="_blank" style="font-family: 'Arial', sans-serif; font-size: 16px;"><u>Check the current time in the specified timezone</u></a>
+        <a id="timeLink" href="https://time.is/{{ current_rest_timezone.replace('Etc/', '') }}" target="_blank" style="font-family: 'Arial', sans-serif; font-size: 16px;"><u>Check the current time in the specified timezone</u></a>
     </div>
     <div id="scheduleInputs" style="margin-bottom: 20px;">
         <!-- Schedule inputs will be dynamically generated here -->
