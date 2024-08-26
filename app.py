@@ -1,5 +1,5 @@
 from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
-from authlib.integrations.flask_client import OAuth
+#from authlib.integrations.flask_client import OAuth
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from werkzeug.utils import secure_filename
@@ -75,12 +75,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-oauth = OAuth(app)
+# oauth = OAuth(app)
 
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_CLIENT_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_CLIENT_REDIRECT_URI", 'http://localhost:5000/login/callback')
 
+"""
 # Configuration for Google OAuth
 google = oauth.register(
     name='google',
@@ -94,7 +95,7 @@ google = oauth.register(
     jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
     client_kwargs={'scope': 'email'}  # Disable state validation (not recommended for production)
 )
-
+"""
 
 # Define the Post model
 class Post(db.Model):
