@@ -1999,7 +1999,7 @@ def update_menu():
     print(upload_response)
 
     
-        
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})    
 
     
     if upload_response["success"]:
