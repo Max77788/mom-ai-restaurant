@@ -1,4 +1,5 @@
 from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
+from authlib.integrations.flask_client import OAuth
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from werkzeug.utils import secure_filename
@@ -9,6 +10,7 @@ import os
 import qrcode
 from geopy.distance import geodesic
 import bcrypt
+import secrets
 #from io import BytesIO
 #from flask_socketio import SocketIO, disconnect
 import gridfs
@@ -72,6 +74,26 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL_CORRECT')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+oauth = OAuth(app)
+
+GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
+GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
+GOOGLE_OAUTH_CLIENT_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_CLIENT_REDIRECT_URI", 'http://localhost:5000/login/callback')
+
+# Configuration for Google OAuth
+google = oauth.register(
+    name='google',
+    client_id=GOOGLE_OAUTH_CLIENT_ID,
+    client_secret=GOOGLE_OAUTH_CLIENT_SECRET,
+    access_token_url='https://accounts.google.com/o/oauth2/token',
+    access_token_params=None,
+    authorize_url='https://accounts.google.com/o/oauth2/auth',
+    authorize_params=None,
+    redirect_uri='http://localhost:5000/login/callback',
+    jwks_uri='https://www.googleapis.com/oauth2/v3/certs',
+    client_kwargs={'scope': 'email'}  # Disable state validation (not recommended for production)
+)
 
 
 # Define the Post model
@@ -267,6 +289,30 @@ def handle_disconnect():
         
 """
 
+
+@app.route('/google_login')
+def google_login():
+    # Generate a nonce and store it in the session
+    nonce = secrets.token_urlsafe(16)
+    session['nonce'] = nonce
+    redirect_uri = url_for('authorized', _external=True)
+    print(f"Generated state: {session.get('_state_')}")
+    return google.authorize_redirect(redirect_uri, nonce=nonce)
+
+@app.route('/login/callback')
+def authorized():
+    print(f"Returned state: {request.args.get('state')}")
+    # Retrieve the nonce from the session
+    nonce = session.get('nonce')
+    token = google.authorize_access_token()
+    if not token:
+        return 'Access denied: could not fetch token'
+    
+    user_info = google.parse_id_token(token, nonce=nonce)
+
+    session["email"] = user_info['email']
+    
+    return 'Logged in as: ' + user_info['email']
 
 @app.route('/waitlist')
 def notify_waitlist():
