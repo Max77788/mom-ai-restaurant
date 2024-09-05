@@ -337,6 +337,120 @@
         }
     }
 
+    function appendStarterPhrases() {
+    const userLanguage = sessionStorage.getItem('userLanguage') || 'en-US';
+
+    // Translated starter phrases for each language
+    const starterPhrasesTranslations = {
+        'en-US': [
+            "What specials do you have?",
+            "Help me with the recommendations based on my preferences.",
+            "I'd like to know more about the menu.",
+            "Can you assist me with today's offers?"
+        ],
+        'es-ES': [
+            "¿Qué especiales tienes?",
+            "Ayúdame con recomendaciones según mis preferencias.",
+            "Me gustaría saber más sobre el menú.",
+            "¿Puedes ayudarme con las ofertas de hoy?"
+        ],
+        'zh-CN': [
+            "你们有什么特色菜?",
+            "请根据我的喜好推荐菜肴。",
+            "我想了解更多菜单信息。",
+            "能告诉我今天的优惠吗？"
+        ],
+        'hi-IN': [
+            "आपके पास क्या स्पेशल हैं?",
+            "मेरी पसंद के आधार पर सिफारिशें करें।",
+            "मुझे मेनू के बारे में और जानना है।",
+            "क्या आप आज की पेशकशों में मेरी सहायता कर सकते हैं?"
+        ],
+        'ar-SA': [
+            "ما هي العروض الخاصة لديكم؟",
+            "ساعدني في التوصيات بناءً على تفضيلاتي.",
+            "أود معرفة المزيد عن القائمة.",
+            "هل يمكنك مساعدتي في عروض اليوم؟"
+        ],
+        'fr-FR': [
+            "Quels sont vos plats du jour ?",
+            "Aidez-moi avec des recommandations basées sur mes préférences.",
+            "J'aimerais en savoir plus sur le menu.",
+            "Pouvez-vous m'aider avec les offres d'aujourd'hui ?"
+        ],
+        'ru-RU': [
+            "Какие у вас есть специальные предложения?",
+            "Помогите мне с рекомендациями на основе моих предпочтений.",
+            "Я хотел бы узнать больше о меню.",
+            "Можете помочь с сегодняшними предложениями?"
+        ],
+        'ja-JP': [
+            "今日のおすすめは何ですか？",
+            "私の好みに基づいたおすすめを教えてください。",
+            "メニューについてもっと知りたいです。",
+            "今日のオファーについて手伝ってくれませんか？"
+        ],
+        'de-DE': [
+            "Welche Specials habt ihr?",
+            "Hilf mir mit Empfehlungen basierend auf meinen Vorlieben.",
+            "Ich möchte mehr über das Menü erfahren.",
+            "Können Sie mir bei den heutigen Angeboten helfen?"
+        ],
+        'pt-BR': [
+            "Quais são os especiais de hoje?",
+            "Me ajude com recomendações com base nas minhas preferências.",
+            "Gostaria de saber mais sobre o cardápio.",
+            "Você pode me ajudar com as ofertas de hoje?"
+        ]
+    };
+
+    // Get the translated phrases based on selected language
+    const starterPhrases = starterPhrasesTranslations[userLanguage] || starterPhrasesTranslations['en-US'];
+
+    const chatBox = document.getElementById('chatBox');
+    const starterButtonsDiv = document.createElement('div');
+    starterButtonsDiv.id = 'starterButtonsDiv';
+    starterButtonsDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0;';
+
+    // Iterate through each starter phrase and create buttons
+    starterPhrases.forEach(phrase => {
+        const button = document.createElement('button');
+        button.textContent = phrase;
+        button.style.cssText = `
+            background: none;
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 10px 20px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: normal;
+            transition: background 0.3s, color 0.3s;
+        `;
+
+        // Change button style on hover
+        button.onmouseover = function() {
+            this.style.backgroundColor = '#333';
+            this.style.color = '#fff';
+        };
+        button.onmouseout = function() {
+            this.style.background = 'none';
+            this.style.color = '#333';
+        };
+
+        // Handle button click event
+        button.onclick = function() {
+            sendMessage(phrase);  // Simulate user message
+            starterButtonsDiv.remove();  // Remove the starter buttons after a click
+        };
+
+        starterButtonsDiv.appendChild(button);
+    });
+
+    chatBox.appendChild(starterButtonsDiv);
+    scrollToBottom(starterButtonsDiv);  // Scroll to the bottom when adding buttons
+}
+
     function startConversation() {
         const assistantId = "{{ assistant_id }}";
         fetch(`/assistant_start/${assistantId}`, {
@@ -362,6 +476,7 @@
             
             {% if assistant_turned_on and isWorkingHours %}
             appendMessage(initialMessage, 'assistant');
+            appendStarterPhrases();  // Append starter phrases here
             {% endif %}
 
             
@@ -381,8 +496,17 @@
     }
 
     
-    window.sendMessage = function sendMessage() {
-    const userMessage = document.getElementById('userMessage').value;
+    window.sendMessage = function sendMessage(message=null) {
+      console.log(`Message within the sendMessage function (right off the bat) ${message}`)
+      
+      let userMessage;
+     
+      if (!message){
+       userMessage = document.getElementById('userMessage').value;
+    } else {
+        userMessage = message;
+    }
+
     console.log("Send button clicked");
     console.log("User message: ", userMessage);
     if (userMessage.trim() === '') {
@@ -554,7 +678,7 @@
     }
 
     const iconDiv = document.createElement('div');
-    iconDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin: 10px;';
+    iconDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin: 10px; flex-shrink: 0;';
 
     const messageContainer = document.createElement('div');
 
@@ -581,9 +705,9 @@
 
         const assistantIcon = document.createElement('img');
         assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
-        assistantIcon.style.width = '100%';
-        assistantIcon.style.height = '100%';
-        assistantIcon.style.objectFit = 'contain';
+        assistantIcon.style.width = '40px';
+        assistantIcon.style.height = '40px';
+        assistantIcon.style.objectFit = 'cover';
         iconDiv.appendChild(assistantIcon);
 
         messageContainer.style.cssText = 'display: flex; flex-direction: row-reverse; align-items: flex-start;';
@@ -601,6 +725,47 @@
 
     document.getElementById('chatBox').appendChild(messageContainer);
     scrollToBottom(messageContainer);
+
+    const words = message.split(' ');
+    messageDiv.innerHTML = '';  // Clear the content first
+
+    let wordIndex = 0;
+
+    function displayWord() {
+    if (wordIndex < words.length) {
+        let currentWord = words[wordIndex];
+
+        // Check if the current word is the start of an <img> tag
+        if (currentWord.startsWith('<img')) {
+            // Collect the entire <img> tag
+            while (!currentWord.endsWith('>') && wordIndex < words.length - 1) {
+                wordIndex++;
+                currentWord += ' ' + words[wordIndex];
+            }
+
+            // Display the entire <img> tag immediately
+            messageDiv.innerHTML += currentWord + ' ';
+        } else {
+            // Display the current word with a delay
+            messageDiv.innerHTML += currentWord + ' ';
+        }
+
+        wordIndex++;
+        
+        // If the current word is an <img> tag, no delay; otherwise, delay for the next word
+        const delay = currentWord.startsWith('<img') && currentWord.endsWith('>') ? 0 : 117;
+
+        setTimeout(displayWord, delay);
+    }
+}
+if (sender === "assistant"){
+
+displayWord(); // Start the word-by-word display
+} else {
+    // If the sender is not "assistant", display the entire message immediately
+    messageDiv.innerHTML = message;
+}
+}
 }
 
 
@@ -762,7 +927,6 @@
     };
 
     mediaRecorder.start();
-}
 };
 </script>
 

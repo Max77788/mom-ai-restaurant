@@ -32,7 +32,12 @@
 {% endif %}
 
 {% if not tg_setup %}
-<h2 style="text-align: center; font-family: Arial, sans-serif; color: #000; margin-bottom: 10px;">Update Profile</h2>
+<h2 class="mb-4" style="text-align: center; position: relative; padding: 5px;">
+    Update Profile
+    <a href="/dashboard" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
+        <u>Go to Dashboard -></u>
+    </a>
+</h2>
 {% endif %}
 
 {% if tg_setup %}

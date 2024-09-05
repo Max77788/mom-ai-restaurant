@@ -2,15 +2,8 @@
 
 {% block content %}
 <body>
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            <div class="flash-messages">
-                <div class="flash-message">{{ messages[-1] }}</div>
-            </div>
-        {% endif %}
-    {% endwith %}
     <h1 class="mb-4" style="text-align: center; position: relative;">
-        Upload the new menu
+        {% if initial_setup %}Setup the menu{% else %}Update the menu{% endif %}
         <!-- Add your element here -->
         {% if initial_setup %}
         <a href="/dashboard?show_popup=True" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
@@ -22,40 +15,221 @@
         </a>
         {% endif %}
     </h1>
-    <form action="/update_menu" method="post" enctype="multipart/form-data">
-        {{ form.hidden_tag() }}
-        <h3 style="text-align: center;"><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and Get Extra Assistance!</u></a>
-            <br>&amp;<br>
-            Watch This Comprehensive Tutorial on How to Form Menu!</h3>
-        <div style="margin-bottom: 10px;">
-        <iframe width="560" height="315" 
-            src="https://www.youtube.com/embed/dy4DO92oTcU" 
-            title="YouTube video player" 
-            frameborder="0" 
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-            allowfullscreen>
-        </iframe>
-        </div>
+
+    <h3 style="text-align: center; margin-bottom: 7px;"><a href="https://chatgpt.com/g/g-CJCHfiKMQ-mom-ai-restaurant-assistant" target="_blank" style="margin-top:20px; margin-bottom: 20px;"><u>Talk to MOM AI GPT and Get Extra Assistance!</u></a>
+        <br>&amp;<br>
+        Watch This Comprehensive Tutorial on How to Form Menu!</h3>
+        <div style="margin-bottom: 10px; display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%;">
+    <iframe width="560" height="315" 
+        src="https://www.youtube.com/embed/dy4DO92oTcU" 
+        title="YouTube video player" 
+        frameborder="0" 
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+        allowfullscreen>
+    </iframe>
+   
+    </div>
+
+    <hr>
+
+    <h1 style="text-align: center;">Upload the menu file</h1>
+    <form action="/update_menu" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()">
         <div>
-            {% if default_menu %}
-            <label for="menu_update">⬇️Please, upload the menu to start generating orders on autopilot.</label>
-            {% else %}
-            <label for="menu_update">⬇️Upload New Menu</label>
-            {% endif %}
+            <label for="menu_update">⬇️Upload the menu(rewrites the whole menu📖)</label>
             {{ form.menu_update }}
         </div>
         <div style="margin-top: 7px;">
             {{ form.submit }}
         </div>
     </form>
+
+    {% if initial_setup or default_menu %}
+    <div style="display:flex; flex-direction: column; align-items: center;">
+        <h2 style="text-align: center;">or</h2>
+        <div style="display:flex; flex-direction: column; align-items: center; border: 2px solid #000; border-radius: 10px; padding: 10px;">
+        <h1 style="text-align: center;">Add Menu Items One-by-One</h1>
+        <form id="menuForm" action="/submit_menu" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+            {{ form.hidden_tag() }}
+            <input type="text" name="item_name" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+            <input type="text" name="item_description" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+            <input type="number" step="0.01" name="item_price" placeholder="Item Price (EUR)" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+            <input type="url" name="item_image_link" placeholder="Link to Image" style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+            <button type="button" id="addItemBtn">Add Item</button>
+        </form>
+        </div>
+
+        <table id="itemTable" border="1" class="dataframe table table-striped" style="margin-top: 20px;">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Item Description</th>
+                    <th>Item Price (EUR)</th>
+                    <th>Link to Image</th>
+                    <th>Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Items will be dynamically added here -->
+            </tbody>
+        </table>
+
+        <button type="submit" id="submitMenuBtn" style="margin-top: 20px;">Submit Menu</button>
+    </div>
+
+    <script>
+        function showLoadingGif() {
+            document.getElementById('loadingGif').style.display = 'block';
+        }
+        
+        document.getElementById('addItemBtn').addEventListener('click', function() {
+            // Get the values from the form inputs
+            let itemName = document.getElementsByName('item_name')[0].value.trim();
+            let itemDescription = document.getElementsByName('item_description')[0].value.trim();
+            let itemPrice = document.getElementsByName('item_price')[0].value.trim();
+            let itemImageLink = document.getElementsByName('item_image_link')[0].value.trim();
+
+            // Validation
+            if (!itemName || !itemDescription) {
+                alert('Item Name and Item Description are required.');
+                return;
+            }
+
+            if (isNaN(itemPrice) || itemPrice <= 0) {
+                alert('Item Price must be a valid number greater than 0.');
+                return;
+            }
+
+            console.log(`Item Image Link ${itemImageLink}`)
+
+            if (!isValidUrl(itemImageLink)) {
+                alert('The Image Link must be a valid URL.');
+                return;
+            }
+
+            // Create a new row in the table
+            let table = document.getElementById('itemTable').getElementsByTagName('tbody')[0];
+            let newRow = table.insertRow(0);
+
+            newRow.innerHTML = `
+                <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemName}</td>
+                <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemDescription}</td>
+                <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${parseFloat(itemPrice).toFixed(2)}</td>
+                <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemImageLink}</td>
+                <td contenteditable="false" data-column="Image" style="max-width: 170px;"><img src="${itemImageLink}" alt="Image of ${itemName}" width="170" height="auto"></td>
+                <td><button class="delete-add-oneByOne-row-btn">Delete</button></td>    
+            `;
+
+            // Clear the form inputs
+            document.getElementById('menuForm').reset();
+
+            attachDeleteOneByOneListeners();
+        });
+
+        // Add event listener to all delete buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.delete-add-row-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    // Find the row that the button is in and remove it
+                    let row = button.closest('tr');
+                    row.parentNode.removeChild(row);
+                });
+            });
+        });
+
+
+        // Add event listener to all delete buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.delete-add-oneByOne-row-btn').forEach(function(button) {
+                button.addEventListener('click', function() {
+                    // Find the row that the button is in and remove it
+                    let row = button.closest('tr');
+                    row.parentNode.removeChild(row);
+                });
+            });
+        });
+
+
+
+
+        document.getElementById('submitMenuBtn').addEventListener('click', function() {
+            document.getElementById("loadingGif").style.display = "block";
+            
+            let rows = document.querySelectorAll('#itemTable tbody tr');
+            let items = [];
+
+            rows.forEach(function(row) {
+                let item = {
+                    "Item Name": row.cells[0].innerText,
+                    "Item Description": row.cells[1].innerText,
+                    "Item Price (EUR)": row.cells[2].innerText,
+                    "Link to Image": row.cells[3].innerText
+                };
+                items.push(item);
+            });
+
+            const data_to_send = {
+                "unique_azz_id": "{{ unique_azz_id }}",
+                "updatedItems": items
+            };
+
+            fetch('/update_menu_manual', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data_to_send)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Menu updated successfully!');
+                    const initial_setup = "{{ initial_setup }}" === "True"
+                    
+                    if(!initial_setup){
+                    location.reload();
+                    } else {
+                        window.location.href = "/dashboard?show_popup=True"
+                    }
+                } else {
+                    alert('Failed to update the menu.');
+                }
+            });
+        });
+    </script>
+    {% endif %}
+
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <img src="/static/assets/loading-gif.gif" width="70" style="display: none;" id="loadingGif">
+    </div>
     <hr>
     <div class="container mt-5">
+        <!-- New Item Form -->
+        {% if not default_menu and not initial_setup %}
+        <div style="display:flex; flex-direction: column; align-items: center; border: 2px solid #000; border-radius: 10px; padding: 10px;">
+        <h3 style="text-align: center;">Add a New Menu Item Manually</h3>
+        <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+          <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+          <input type="text" id="newItemDescription" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+          <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price (EUR)" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+          <input type="url" id="newItemImageLink" placeholder="Link to Image" style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+          <button id="addNewItemBtn">Add Item</button>
+        </div>
+        
+      
+      
+
+        <button id="saveChangesBtn" style="margin-top: 20px;">Save Changes</button>
+        <p style="font-size: 10px;">Press this button when you have added new positions and removed irrelevant items</p>
+        </div>
+        {% endif %}
+        
         {% if default_menu %}
         <h1 class="mb-4" style="text-align: center;">That's the example of the menu you should provide</h1>
         {% else %}
         <h1 class="mb-4" style="text-align: center;">That's the menu the assistant refers to now</h1>
         <h2 class="mb-4" style="text-align: center;">⬇️Edit the menu right in the table⬇️</h2>
-        <h4 class="mb-4" style="text-align: center;">Save Changes and Add New Items at the Bottom</h4>
+    
+
         {% endif %}    
         <div class="mt-4">
             <div class="menu-content table-responsive">
@@ -73,20 +247,21 @@
                         {% if not default_menu %}
                         {% for item in html_menu_tuples %}
                         <tr>
-                          <td contenteditable="true" data-column="Item Name">{{ item["Item Name"] }}</td>
-                          <td contenteditable="true" data-column="Item Description">{{ item["Item Description"] }}</td>
-                          <td contenteditable="true" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
-                          <td contenteditable="true" data-column="Link to Image">{{ item["Link to Image"] }}</td>
+                          <td contenteditable="true" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
+                          <td contenteditable="true" data-column="Item Description" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Description"] }}</td>
+                          <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
+                          <td contenteditable="true" data-column="Link to Image" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Link to Image"] }}</td>
                           <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                          <td><button class="delete-row-btn">Delete</button></td>
                         </tr>
                         {% endfor %}
                         {% else %}
                         {% for item in html_menu_tuples %}
                         <tr>
-                          <td contenteditable="false" data-column="Item Name">{{ item["Item Name"] }}</td>
-                          <td contenteditable="false" data-column="Item Description">{{ item["Item Description"] }}</td>
-                          <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
-                          <td contenteditable="false" data-column="Link to Image">{{ item["Link to Image"] }}</td>
+                          <td contenteditable="false" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
+                          <td contenteditable="false" data-column="Item Description" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Description"] }}</td>
+                          <td contenteditable="false" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
+                          <td contenteditable="false" data-column="Link to Image" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Link to Image"] }}</td>
                           <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
                         </tr>
                         {% endfor %}
@@ -94,26 +269,26 @@
                     </tbody>
                   </table>
 
-                  <!-- New Item Form -->
-                  {% if default_menu %}
-                  <div style="display:flex; flex-direction: column; align-items: center;">
-                  <h3 style="text-align: center;">Add a New Menu Item</h3>
-                  <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
-                    <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-                    <input type="text" id="newItemDescription" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-                    <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price (EUR)" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-                    <input type="url" id="newItemImageLink" placeholder="Link to Image" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-                    <button id="addNewItemBtn">Add Item</button>
-                </div>
                   
-                
-                
-
-                  <button id="saveChangesBtn" style="margin-top: 20px;">Save Changes</button>
-                  </div>
-                  {% endif %}
 
                   <script>
+                    // Add event listener to all delete buttons
+                        document.querySelectorAll('.delete-row-btn').forEach(function(button) {
+                            button.addEventListener('click', function() {
+                                // Display confirmation dialog
+                                let confirmation = confirm('Are you sure you want to delete this item?');
+                                if (confirmation) {
+                                    // If user clicks "Yes", delete the row
+                                    let row = button.closest('tr');
+                                    row.parentNode.removeChild(row);
+                                } else {
+                                    // If user clicks "No", do nothing
+                                    return;
+                                }
+                            });
+                        });
+
+
                     document.getElementById('addNewItemBtn').addEventListener('click', function() {
                     // Get the values from the form inputs
                     let itemName = document.getElementById('newItemName').value.trim();
@@ -146,7 +321,7 @@
 
                     // Add new item to the table
                     let table = document.getElementById('menuTable').getElementsByTagName('tbody')[0];
-                    let newRow = table.insertRow();
+                    let newRow = table.insertRow(0);
 
                     Object.keys(newItem).forEach(function(key) {
                         let cell = newRow.insertCell();
@@ -163,22 +338,58 @@
                         imgCell.innerText = 'No Image Provided';
                     }
 
+                    let deleteButtonCell = newRow.insertCell();
+                    deleteButtonCell.innerHTML = '<td><button class="delete-row-btn">Delete</button><p style="font-size: 10px; color: #00ff00">Newly added Item</p></td>'
+
+                    // Reattach delete event listeners to all delete buttons
+                    attachDeleteListeners();
+                    
                     // Clear the form after adding the item
                     document.getElementById('newItemForm').reset();
                     });
 
+                    function attachDeleteListeners() {
+                        document.querySelectorAll('.delete-row-btn').forEach(function(button) {
+                            button.addEventListener('click', function() {
+                                let confirmation = confirm('Are you sure you want to delete this row?');
+                                if (confirmation) {
+                                    let row = button.closest('tr');
+                                    row.parentNode.removeChild(row);
+                                }
+                            });
+                        });
+                    }
+
+                    function attachDeleteOneByOneListeners() {
+                        document.querySelectorAll('.delete-add-oneByOne-row-btn').forEach(function(button) {
+                            button.addEventListener('click', function() {
+                                let confirmation = confirm('Are you sure you want to delete this row?');
+                                if (confirmation) {
+                                    let row = button.closest('tr');
+                                    row.parentNode.removeChild(row);
+                                }
+                            });
+                        });
+                    }
+
                     // Function to validate URL
                     function isValidUrl(string) {
-                    try {
-                        new URL(string);
-                        return true;
-                    } catch (_) {
-                        return false;
-                    }
+                        try {
+                            if (string) {
+                                console.log("Entered URL")
+                            new URL(string);
+                            }
+                            console.log("Returned True")
+                            return true;
+                        } catch (_) {
+                            return false;
+                        }
                     }
 
 
                     document.getElementById('saveChangesBtn').addEventListener('click', function() {
+                        document.getElementById("loadingGif").style.display = "block"
+                        
                         let rows = document.querySelectorAll('#menuTable tbody tr');
                         let updatedItems = [];
 
@@ -207,10 +418,9 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.success) {
-                                alert('Menu updated successfully!');
                                 location.reload();
                             } else {
-                                alert('Failed to update the menu.');
+                                location.reload();
                             }
                         });
                     });
@@ -232,3 +442,4 @@
 });
 </script>   
 {% endblock %}
+

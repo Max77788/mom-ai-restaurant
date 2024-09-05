@@ -1303,6 +1303,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
         from this list and use the images from this list:
         {list_of_all_items} 
         Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the images as much as possible.
         Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
         Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
         """
@@ -1312,6 +1313,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
         from this list and use the images from this list:
         {list_of_all_items} 
         Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the images as much as possible.
         """
  
     print("Message to compare menu items: ", message_to_compare_menu_items)
@@ -1447,9 +1449,9 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                     print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
 
                     parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
-                    items_ordered = parsed_formatted_json_order["items"]
+                    items_ordered = parsed_formatted_json_order["items_ordered"]
                     session["items_ordered"] = items_ordered
-                    print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
+                    # print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
                    
                     order_id = generate_code()
                     current_utc_timestamp = time.time()
@@ -1473,7 +1475,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         # translator.translate()
                         return link_to_payment_buffer, total_tokens_used
                     else:
-                        total_price = f"{sum(item['quantity'] * item['amount'] for item in items_ordered):.2f}"
+                        total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
                         session["total_price"] = total_price
                         session["order_id"] = order_id
                         session['access_granted_no_payment_order'] = True

@@ -1,0 +1,232 @@
+{% extends "layout_no_land.html" %}
+
+{% block content %}
+
+<div style="text-align: center; padding: 20px;">
+    <h2>How would you like to receive your order?</h2>
+    <form id="orderTypeForm" onsubmit="return false;">
+        <label>
+            <input type="radio" name="orderType" value="takeaway" onclick="handleOrderType('takeaway')" checked> Pick up at {{ restaurant_address }}
+        </label>
+        <label>
+            <input type="radio" name="orderType" value="delivery" onclick="handleOrderType('delivery')"> Delivery
+        </label>
+    </form>
+</div>
+
+<!-- Delivery location input, hidden by default
+<div id="deliveryLocationDiv" style="display: none; text-align: center; padding: 20px;">
+    <h3>Specify the address for delivery</h3>
+    <input type="text" id="location-input" placeholder="Enter delivery address" style="padding: 10px; width: 300px;">
+    <button onclick="submitDeliveryAddress()">Submit Delivery Address</button>
+</div>
+-->
+
+
+<div id="deliveryLocationDiv" style="display: none; text-align: center; padding: 20px;">
+    <!-- Input for location search -->
+    <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
+        <h3>Where do you want delivery?</h3>
+        <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
+            <input id="pac-input" class="controls form-control" type="text" placeholder="Enter your address" required>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
+        </div>
+    </div>
+    <!-- Hidden input for location data -->
+    <input type="hidden" id="location-input" name="location" required>
+    <!-- Hidden input for location name -->
+    <input type="hidden" id="locationName" name="locationName" required>
+</div>
+
+<!-- Google Maps API with Places library for location autocomplete -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places" async defer></script>
+
+<div style="display: flex; align-items: center; justify-content: center;">
+<button id="nextStep" disabled>Proceed</button>
+</div>
+
+<script>
+    function validateAddressAndToggleButton(formattedAddress) {
+        const proceedButton = document.getElementById('nextStep');
+        
+        // Check if the formatted address meets the required complexity
+        const isValidAddress = formattedAddress.includes(',') && formattedAddress.split(',').length >= 4;
+
+        // Enable the button only if the address is valid
+        if (isValidAddress) {
+            proceedButton.disabled = false;
+        } else {
+            proceedButton.disabled = true;
+        }
+    }
+
+    function updateLocation(position, formattedAddress) {
+        if (formattedAddress) {
+            document.getElementById('locationInput').value = JSON.stringify(position);
+            document.getElementById('locationName').value = formattedAddress;
+
+            // Validate the address and toggle the button
+            validateAddressAndToggleButton(formattedAddress);
+        }
+    }
+
+    function handleOrderType(orderType) {
+        const deliveryLocationDiv = document.getElementById('deliveryLocationDiv');
+        const proceedButton = document.getElementById('nextStep');
+        
+        if (orderType === 'delivery') {
+            deliveryLocationDiv.style.display = 'flex';
+            deliveryLocationDiv.style.alignItems = 'center';
+            deliveryLocationDiv.style.justifyContent = 'center';
+            
+            initAutocomplete(); // Initialize location autocomplete
+            try {
+            prefillLocation();  // Prefill the user's current location if possible
+            } catch(e) {
+    
+            }
+            // Disable the button initially for delivery
+            proceedButton.disabled = true;
+        } else {
+            deliveryLocationDiv.style.display = 'none';
+            
+            // Enable the button for takeaway
+            proceedButton.disabled = false;
+        }
+    }
+
+
+    // Function to handle form submission
+    function handleSubmit() {
+        const orderType = document.querySelector('input[name="orderType"]:checked').value;
+        let message = `Order type selected: ${orderType}`;
+        
+        if (orderType === 'delivery') {
+            const deliveryAddress = document.getElementById('location-input').value;
+            if (deliveryAddress.trim() === '') {
+                alert('Please enter a delivery address.');
+                return;
+            }
+            message += `, Delivery address: ${deliveryAddress}`;
+        }
+
+        // Show a success message or send the data to the server
+        alert(message);
+
+        // If submitting to the backend, you would add an AJAX call or form submission logic here.
+        // Example:
+        // fetch('/submit_order', {
+        //     method: 'POST',
+        //     headers: {
+        //         'Content-Type': 'application/x-www-form-urlencoded'
+        //     },
+        //     body: new URLSearchParams({
+        //         'orderType': orderType,
+        //         'deliveryAddress': deliveryAddress
+        //     })
+        // }).then(response => response.json())
+        // .then(data => console.log(data))
+        // .catch(error => console.error('Error:', error));
+    }
+
+
+
+
+    // Function to prefill the location input with the user's current location
+    function prefillLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+
+                // Using a geocoding API to convert lat/lng to a readable address
+                const geocoder = new google.maps.Geocoder();
+                const latlng = { lat: userLat, lng: userLng };
+
+                geocoder.geocode({ location: latlng }, function(results, status) {
+                    if (status === 'OK') {
+                        if (results[0]) {
+                            document.getElementById('location-input').value = results[0].formatted_address;
+                        }
+                    } else {
+                        console.error('Geocoder failed due to: ' + status);
+                    }
+                });
+            }, function(error) {
+                console.error('Error retrieving your location: ', error);
+            });
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+    }
+
+    function initAutocomplete() {
+        const input = document.getElementById('pac-input');
+        const autocomplete = new google.maps.places.Autocomplete(input);
+
+        // Autocomplete select listener
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                console.log("Place details not found for input: " + input.value);
+                return;
+            }
+
+            const formattedAddress = formatAddressWithCity(place);
+            updateLocation(place.geometry.location, formattedAddress);
+        });
+    }
+
+    function formatAddressWithCity(place) {
+    let addressComponents = place.address_components;
+    let street = '', buildingNumber = '', city = '', region = '', country = '';
+
+    addressComponents.forEach(component => {
+        if (component.types.includes('route')) {
+            street = component.long_name;
+        }
+        if (component.types.includes('street_number')) {
+            buildingNumber = component.long_name;
+        }
+        if (component.types.includes('locality')) {
+            city = component.long_name;
+        }
+        if (component.types.includes('administrative_area_level_1')) {
+            region = component.long_name;
+        }
+        if (component.types.includes('country')) {
+            country = component.long_name;
+        }
+    });
+
+    // Ensure that required components are present
+    if (!street || !buildingNumber || !city || !country) {
+        alert("Please select a valid location including street, building number, city, and country.");
+        return '';
+    }
+
+    // Construct formatted address
+    let formattedAddress = `${street}, ${buildingNumber}, ${city}`;
+    if (region) {
+        formattedAddress += `, ${region}`;
+    }
+    formattedAddress += `, ${country}`;
+    return formattedAddress;
+};
+
+
+    // Function to handle the delivery address submission
+    function submitDeliveryAddress() {
+        const locationInput = document.getElementById('location-input').value;
+        if (locationInput.trim()) {
+            alert(`Delivery address submitted: ${locationInput}`);
+            // You can implement further logic for form submission, backend processing, etc.
+        } else {
+            alert('Please enter a valid address.');
+        }
+    }
+</script>
+
+
+
+{% endblock %}

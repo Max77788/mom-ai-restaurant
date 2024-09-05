@@ -138,14 +138,19 @@
     <div class="success-order-message">
         <h1>✅ Your order in {{ restaurant_name }} has been successfully placed.</h1>
         <h2>These are your items:</h2>
+        <div style="text-align: center;">
         <ul>
             {% for item in items %}
                 <li>
                     <b>{{ item['name'] }}</b>: <b>{{ item['quantity'] }} serving(s)</b><br>
                     <b>{{ item['amount'] }} EUR <u>per 1 item</u></b>
+                    {% if item['image_url'] %}
+                    <br><img src="{{ item['image_url'] }}" alt="Image of {{ item['name'] }}" width="170" height="auto">
+                    {% endif %}
                 </li>
             {% endfor %}
         </ul>
+        </div>
         <!-- <h2>Visit <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=res_unique_azz_id) }}' target="_blank">{{ restaurant_name.replace("_", " ") }}</a> to pick up your food shortly.</h2> -->
         <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
             Please, remember this number - you will not be able to pick your order without this number.</h3>

@@ -1681,7 +1681,11 @@ def update_profile(attribute, tg_setup=None):
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'res_logo': file_id}})   
         print('Profile updated successfully!')
         flash('Profile updated successfully!', 'success')
-        return redirect(url_for('dashboard_display', show_popup=True))
+        if tg_setup:
+            return redirect(url_for('dashboard_display', show_popup=True))
+        else:
+            # print("Chose not tg setup redirect")
+            return redirect(url_for('dashboard_display'))
     else:
         print('Error in form submission!')
         for field, errors in form.errors.items():
@@ -2045,10 +2049,11 @@ def update_menu():
 
             success = insert_the_nodes_and_edges_in_new_pathway(voice_pathway_id, unique_azz_id)
         flash("Menu updated successfully!", category="success")
+        session["default_menu"] = False
     else:
         flash("Error updating menu. Please check the file for validity.", category="danger")
 
-    return redirect(url_for("/update_menu_gui"))
+    return redirect(url_for("update_menu_gui"))
 
 
 @app.route('/update_menu_manual', methods=['POST'])
@@ -2153,6 +2158,11 @@ def update_menu_manual():
 
         success = insert_the_nodes_and_edges_in_new_pathway(voice_pathway_id, unique_azz_id)
     # Return a success response
+    session["default_menu"] = False
+
+    flash("Menu updated successfully!", category="success")
+    
+
     return jsonify(success=True)
 
 @app.route('/update_menu_gui')
@@ -3110,6 +3120,25 @@ def quick_registration():
 
 ################## Payment routes/Order Posting ###################
 
+@app.route("/takeaway_delivery")
+def takeaway_delivery_template():
+    # Render the template that asks the user for delivery or takeaway options
+    restaurant_address = "address example"
+    return render_template('/payment_routes/takeaway_delivery_ask.html', GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY, restaurant_address=restaurant_address)
+
+@app.route('/submit_address', methods=['POST'])
+def submit_address():
+    # Retrieve the address from the request
+    delivery_address = request.form.get('delivery_address')
+
+    if delivery_address:
+        # For now, just return a confirmation or process the address as needed
+        # You can add additional logic here (e.g., save to a database, etc.)
+        return jsonify({"status": "success", "message": f"Delivery address received: {delivery_address}"})
+    else:
+        return jsonify({"status": "error", "message": "No address provided"}), 400
+
+
 @app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])
 def no_payment_order_placed(unique_azz_id):
     suggest_web3_bonus = session.get("suggest_web3_bonus")
@@ -3127,6 +3156,31 @@ def no_payment_order_placed(unique_azz_id):
     restaurant_name = current_restaurant_instance.get("name")
     MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
     
+
+    items = items_ordered
+
+    ordered_items_names = [item["name"] for item in items]
+
+    image_urls = []
+
+    restaurant_menu = current_restaurant_instance.get("html_menu_tuples")
+
+    for item_ordered_name in ordered_items_names:
+        for item_menu in restaurant_menu:
+            if sorted(item_menu["Item Name"].lower().split()) == sorted(item_ordered_name.lower().split()):
+                print(sorted(item_menu["Item Name"].lower().split()))
+                print(sorted(item_ordered_name.lower().split()))
+                image_urls.append(item_menu["Link to Image"])
+                found_match = True
+                break
+        if not found_match:
+            image_urls.append(None)
+
+
+    for index, image_url in enumerate(image_urls):
+        items[index]['image_url'] = image_url
+
+
     if suggest_web3_bonus:
         session.pop("suggest_web3_bonus")
 

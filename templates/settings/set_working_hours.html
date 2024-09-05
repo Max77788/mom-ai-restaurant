@@ -23,36 +23,42 @@
 <hr>
 {% endif %}
 
-<h2 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px; margin-bottom: 5px;">Set Working Hours for {{ restaurant['name'] }} AI-Assistant</h2>
+
+
+<h2 class="mb-4" style="text-align: center; position: relative; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px; margin-bottom: 5px;">
+    Set Working Hours for {{ restaurant['name'] }} AI-Assistant
+    <a href="/dashboard" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
+        <u>Go to Dashboard -></u>
+    </a>
+</h2>
 <form id="scheduleForm" style="max-width: 600px; margin: auto; background: #ecf0f1; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div style="margin-bottom: 20px;">
         <label for="timezone" style="font-family: 'Arial', sans-serif; color: #34495e; font-size: 16px;">Select Timezone:</label>
         <select id="timezone" class="timezone" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #bdc3c7; margin-top: 5px;">
             <option value="{{ current_rest_timezone }}">{{ current_rest_timezone.replace("Etc/", "") }} - current option</option>
-            <option value="Etc/GMT-0">UTC +0</option>
-            <option value="Etc/GMT-1">UTC -1</option>
-            <option value="Etc/GMT-2">UTC -2</option>
-            <option value="Etc/GMT-3">UTC -3</option>
-            <option value="Etc/GMT-4">UTC -4</option>
-            <option value="Etc/GMT-5">UTC -5</option>
-            <option value="Etc/GMT-6">UTC -6</option>
-            <option value="Etc/GMT-7">UTC -7</option>
-            <option value="Etc/GMT-8">UTC -8</option>
-            <option value="Etc/GMT-9">UTC -9</option>
-            <option value="Etc/GMT-10">UTC -10</option>
-            <option value="Etc/GMT-11">UTC -11</option>
-            <option value="Etc/UTC">UTC +0</option>
-            <option value="Etc/GMT+1">UTC +1</option>
-            <option value="Etc/GMT+2">UTC +2</option>
-            <option value="Etc/GMT+3">UTC +3</option>
-            <option value="Etc/GMT+4">UTC +4</option>
-            <option value="Etc/GMT+5">UTC +5</option>
-            <option value="Etc/GMT+6">UTC +6</option>
-            <option value="Etc/GMT+7">UTC +7</option>
-            <option value="Etc/GMT+8">UTC +8</option>
-            <option value="Etc/GMT+9">UTC +9</option>
-            <option value="Etc/GMT+10">UTC +10</option>
-            <option value="Etc/GMT+11">UTC +11</option>
+            <option value="Etc/GMT-0">GMT+0</option>
+            <option value="Etc/GMT+1">GMT+1</option>
+            <option value="Etc/GMT+2">GMT+2</option>
+            <option value="Etc/GMT+3">GMT+3</option>
+            <option value="Etc/GMT+4">GMT+4</option>
+            <option value="Etc/GMT+5">GMT+5</option>
+            <option value="Etc/GMT+6">GMT+6</option>
+            <option value="Etc/GMT+7">GMT+7</option>
+            <option value="Etc/GMT+8">GMT+8</option>
+            <option value="Etc/GMT+9">GMT+9</option>
+            <option value="Etc/GMT+10">GMT+10</option>
+            <option value="Etc/GMT+11">GMT+11</option>
+            <option value="Etc/GMT-1">GMT-1</option>
+            <option value="Etc/GMT-2">GMT-2</option>
+            <option value="Etc/GMT-3">GMT-3</option>
+            <option value="Etc/GMT-4">GMT-4</option>
+            <option value="Etc/GMT-5">GMT-5</option>
+            <option value="Etc/GMT-6">GMT-6</option>
+            <option value="Etc/GMT-7">GMT-7</option>
+            <option value="Etc/GMT-8">GMT-8</option>
+            <option value="Etc/GMT-9">GMT-9</option>
+            <option value="Etc/GMT-10">GMT-10</option>
+            <option value="Etc/GMT-11">GMT-11</option>
         </select>
     </div>
     <div style="margin-bottom: 20px;">
