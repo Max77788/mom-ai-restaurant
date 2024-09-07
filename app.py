@@ -1708,6 +1708,8 @@ def setup_public_profile():
     
     form = ProfileForm()
     unique_azz_id = session.get("unique_azz_id")
+
+    restaurant_name = collection.find_one({"unique_azz_id": unique_azz_id}).get("name")
     
     if form.validate_on_submit():
         website_url = form.website_url.data
@@ -1734,7 +1736,9 @@ def setup_public_profile():
         return redirect(url_for('update_profile', attribute="notif_destin", tg_setup=True))
 
     
-    return render_template('start/setup_public_profile.html', form=form,
+    return render_template('start/setup_public_profile.html', 
+                           form=form,
+                           restaurant_name=restaurant_name,
                            title="Setup Public Profile")
 
 

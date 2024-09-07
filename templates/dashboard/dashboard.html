@@ -289,7 +289,7 @@ function downloadImage() {
                         {% if assistant_turned_on and current_balance|float >= 0.5 %}
                         Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
                         {% else %}
-                        Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+                        <span style="text-decoration: underline; text-decoration-color: red;">Assistant is OFF</span><br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
                         {% endif %}
                     {% else %}
                     <span id="assistantStatus">
@@ -686,7 +686,7 @@ function downloadImage() {
                     if (assistantTurnedOn) {
                         statusLabel.innerHTML = 'Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>';
                     } else {
-                        statusLabel.innerHTML = 'Assistant is OFF<br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>';
+                        statusLabel.innerHTML = '<span style="text-decoration: underline; text-decoration-color: red;">Assistant is OFF</span><br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>';
                     }
 
                     var xhr = new XMLHttpRequest();
