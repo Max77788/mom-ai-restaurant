@@ -5,7 +5,6 @@ from flask_mail import Mail, Message
 import pandas as pd
 import openpyxl
 import gridfs
-from forex_python.converter import CurrencyRates
 from pathlib import Path
 import qrcode
 import asyncio
