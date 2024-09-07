@@ -54,6 +54,8 @@
             <select id="languageSelectOverlay" style="margin: 10px 0; padding: 10px; width: 100%;">
                 <option value="en-US">English (US) 🇺🇸</option>
                 <option value="es-ES">Spanish 🇪🇸</option>
+                <option value="uk-UA">Ukrainian 🇺🇦</option>
+                <option value="is-IS">Icelandic 🇮🇸</option>
                 <option value="zh-CN">Chinese (Simplified) 🇨🇳</option>
                 <option value="hi-IN">Hindi 🇮🇳</option>
                 <option value="ar-SA">Arabic 🇸🇦</option>
@@ -62,6 +64,7 @@
                 <option value="ja-JP">Japanese 🇯🇵</option>
                 <option value="de-DE">German 🇩🇪</option>
                 <option value="pt-BR">Portuguese 🇧🇷</option>
+
             </select>
             <button onclick="startChat()" style="padding: 10px; width: 100%;">Start</button>
             <!--
@@ -183,7 +186,7 @@
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px;" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px;">
         <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
-        <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">Speak🎤</button>
+        <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">🎤</button>
     </div>
     <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
         <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
@@ -222,6 +225,22 @@
         typeMessage: "Type your message here✍️",
         send: "Send",
         offMessage: "We are currently off. You will be able to make the order later."
+    },
+    'uk-UA': {
+        initialMessage: "Привіт, ласкаво просимо",
+        phrase: "Чим можу допомогти?",
+        makeOrder: `Спілкуйтеся з ${restaurant_name} AI-асистентом`,
+        typeMessage: "Введіть своє повідомлення тут✍️",
+        send: "Надіслати",
+        offMessage: "Зараз ми не працюємо. Ви зможете зробити замовлення пізніше."
+    },
+    'is-IS': {
+        initialMessage: "Halló, velkomin",
+        phrase: "Hvernig get ég hjálpað þér?",
+        makeOrder: `Ræðið við ${restaurant_name} AI-aðstoðarmanneskju`,
+        typeMessage: "Skrifaðu skilaboðin þín hér✍️",
+        send: "Senda",
+        offMessage: "Við erum ekki í boði eins og er. Þú munt geta pantað seinna."
     },
     'es-ES': {
         initialMessage: "Hola, bienvenido a",
@@ -347,6 +366,18 @@
             "Help me with the recommendations based on my preferences.",
             "I'd like to know more about the menu.",
             "Can you assist me with today's offers?"
+        ],
+        'uk-UA': [
+            "Які у вас є спеціальні пропозиції?",
+            "Допоможіть мені з рекомендаціями на основі моїх вподобань.",
+            "Я хотів би дізнатися більше про меню.",
+            "Чи можете ви допомогти мені з сьогоднішніми пропозиціями?"
+        ],
+        'is-IS': [
+        "Hvaða sértilboð hafið þið?",
+        "Getið þið aðstoðað mig með tillögur út frá mínum óskum?",
+        "Mig langar að vita meira um matseðilinn.",
+        "Getið þið hjálpað mér með tilboðin í dag?"
         ],
         'es-ES': [
             "¿Qué especiales tienes?",
@@ -597,16 +628,99 @@
 
 
     window.showWittyPhrase = function showWittyPhrase(visible, voice_input) {
-        const phrases = [
+        const phrases = {
+ 'en-US': [
             "Your Order is Our Command! ✨",
             "The Beauty in Simplicity 😮‍💨",
             "Love is AI Serving You 💓",
             "Prepare for the Tasty Journey 😋",
             "Don't Worry, Just Eat It! 🍽️"
-        ];
+        ],
+        'uk-UA': [
+            "Ваше замовлення — це наш наказ! ✨",
+            "Краса в простоті 😮‍💨",
+            "Любов — це AI, що служить вам 💓",
+            "Приготуйтеся до смачної подорожі 😋",
+            "Не хвилюйтеся, просто їжте! 🍽️"
+        ],
+        'is-IS': [
+        "Pöntunin þín er skipun okkar! ✨",
+        "Fegurðin felst í einfaldleikanum 😮‍💨",
+        "Ástin er AI sem þjónar þér 💓",
+        "Undirbúðu þig fyrir ljúffenga ferð 😋",
+        "Ekki hafa áhyggjur, bara borðaðu það! 🍽️"
+        ],
+        'es-ES': [
+            "¡Tu pedido es nuestra orden! ✨",
+            "La belleza está en la simplicidad 😮‍💨",
+            "El amor es la IA sirviéndote 💓",
+            "Prepárate para un viaje sabroso 😋",
+            "¡No te preocupes, solo cómelo! 🍽️"
+        ],
+        'zh-CN': [
+            "您的订单就是我们的命令！✨",
+            "简单就是美 😮‍💨",
+            "爱就是AI为您服务 💓",
+            "准备好美味的旅程吧 😋",
+            "别担心，尽情享受吧！🍽️"
+        ],
+        'hi-IN': [
+            "आपका ऑर्डर हमारा हुक्म है! ✨",
+            "सरलता में सुंदरता है 😮‍💨",
+            "AI का प्यार आपको सेवा दे रहा है 💓",
+            "स्वादिष्ट यात्रा के लिए तैयार हो जाइए 😋",
+            "चिंता मत करें, बस खाइए! 🍽️"
+        ],
+        'ar-SA': [
+            "طلبك هو أمرنا! ✨",
+            "الجمال في البساطة 😮‍💨",
+            "الحب هو أن يخدمك الذكاء الاصطناعي 💓",
+            "استعد للرحلة اللذيذة 😋",
+            "لا تقلق، فقط تناول الطعام! 🍽️"
+        ],
+        'fr-FR': [
+            "Votre commande est notre commande ! ✨",
+            "La beauté dans la simplicité 😮‍💨",
+            "L'amour, c'est l'IA qui vous sert 💓",
+            "Préparez-vous pour un voyage savoureux 😋",
+            "Ne vous inquiétez pas, mangez simplement ! 🍽️"
+        ],
+        'ru-RU': [
+            "Ваш заказ — наш приказ! ✨",
+            "Красота в простоте 😮‍💨",
+            "Любовь — это ИИ, служащий вам 💓",
+            "Приготовьтесь к вкусному путешествию 😋",
+            "Не волнуйтесь, просто ешьте! 🍽️"
+        ],
+        'ja-JP': [
+            "ご注文は私たちの使命です！✨",
+            "シンプルさの美しさ 😮‍💨",
+            "AIがあなたに奉仕する愛 💓",
+            "美味しい旅に備えて 😋",
+            "心配せずに、ただ食べて！🍽️"
+        ],
+        'de-DE': [
+            "Dein Auftrag ist unser Befehl! ✨",
+            "Die Schönheit liegt in der Einfachheit 😮‍💨",
+            "Liebe ist, wenn KI dir dient 💓",
+            "Mach dich bereit für die leckere Reise 😋",
+            "Keine Sorge, iss einfach! 🍽️"
+        ],
+        'pt-BR': [
+            "Seu pedido é a nossa ordem! ✨",
+            "A beleza está na simplicidade 😮‍💨",
+            "O amor é a IA servindo você 💓",
+            "Prepare-se para a jornada saborosa 😋",
+            "Não se preocupe, apenas coma! 🍽️"
+        ]
+};
+
+        const userLanguage = sessionStorage.getItem('userLanguage');
+        console.log(`User Language ${userLanguage}`)
+
         const phraseDisplay = document.getElementById('wittyPhrase');
         if (visible) {
-            const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+            const randomPhrase = phrases[userLanguage][Math.floor(Math.random() * phrases[userLanguage].length)];
             if (phraseDisplay) {
                 phraseDisplay.textContent = randomPhrase;
                 phraseDisplay.style.display = 'block';
