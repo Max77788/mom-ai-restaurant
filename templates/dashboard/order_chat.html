@@ -182,8 +182,8 @@
 <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: relative; display: flex; flex-direction: column; align-items: center;">
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px;" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px;">
-        <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send</button>
-        <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">🎤</button>
+        <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
+        <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">Speak🎤</button>
     </div>
     <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
         <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
@@ -465,8 +465,8 @@
             currentThreadId = data.thread_id;
             currentAssistantId = data.assistant_id;
 
-            console.log("Received Thread ID: ", data.thread_id);
-            console.log("Current Assistant ID: ", data.assistant_id);
+            // console.log("Received Thread ID: ", data.thread_id);
+            // console.log("Current Assistant ID: ", data.assistant_id);
             
             document.getElementById('restaurantLogo').style.display = 'none';
             document.getElementById('welcomeMessage').style.display = 'none';
@@ -779,44 +779,9 @@ function displayWord(element, message) {
     }
 
     showNextWord();
-}
-}
+};
 
-
-    window.appendMessage = appendMessage;
-
-    function scrollToBottom(element) {
-        const chatBox = document.getElementById('chatBox');
-        chatBox.scrollTop = element.offsetTop + element.offsetHeight;
-    }
-
-    window.scrollToBottom = scrollToBottom;
-
-    var flashMessages = document.querySelector('.flash-messages');
-    if (flashMessages) {
-        setTimeout(function() {
-            flashMessages.style.display = 'none';
-        }, 5000);
-    }
-
-
-    /*
-    async function speak(text) {
-        const synthesis = window.speechSynthesis;
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        let userLanguage = sessionStorage.getItem('userLanguage');
-        console.log("The language user selected on start (accessed from speak function): ", userLanguage)
-        
-        // utterance.lang = document.getElementById('languageSelect').value;
-        utterance.lang = userLanguage;
-        synthesis.speak(utterance);
-    }
-
-    window.speak = speak;
-    */
-    
-    const micButton = document.getElementById('micButton');
+const micButton = document.getElementById('micButton');
     micButton.addEventListener('click', () => {
         if (isRecording && !blockMicButton) {
             mediaRecorder.stop();
@@ -950,6 +915,44 @@ function displayWord(element, message) {
 
     mediaRecorder.start();
 };
+
+}
+
+
+    window.appendMessage = appendMessage;
+
+    function scrollToBottom(element) {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.scrollTop = element.offsetTop + element.offsetHeight;
+    }
+
+    window.scrollToBottom = scrollToBottom;
+
+    var flashMessages = document.querySelector('.flash-messages');
+    if (flashMessages) {
+        setTimeout(function() {
+            flashMessages.style.display = 'none';
+        }, 5000);
+    }
+
+
+    /*
+    async function speak(text) {
+        const synthesis = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        let userLanguage = sessionStorage.getItem('userLanguage');
+        console.log("The language user selected on start (accessed from speak function): ", userLanguage)
+        
+        // utterance.lang = document.getElementById('languageSelect').value;
+        utterance.lang = userLanguage;
+        synthesis.speak(utterance);
+    }
+
+    window.speak = speak;
+    */
+    
+    
 </script>
 
 
