@@ -27,9 +27,11 @@
 
 <h2 class="mb-4" style="text-align: center; position: relative; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px; margin-bottom: 5px;">
     Set Working Hours for {{ restaurant['name'] }} AI-Assistant
+    {% if not start_setup %}
     <a href="/dashboard" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000;">
         <u>Go to Dashboard -></u>
     </a>
+    {% endif %}
 </h2>
 <form id="scheduleForm" style="max-width: 600px; margin: auto; background: #ecf0f1; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div style="margin-bottom: 20px;">

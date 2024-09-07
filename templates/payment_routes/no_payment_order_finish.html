@@ -150,7 +150,12 @@
                 </li>
             {% endfor %}
         </ul>
+        <b>Total to pay in the restaurant:<br>
+        {{ total_price_NATIVE }} {{ res_currency }}<br>
+        or<br>
+        {{ total_price_EUR }} EUR</b>
         </div>
+        <hr>
         <!-- <h2>Visit <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=res_unique_azz_id) }}' target="_blank">{{ restaurant_name.replace("_", " ") }}</a> to pick up your food shortly.</h2> -->
         <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
             Please, remember this number - you will not be able to pick your order without this number.</h3>

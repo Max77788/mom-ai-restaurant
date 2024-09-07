@@ -548,8 +548,16 @@
         llmResponse = data.response_llm;
         // appendMessage(llmResponse, 'assistant');
 
-        if (llmResponse.includes("/payment_buffer") || llmResponse.includes("Thank you very much! You ordered")) {
-            appendMessage(llmResponse, "assistant")
+        if (llmResponse.includes("/payment_buffer")){
+            window.location.href = llmResponse;
+            // appendMessage(llmResponse, "assistant")
+            return; // Terminate the function here
+        };
+
+        if (llmResponse.includes("Thank you very much! You ordered")){
+            const unique_azz_id = "{{ unique_azz_id }}"
+            window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+            // appendMessage(llmResponse, "assistant")
             return; // Terminate the function here
         }
 
@@ -623,43 +631,65 @@
     footer.insertBefore(wittyPhraseDiv, footer.firstChild);
 
     function appendMessage(message, sender) {
-    // Insert line breaks between sentences
-    message = message.replace(/([.!?])\s*(?=[A-Z])/g, "$1<br>");
+    let isRichContent = false;
 
-    if (message.includes("/payment_buffer")) {
-        const isIframeRaw = "{{ iframe }}";
-        let isIframe = isIframeRaw === "True";
-
-        if (isIframe) {
-            let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
-            message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
+    if (sender === 'user') {
+        const starterButtonsDiv = document.getElementById("starterButtonsDiv");
+        if (starterButtonsDiv) {  // Check if the element exists
+            starterButtonsDiv.style.display = "none";
+            console.log("Hid button section");
         } else {
-            window.location.href = message;
-            return;
-        }
-    } else if (message.includes("Come to the restaurant and pick up")) {
-        const isIframeRaw = "{{ iframe }}";
-        let isIframe = isIframeRaw === "True";
-
-        if (isIframe) {
-            message = message;
-            document.getElementById('userMessage').disabled = true;
-            document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-            document.getElementById('micButton').disabled = true;
-        } else {
-            const unique_azz_id = "{{ unique_azz_id }}";
-            window.location.href = `/no-payment-order-placed/${unique_azz_id}`;
-            return;
+            console.log("Element 'starterButtonsDiv' not found.");
         }
     }
 
+    if (sender === 'assistant') {
+    // Regular expressions to check for specific markdown elements
+    const markdownPatterns = [
+        /#{1,6}\s/,    // Headings (#, ##, ###, etc.)
+        /\*\*.*?\*\*/, // Bold (**bold**)
+        /\*.*?\*/,     // Italics (*italics*)
+        /\[.*?\]\(.*?\)/, // Links [text](url)
+        /`.*?`/,       // Inline code (`code`)
+        /```[\s\S]*?```/ // Code blocks (```code```)
+    ];
+
+    if (message.includes("/payment_buffer") && sender === "assistant"){
+        window.location.href = llmResponse;
+        // appendMessage(llmResponse, "assistant")
+        return; // Terminate the function here
+    };
+
+    if (message.includes("Thank you very much! You ordered") && sender === "assistant"){
+        const unique_azz_id = "{{ unique_azz_id }}"
+        window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+        // appendMessage(llmResponse, "assistant")
+        return; // Terminate the function here
+    }
+
+    // Check if any markdown pattern is found in the message
+    const containsMarkdown = markdownPatterns.some((pattern) => pattern.test(message));
+
+    if (containsMarkdown) {
+        try {
+            message = marked.parse(message);  // Convert Markdown to HTML
+            isRichContent = true;  // Indicate that the content is rich (contains HTML)
+        } catch (error) {
+            console.error("Marked conversion error: ", error);
+            message = message;  // Fallback to plain message in case of error
+        }
+    } else {
+        isRichContent = false;  // No markdown detected, so no rich content
+    }
+}
+
     const messageDiv = document.createElement('div');
     messageDiv.style.cssText = `
-        margin-top: 10px; 
-        margin-right: 10px; 
-        margin-left: 10px;     
-        margin-bottom: 40px; 
-        padding: 15px; 
+        margin-top: 10px;
+        margin-right: 10px;
+        margin-left: 10px;
+        margin-bottom: 40px;
+        padding: 15px;
         border-radius: 15px;
         font-family: 'Arial', sans-serif;
         font-size: 16px;
@@ -668,13 +698,12 @@
         max-width: 80%;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     `;
-    
-    try {
-        const htmlContent = marked.parse(message);
-        messageDiv.innerHTML = htmlContent;
-    } catch (error) {
-        console.error("Marked conversion error: ", error);
-        messageDiv.textContent = message;
+
+    // If it's rich content, directly insert HTML; otherwise, treat as plain text
+    if (isRichContent) {
+        messageDiv.innerHTML = message;  // Insert the HTML content directly
+    } else {
+        messageDiv.textContent = message;  // For plain text, use textContent
     }
 
     const iconDiv = document.createElement('div');
@@ -726,45 +755,30 @@
     document.getElementById('chatBox').appendChild(messageContainer);
     scrollToBottom(messageContainer);
 
+    console.log(`IsRichContent value: ${isRichContent}`)
+
+    // If not rich content and sender is assistant, apply word-by-word effect
+    if (!isRichContent) {
+        displayWord(messageDiv, message);
+    }
+}
+
+// Word-by-word display function, only used for non-rich content
+function displayWord(element, message) {
     const words = message.split(' ');
-    messageDiv.innerHTML = '';  // Clear the content first
+    element.innerHTML = '';  // Clear the content first
 
     let wordIndex = 0;
 
-    function displayWord() {
-    if (wordIndex < words.length) {
-        let currentWord = words[wordIndex];
-
-        // Check if the current word is the start of an <img> tag
-        if (currentWord.startsWith('<img')) {
-            // Collect the entire <img> tag
-            while (!currentWord.endsWith('>') && wordIndex < words.length - 1) {
-                wordIndex++;
-                currentWord += ' ' + words[wordIndex];
-            }
-
-            // Display the entire <img> tag immediately
-            messageDiv.innerHTML += currentWord + ' ';
-        } else {
-            // Display the current word with a delay
-            messageDiv.innerHTML += currentWord + ' ';
+    function showNextWord() {
+        if (wordIndex < words.length) {
+            element.innerHTML += words[wordIndex] + ' ';
+            wordIndex++;
+            setTimeout(showNextWord, 257);  // Adjust delay as needed
         }
-
-        wordIndex++;
-        
-        // If the current word is an <img> tag, no delay; otherwise, delay for the next word
-        const delay = currentWord.startsWith('<img') && currentWord.endsWith('>') ? 0 : 117;
-
-        setTimeout(displayWord, delay);
     }
-}
-if (sender === "assistant"){
 
-displayWord(); // Start the word-by-word display
-} else {
-    // If the sender is not "assistant", display the entire message immediately
-    messageDiv.innerHTML = message;
-}
+    showNextWord();
 }
 }
 
@@ -880,8 +894,16 @@ displayWord(); // Start the word-by-word display
                 const data = await response.json();
                 llmResponse = data.response_llm;
 
-                if (llmResponse.includes("/payment_buffer") || llmResponse.includes("Thank you very much! You ordered")) {
-                    appendMessage(llmResponse, "assistant")
+                if (llmResponse.includes("/payment_buffer")){
+                    window.location.href = llmResponse;
+                    // appendMessage(llmResponse, "assistant")
+                    return; // Terminate the function here
+                };
+
+                if (llmResponse.includes("Thank you very much! You ordered")){
+                    const unique_azz_id = "{{ unique_azz_id }}"
+                    window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+                    // appendMessage(llmResponse, "assistant")
                     return; // Terminate the function here
                 }
 

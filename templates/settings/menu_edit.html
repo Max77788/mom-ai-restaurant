@@ -32,7 +32,50 @@
 
     <hr>
 
+    <h1 style="text-align: center;">Set the currency</h1>
+
+    <!-- Form to select currency -->
+{% if initial_setup %}
+<form id="currencyForm" action="/set-currency?initial_setup=True" method="POST">
+{% else %}
+<form id="currencyForm" action="/set-currency" method="POST">
+{% endif %}
+    <!-- Dropdown for top 10 currencies -->
+    <label for="currency">Select Currency:</label>
+    <select id="currency" name="currency" style="max-width: 300px;">
+        <option value="{{ currency }}" selected>{{ currency }}</option>
+        <option value="USD">USD - US Dollar</option>
+        <option value="EUR">EUR - Euro</option>
+        <option value="JPY">JPY - Japanese Yen</option>
+        <option value="GBP">GBP - British Pound</option>
+        <option value="AUD">AUD - Australian Dollar</option>
+        <option value="CAD">CAD - Canadian Dollar</option>
+        <option value="CHF">CHF - Swiss Franc</option>
+        <option value="CNY">CNY - Chinese Yuan</option>
+        <option value="SEK">SEK - Swedish Krona</option>
+        <option value="NZD">NZD - New Zealand Dollar</option>
+        <option value="ISK">ISK - Icelandic Krona</option>
+    </select>
+
+    <!-- Button to submit the form -->
+    <button type="submit" style="margin-top: 10px;">Set Currency</button>
+</form>
+
+<hr>
+
+
     <h1 style="text-align: center;">Upload the menu file</h1>
+    {% if initial_setup %}
+    <form action="/update_menu?initial_setup=True" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()">
+        <div>
+            <label for="menu_update">⬇️Upload the menu(rewrites the whole menu📖)</label>
+            {{ form.menu_update }}
+        </div>
+        <div style="margin-top: 7px;">
+            {{ form.submit }}
+        </div>
+    </form>
+    {% else %}
     <form action="/update_menu" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()">
         <div>
             <label for="menu_update">⬇️Upload the menu(rewrites the whole menu📖)</label>
@@ -42,6 +85,7 @@
             {{ form.submit }}
         </div>
     </form>
+    {% endif %}
 
     {% if initial_setup or default_menu %}
     <div style="display:flex; flex-direction: column; align-items: center;">
@@ -52,7 +96,7 @@
             {{ form.hidden_tag() }}
             <input type="text" name="item_name" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
             <input type="text" name="item_description" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-            <input type="number" step="0.01" name="item_price" placeholder="Item Price (EUR)" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+            <input type="number" step="0.01" name="item_price" placeholder="Item Price ({{ currency }})" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
             <input type="url" name="item_image_link" placeholder="Link to Image" style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
             <button type="button" id="addItemBtn">Add Item</button>
         </form>
@@ -63,8 +107,8 @@
                 <tr>
                     <th>Item Name</th>
                     <th>Item Description</th>
-                    <th>Item Price (EUR)</th>
-                    <th>Link to Image</th>
+                    <th>Item Price ({{ currency }})</th>
+                    <th>Link to Image (optional)</th>
                     <th>Image</th>
                 </tr>
             </thead>
@@ -197,10 +241,6 @@
         });
     </script>
     {% endif %}
-
-    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-    <img src="/static/assets/loading-gif.gif" width="70" style="display: none;" id="loadingGif">
-    </div>
     <hr>
     <div class="container mt-5">
         <!-- New Item Form -->
@@ -210,19 +250,24 @@
         <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
           <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
           <input type="text" id="newItemDescription" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-          <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price (EUR)" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+          <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price ({{ currency }})" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
           <input type="url" id="newItemImageLink" placeholder="Link to Image" style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
           <button id="addNewItemBtn">Add Item</button>
         </div>
         
-      
-      
-
-        <button id="saveChangesBtn" style="margin-top: 20px;">Save Changes</button>
         <p style="font-size: 10px;">Press this button when you have added new positions and removed irrelevant items</p>
         </div>
+
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <img src="/static/assets/loading-gif.gif" width="70" style="display: none;" id="loadingGif">
+        </div>
+
         {% endif %}
-        
+
+        <div style="display: flex; align-items: center; justify-content: center;">
+            <button id="saveChangesBtn" style="margin-top: 20px; flex-direction: column; align-items: center;">Save Changes</button>
+        </div>
+
         {% if default_menu %}
         <h1 class="mb-4" style="text-align: center;">That's the example of the menu you should provide</h1>
         {% else %}
@@ -238,7 +283,7 @@
                       <tr style="text-align: right;">
                         <th>Item Name</th>
                         <th>Item Description</th>
-                        <th>Item Price (EUR)</th>
+                        <th>Item Price ({{ currency }})</th>
                         <th>Link to Image</th>
                         <th>Image</th>
                       </tr>
@@ -323,11 +368,22 @@
                     let table = document.getElementById('menuTable').getElementsByTagName('tbody')[0];
                     let newRow = table.insertRow(0);
 
+                     style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                     
+                    newRow.style.maxWidth = 200;
+                    newRow.style.overflow = "hidden";
+                    newRow.style.textOverflow = "ellipsis";
+                    newRow.style.whiteSpace = "nowrap";
+
                     Object.keys(newItem).forEach(function(key) {
                         let cell = newRow.insertCell();
-                        cell.contentEditable = "true";
-                        cell.setAttribute('data-column', key);
-                        cell.innerText = newItem[key];
+                        cell.style.maxWidth = "200px";  // Add "px" for width value
+                        cell.style.overflow = "hidden";
+                        cell.style.textOverflow = "ellipsis";
+                        cell.style.whiteSpace = "nowrap";
+                        cell.contentEditable = "true";  // This allows the content to be editable
+                        cell.setAttribute('data-column', key);  // Sets a custom attribute 'data-column'
+                        cell.textContent = newItem[key];  // Use textContent, faster and more consistent
                     });
 
                     let imgCell = newRow.insertCell();

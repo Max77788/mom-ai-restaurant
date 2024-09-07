@@ -1399,7 +1399,7 @@ def get_restaurants(page, per_page, search_query='', user_lat=None, user_lng=Non
 
 
 @app.route('/dashboard', methods=['POST', 'GET'])
-def dashboard_display(show_popup=None):
+def dashboard_display(show_popup=False):
     if request.args.get("show_popup") == "True":
         show_popup = True
       
@@ -1476,7 +1476,8 @@ def dashboard_display(show_popup=None):
         # Handle the case when the instance is not found
         flash("Restaurant not found. Please, login with the right credentials.")
         return redirect(url_for("login"))
-    return render_template("dashboard/dashboard.html", title=f"{restaurant_name}\'s Dashboard", 
+    return render_template("dashboard/dashboard.html", 
+                           title=f"{restaurant_name}\'s Dashboard", 
                            restaurant_name=restaurant_name, 
                            current_balance=f"{round(float(current_balance),2):.2f}", 
                            wallet_address=web3_wallet_address, 
@@ -1487,7 +1488,7 @@ def dashboard_display(show_popup=None):
                            res_unique_azz_id=res_unique_azz_id,
                            awaiting_withdrawal=awaiting_withdrawal,
                            assistant_spent=f"{round(float(assistant_spent),2):.2f}",
-                           res_currency=res_currency,
+                           res_currency="EUR",  # res_currency=res_currency,
                            assistant_turned_on=assistant_turned_on,
                            logo_url=logo_url,
                            restaurant=restaurant_instance,
@@ -1902,6 +1903,7 @@ def show_menu():
     html_menu_tuples = session.get("html_menu_tuples")
     default_menu = session.get("default_menu")
     unique_azz_id = session.get("unique_azz_id")
+    res_currency = session.get("res_currency")
     # wrapped_html_table = wrap_images_in_html_table(html_menu)
     print("Default menu we pass: ", default_menu)
 
@@ -1910,7 +1912,8 @@ def show_menu():
                            html_menu_tuples=html_menu_tuples, 
                            form=form,
                            default_menu=default_menu,
-                           unique_azz_id=unique_azz_id)
+                           unique_azz_id=unique_azz_id,
+                           res_currency=res_currency)
 
     
 """
@@ -1964,96 +1967,125 @@ def secure_filename(filename):
 """
 
 
+@app.route('/set-currency', methods=['POST'])
+def set_currency(initial_setup=False):
+    initial_setup = request.args.get("initial_setup") == "True"
+
+    print("\n\n\nInitial setup - ", initial_setup, "\n\n\n")
+
+    unique_azz_id = session.get("unique_azz_id")
+    new_currency = request.form.get("currency")
+
+    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"res_currency":new_currency}})
+
+    flash(f"Set the currency of your menu to {new_currency}", category="success")
+
+    if initial_setup:
+        return redirect(url_for("update_menu_gui", initial_setup=True))
+    else:
+        return redirect(url_for("update_menu_gui"))
+
 
 @app.route('/update_menu', methods=['POST'])
-def update_menu():
+def update_menu(initial_setup=False):
 
-    print(request)
-    menu = request.files['menu_update']
-    #script = request.files['script']
+    initial_setup = request.args.get("initial_setup") == "True"
 
-    # Extract the original file extensions
-    menu_extension = os.path.splitext(menu.filename)[1]
-    #script_extension = os.path.splitext(script.filename)[1]
+    print("\n\n\nInitial setup - ", initial_setup, "\n\n\n")
 
-    menu_filename = secure_filename(f"menu_file{menu_extension}")
-    #script_filename = secure_filename(f"script_file{script_extension}")
+    try:
+        print(request)
+        menu = request.files['menu_update']
+        #script = request.files['script']
 
-    print(f"Menu filename: {menu_filename}")
-    #print(f"Script filename: {script_filename}")
+        # Extract the original file extensions
+        menu_extension = os.path.splitext(menu.filename)[1]
+        #script_extension = os.path.splitext(script.filename)[1]
 
-    menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
-    #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
-    print(f"Menu xlsx path: {menu_xlsx_path}")
-    #print(f"Script path: {script_path}")
+        menu_filename = secure_filename(f"menu_file{menu_extension}")
+        #script_filename = secure_filename(f"script_file{script_extension}")
 
-    # Save the files
-    menu.save(menu_xlsx_path)
-    #script.save(script_path)
-    print("Files saved")
+        print(f"Menu filename: {menu_filename}")
+        #print(f"Script filename: {script_filename}")
 
-    menu_save_txt_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
-  
-    currency = session.get("res_currency")
-    restaurant_name = session.get("restaurant_name")
-    unique_azz_id = session.get("unique_azz_id")
-    assistant_id = session.get("assistant_id")
+        menu_xlsx_path = os.path.join(app.config['UPLOAD_FOLDER'], menu_filename)
+        #script_path = os.path.join(app.config['UPLOAD_FOLDER'], script_filename)
+        print(f"Menu xlsx path: {menu_xlsx_path}")
+        #print(f"Script path: {script_path}")
 
-    upload_response = upload_new_menu(menu_xlsx_path, menu_save_txt_path, currency, restaurant_name, collection, unique_azz_id, assistant_id)
-    print(upload_response)
+        # Save the files
+        menu.save(menu_xlsx_path)
+        #script.save(script_path)
+        print("Files saved")
 
+        menu_save_txt_path = os.path.join(app.config['UPLOAD_FOLDER'], "menu_file.txt")
     
-    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})    
+        currency = session.get("res_currency")
+        restaurant_name = session.get("restaurant_name")
+        unique_azz_id = session.get("unique_azz_id")
+        assistant_id = session.get("assistant_id")
 
-    
-    if upload_response["success"]:
-        voice_pathway_id = restaurant.get("voice_pathway_id", None)
+        upload_response = upload_new_menu(menu_xlsx_path, menu_save_txt_path, currency, restaurant_name, collection, unique_azz_id, assistant_id)
+        print(upload_response)
 
-        if voice_pathway_id:
-            unique_azz_id = session.get("unique_azz_id")
-            restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
-            
-            restaurant_menu_tuples = restaurant.get("html_menu_tuples")
+        
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})    
 
-            menu_string = ""
+        
+        if upload_response["success"]:
+            voice_pathway_id = restaurant.get("voice_pathway_id", None)
 
-            for item in restaurant_menu_tuples:
-                item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
-                menu_string += item_text
-            
-            restaurant_name = restaurant.get("name")
-            store_location = restaurant.get("location_name")
-            timezone = restaurant.get("timezone")
-            restaurant_menu = menu_string
-            
-            opening_hours_string = ""
+            if voice_pathway_id:
+                unique_azz_id = session.get("unique_azz_id")
+                restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+                
+                restaurant_menu_tuples = restaurant.get("html_menu_tuples")
 
-            opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+                menu_string = ""
 
-            day_of_weeks = {
-                0: 'Monday',
-                1: 'Tuesday',
-                2: 'Wednesday',
-                3: 'Thursday',
-                4: 'Friday',
-                5: 'Saturday',
-                6: 'Sunday'
-            }
+                for item in restaurant_menu_tuples:
+                    item_text = f"Name: {item['Item Name']}\nIngredients: {item['Item Description']}\nPrice: {item['Item Price (EUR)']} EUR\n\n\n"
+                    menu_string += item_text
+                
+                restaurant_name = restaurant.get("name")
+                store_location = restaurant.get("location_name")
+                timezone = restaurant.get("timezone")
+                restaurant_menu = menu_string
+                
+                opening_hours_string = ""
 
-            for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
-                day_of_week = day_of_weeks[index]
-                opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
-                opening_hours_string += opening_hours_line + "\n"
-            
-            create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+                opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
 
-            success = insert_the_nodes_and_edges_in_new_pathway(voice_pathway_id, unique_azz_id)
-        flash("Menu updated successfully!", category="success")
-        session["default_menu"] = False
+                day_of_weeks = {
+                    0: 'Monday',
+                    1: 'Tuesday',
+                    2: 'Wednesday',
+                    3: 'Thursday',
+                    4: 'Friday',
+                    5: 'Saturday',
+                    6: 'Sunday'
+                }
+
+                for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+                    day_of_week = day_of_weeks[index]
+                    opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+                    opening_hours_string += opening_hours_line + "\n"
+                
+                create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+
+                success = insert_the_nodes_and_edges_in_new_pathway(voice_pathway_id, unique_azz_id)
+            flash("Menu updated successfully!", category="success")
+            session["default_menu"] = False
+        else:
+            flash("Error updating menu. Please check the file for validity.", category="danger")
+    except Exception as e:
+            flash(f"Error updating menu. Please check the file for validity. Error message: {e}", category="danger")
+            return redirect(url_for("update_menu_gui"))
+
+    if initial_setup:
+        return redirect(url_for("dashboard_display", show_popup=True))
     else:
-        flash("Error updating menu. Please check the file for validity.", category="danger")
-
-    return redirect(url_for("update_menu_gui"))
+        return redirect(url_for("update_menu_gui"))
 
 
 @app.route('/update_menu_manual', methods=['POST'])
@@ -2171,8 +2203,13 @@ def update_menu_gui(initial_setup=None):
     form = UpdateMenuForm()
     default_menu = session.get("default_menu")
     unique_azz_id = session.get("unique_azz_id")
-    html_menu_tuples = collection.find_one({"unique_azz_id":unique_azz_id}).get("html_menu_tuples")
+
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    html_menu_tuples = restaurant.get("html_menu_tuples")
     # wrapped_html_table = wrap_images_in_html_table(html_menu)
+
+    currency = restaurant.get("res_currency")
 
     # print("That's the menu we've got ", wrapped_html_table)
     return render_template("settings/menu_edit.html", 
@@ -2181,7 +2218,8 @@ def update_menu_gui(initial_setup=None):
                            default_menu=default_menu,
                            unique_azz_id=unique_azz_id,
                            title="Edit Menu",
-                           initial_setup=initial_setup)
+                           initial_setup=initial_setup,
+                           currency=currency)
 
 
 
@@ -2251,24 +2289,51 @@ def payment_buffer(unique_azz_id, id):
 
     # print("Restaurant html menu tuples: \n\n\n", restaurant.get("html_menu_tuples"), "\n\n\n")
 
+    res_currency = restaurant.get("res_currency")
+
+    conversion_rate = session.get("currency_rate")
+
     #checkout_link = session.get("paypal_link")
     if restaurant['addFees']:
         addFees = True
-        sum_of_order = sum(float(float(item['amount'])*item['quantity']) for item in items)
-        total_to_pay_int = str(sum_of_order+0.45+0.049*sum_of_order)
-        total_to_pay = str(round(float(total_to_pay_int), 2))
-        fees_amount = round(float(total_to_pay) - sum_of_order,2) 
+
+        sum_of_order = sum(float(float(item['price'])*item['quantity']) for item in items)
+        sum_of_order_euro = sum_of_order*conversion_rate
+
+        fees_amount_EUR = 0.45+0.049*sum_of_order_euro
+        fees_amount_native = round((0.45+0.049*sum_of_order_euro)/conversion_rate, 2)
+        
+        total_to_pay_str = str(sum_of_order_euro+fees_amount_EUR)
+        total_to_pay_EUR = str(round(float(total_to_pay_str), 2))
+
+        session["sum_of_order"] = sum_of_order_euro
+
+        total_to_pay_native = str(round(float(total_to_pay_EUR)/conversion_rate, 2))
+
+        
         print("Add fees on payment buffer")
     else:    
         addFees = False
-        total_to_pay = str(sum(float(float(item['amount'])*item['quantity']) for item in items))
+        total_to_pay = sum(float(float(item['price'])*item['quantity']) for item in items)
         sum_of_order = total_to_pay
-        total_to_pay = str(round(float(total_to_pay), 2))
-        fees_amount = 0
+        
+        total_to_pay_EUR = total_to_pay*conversion_rate
+        total_to_pay_EUR = str(round(float(total_to_pay_EUR), 2))
 
-    session["total"] = total_to_pay
-    total_to_pay_display = f"{float(total_to_pay):.2f}"
-    session["sum_of_order"] = sum_of_order
+        session["sum_of_order"] = total_to_pay_EUR
+
+        total_to_pay_native = str(round(float(total_to_pay_EUR)/conversion_rate, 2))
+
+        fees_amount_EUR = 0
+        fees_amount_native = 0
+
+    fees_amount = fees_amount_EUR
+
+    session["total_to_pay_EUR"] = total_to_pay_EUR
+
+    session["total_to_pay_native"] = total_to_pay_native
+    
+    total_to_pay_display = f"{float(total_to_pay_EUR):.2f}"
 
     session["unique_azz_id"] = unique_azz_id
 
@@ -2298,7 +2363,21 @@ def payment_buffer(unique_azz_id, id):
         
 
     
-    return render_template("payment_routes/payment_buffer.html", total_to_pay_display=total_to_pay_display, items=items, total_to_pay=total_to_pay, CLIENT_ID=CLIENT_ID, CURRENCY=CURRENCY, restaurant=restaurant, unique_azz_id=unique_azz_id, addFees=addFees, fees_amount=fees_amount, title="Payment Buffer")
+    return render_template("payment_routes/payment_buffer.html", total_to_pay_display=total_to_pay_display, 
+                           items=items, 
+                           total_to_pay_native=total_to_pay_native,
+                           total_to_pay_EUR=total_to_pay_EUR, 
+                           CLIENT_ID=CLIENT_ID, 
+                           CURRENCY=CURRENCY, 
+                           restaurant=restaurant, 
+                           unique_azz_id=unique_azz_id, 
+                           addFees=addFees, 
+                           fees_amount=fees_amount, 
+                           title="Payment Buffer",
+                           sum_of_order=sum_of_order,
+                           fees_amount_native=fees_amount_native,
+                           fees_amount_EUR=fees_amount_EUR,
+                           res_currency=res_currency)
 
 
 @app.route("/create_payment", methods=['POST','GET'])
@@ -2993,7 +3072,7 @@ def generate_response(unique_azz_id):
     #print(f"\n\nList of all items formed: {list_of_all_items}\n\n")  # Debugging line
 
     print("Thats what we sent to retrieve the gpts response, ", user_input)
-    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id, discovery_mode=discovery_mode)
+    response_llm, tokens_used = get_assistants_response(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id, res_currency=res_currency, discovery_mode=discovery_mode)
 
     response_llm = replace_markdown_images(response_llm)
     
@@ -3149,7 +3228,11 @@ def no_payment_order_placed(unique_azz_id):
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
     
-    total_price = session.get("total_price")
+    res_currency = current_restaurant_instance.get("res_currency")
+    
+    total_price_EUR = session.get("total_price_EUR")
+    total_price_NATIVE = session.get("total_price_NATIVE")
+
     order_id = session.get("order_id")
     items_ordered = session.get("items_ordered")
 
@@ -3191,8 +3274,10 @@ def no_payment_order_placed(unique_azz_id):
     return render_template("payment_routes/no_payment_order_finish.html", 
                            title="Ready Order", 
                            res_unique_azz_id=unique_azz_id, 
-                           order_id=order_id, 
-                           total_price=total_price, 
+                           order_id=order_id,
+                           total_price_EUR=total_price_EUR,
+                           total_price_NATIVE=total_price_NATIVE,
+                           res_currency=res_currency, 
                            restaurant_name=restaurant_name.replace('_', ' '), 
                            items=items_ordered,
                            suggest_web3_bonus=suggest_web3_bonus)
@@ -3217,7 +3302,8 @@ def success_payment_backend(unique_azz_id):
     session.pop('access_granted_payment_buffer', None)
     
     items = session.get('items_ordered')
-    total_paid = session.get('total')
+    total_paid_EUR = session.get("total_to_pay_EUR")
+    total_paid_native = session.get("total_to_pay_native")
     order_id = session.get("order_id")
 
     sum_of_order = session.get('sum_of_order')
@@ -3230,9 +3316,9 @@ def success_payment_backend(unique_azz_id):
     print(f"MOM AI fee in the order: {MOM_AI_FEE}\n\n")
     print(f"PAYPAL fee in the order: {PAYPAL_FEE}\n\n")
 
-    total_received = float(total_paid) - float(round(MOM_AI_FEE, 2)) - float(round(PAYPAL_FEE, 2))
+    total_received = float(total_paid_EUR) - float(round(MOM_AI_FEE, 2)) - float(round(PAYPAL_FEE, 2))
 
-    print(f"That's how much customer paid: {total_paid}")
+    print(f"That's how much customer paid: {total_paid_EUR}")
     print(f"That's how much restaurant received: {total_received}")
 
     # Find the instance in MongoDB
@@ -3250,7 +3336,8 @@ def success_payment_backend(unique_azz_id):
     order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
                         "orderID":order_id,
                         "timestamp": timestamp_utc,
-                        "total_paid": total_paid,
+                        "total_paid": total_paid_native,
+                        "total_paid_EUR": total_paid_EUR,
                         "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
                         "paypal_fee": float(round(PAYPAL_FEE, 2)),
                         "paid":"PAID",
@@ -3289,7 +3376,7 @@ def success_payment_backend(unique_azz_id):
     print(f"Current balance after updating: {current_balance}")
 
     print(f"Items: {items} on success payment route")
-    print(f"Total paid: {total_paid} on success payment route")
+    print(f"Total paid: {total_paid_EUR} on success payment route")
 
 
     flash("Your Order was Successfully Placed!")
@@ -3335,7 +3422,7 @@ def success_payment_display(unique_azz_id, id):
     for index, image_url in enumerate(image_urls):
         items[index]['image_url'] = image_url
 
-    total_paid = session.get('total')
+    total_paid = session.get('total_to_pay_EUR')
 
     # Check if the delete was successful
     if result.deleted_count > 0:

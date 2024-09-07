@@ -9,14 +9,14 @@
             {% for item in items %}
                 <li>
                 <b>{{ item['name'] }}</b> : <b>{{ item['quantity'] }} serving(s)</b><br>
-                <b>{{ item['amount']}} {{ restaurant.res_currency }} <u>per 1 item</u></b>
+                <b>{{ item['price']}} {{ restaurant.res_currency }} <u>per 1 item</u></b>
                 {% if item['image_url'] %}
                 <br><img src="{{ item['image_url'] }}" alt="Image of {{ item['name'] }}" width="170" height="auto">
                 {% endif %}
                 </li>
                 <hr>
             {% endfor %}
-            {% if addFees %}
+            {% if addFees %}    
             <li style="margin-top: 8px;">
                 <b>MOM AI and PayPal fee</b> : <b>{{ fees_amount }} EUR</b>
             </li>
@@ -24,7 +24,14 @@
             {% endif %}
         </ul>
         
-        <p style="margin-bottom: 10px;"><b>Total: {{ total_to_pay_display }} {{ restaurant.res_currency }}</b></p>
+        
+        {% if res_currency != "EUR" %}
+        <p style="margin-bottom: 10px;"><b>Total in {{ res_currency }}: {{ total_to_pay_native }} {{ res_currency }}</b></p>
+
+        <p style="margin-bottom: 10px;"><b>Total in Euro: {{ total_to_pay_EUR }} EUR</b></p>
+        {% else %}
+        <p style="margin-bottom: 10px;"><b>Total in Euro: {{ total_to_pay_EUR }} EUR</b></p>
+        {% endif %}
 
 <!--
 <script src="https://www.paypalobjects.com/api/checkout.js"></script>
@@ -80,7 +87,7 @@ paypal.Button.render({
 <!-- <a href='{{ url_for("assistant_order_chat", unique_azz_id=unique_azz_id) }}'><button>Come Back</button></a> -->
 
 <!-- Include the PayPal JavaScript SDK -->
-<script src="https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency={{ CURRENCY }}"></script>
+<script src="https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency=EUR"></script>
 
 <script>
     // console.log("https://www.paypal.com/sdk/js?client-id={{ CLIENT_ID }}&currency={{ CURRENCY }}")
@@ -109,7 +116,7 @@ paypal.Button.render({
         // Call your server to set up the transaction
         createOrder: function(data, actions) {
             // Assuming `total_to_pay` is defined somewhere in your JavaScript code
-            const totalToPay = '{{ total_to_pay }}';
+            const totalToPay = '{{ total_to_pay_EUR }}';
 
             return fetch('/create_order', {
                 method: 'post',

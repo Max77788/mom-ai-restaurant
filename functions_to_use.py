@@ -5,6 +5,7 @@ from flask_mail import Mail, Message
 import pandas as pd
 import openpyxl
 import gridfs
+from forex_python.converter import CurrencyRates
 from pathlib import Path
 import qrcode
 import asyncio
@@ -23,6 +24,7 @@ import string
 import re
 import os
 import base64
+from currency_converter import CurrencyConverter
 import requests
 # from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
@@ -56,6 +58,11 @@ app.config['MAIL_USERNAME'] = 'contact@mom-ai-agency.site'
 app.config['MAIL_PASSWORD'] = os.environ.get("PRIVATEEMAIL_PASSWORD")
 FROM_EMAIL = app.config['MAIL_USERNAME']
 mail = Mail(app)
+
+
+
+# Initialize the CurrencyConverter class
+c = CurrencyConverter()
 
 mongodb_connection_string = os.environ.get("MONGODB_CONNECTION_URI")
 
@@ -363,7 +370,7 @@ This GPT is designed to assist customers in selecting dishes from {restaurant_na
 
 Never trigger the action after the first customer's message. I.e. when there is only one user's message in the thread.
 
-The menu of {restaurant_name} is attached to its knowledge base. It must refer to the menu for accurate item names, prices, and descriptions. The restaurant uses {currency} as its currency.
+The menu of {restaurant_name} is attached to its knowledge base. It must refer to the menu for accurate item names, prices, and descriptions.
 
 **Initial Interaction:**
 
@@ -391,10 +398,10 @@ The menu of {restaurant_name} is attached to its knowledge base. It must refer t
 
 - It summarizes the order in a clear and structured manner using the exact names from the menu file:
   - Example Order Summary:
-    - Item Name - 12.99 {currency}, 1 item
-    - Item Name - 8.99 {currency}, 3 items
-    - Item Name - 9.99 {currency}, 2 items
-    - Item Name - 8.99 {currency}, 1 item
+    - Item Name - 12.99  currency of the menu, 1 item
+    - Item Name - 8.99 currency of the menu, 3 items
+    - Item Name - 9.99  currency of the menu, 2 items
+    - Item Name - 8.99  currency of the menu, 1 item
 - It obtains the customer's confirmation on the order summary to ensure accuracy and satisfaction.
 - After the confirmation the action send_summary_to_json_azz is triggered immediately as soon as possible.
 - No double-asking for the confirmation is made
@@ -420,9 +427,9 @@ The menu of {restaurant_name} is attached to its knowledge base. It must refer t
 
 Perfectly! Here is your order:
 
-- Item Name - 9.99 {currency}, 2 servings
-- Item Name - 8.99 {currency}, 1 serving
-- Item Name - 12.99 {currency}, 2 servings
+- Item Name - 9.99 currency of the menu, 2 servings
+- Item Name - 8.99 currency of the menu, 1 serving
+- Item Name - 12.99 currency of the menu, 2 servings
 
 Please confirm that everything is correct before I complete your order.
 
@@ -606,7 +613,7 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
         tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
         )
 
-        average_menu_price = statistics.mean([item["Item Price (EUR)"] for item in new_html])
+        average_menu_price = statistics.mean([float(item["Item Price (EUR)"])for item in new_html])
 
         mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html, "average_menu_price": average_menu_price}})
         
@@ -1163,7 +1170,7 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
 
 
 
-def get_assistants_response(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, discovery_mode=False):
+def get_assistants_response(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, res_currency, discovery_mode=False):
     client = client_openai
     print("Entered assistants response function")
 
@@ -1306,6 +1313,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
         Provide the images as much as possible.
         Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
         Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
+        The prices of the items are in this currency: {res_currency}
         """
     else:
         message_to_compare_menu_items = f"""
@@ -1314,6 +1322,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
         {list_of_all_items} 
         Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
         Provide the images as much as possible.
+        The prices of the items are in this currency: {res_currency}
         """
  
     print("Message to compare menu items: ", message_to_compare_menu_items)
@@ -1332,6 +1341,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
             user_message = f"""
             Context:  You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
+            The prices of the items are in this currency: {res_currency}
 
             Customer\'s message: {translated_user_message}    
             """
@@ -1339,7 +1349,8 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
             print("Naf-naf1")
             user_message = f"""
             Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
-
+            The prices of the items are in this currency: {res_currency}
+            
             Customer\'s message: {translated_user_message}    
             """
         
@@ -1385,7 +1396,12 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
         elif run_status.status == "requires_action":
             if discovery_mode:
                 print("Action interrupted because of discovery mode.")
-                continue
+                run = client.beta.threads.runs.cancel(
+                    thread_id=thread_id,
+                    run_id=run.id
+                    )
+                no_action_response = "Please, type in the other message as I can't proceed with the placement of the order. I am not entitled to do that."
+                return no_action_response, 0 
             print("Action in progress...")
 
             messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
@@ -1448,6 +1464,12 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                     formatted_json_order = messages_gpt_json.data[0].content[0].text.value
                     print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
 
+                    # Get the conversion rate from USD to EUR (you can change to any currencies)
+                    if res_currency != 'EUR':
+                        rate = c.convert(1, res_currency, 'EUR')
+                    else:
+                        rate = 1
+                    
                     parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
                     items_ordered = parsed_formatted_json_order["items_ordered"]
                     session["items_ordered"] = items_ordered
@@ -1467,6 +1489,14 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
 
                     if payment_on:
+                        total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
+                        
+                        total_price_EUR = f"{float(total_price)*rate:.2f}"
+
+                        session["currency"] = res_currency
+                        session["currency_rate"] = rate
+
+                        
                         link_to_payment_buffer = url_for("payment_buffer", unique_azz_id=unique_azz_id, id=order_id)
                         print(link_to_payment_buffer)
 
@@ -1476,7 +1506,15 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         return link_to_payment_buffer, total_tokens_used
                     else:
                         total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
-                        session["total_price"] = total_price
+                        
+                        total_price_EUR = f"{float(total_price)*rate:.2f}"
+
+                        session["currency"] = res_currency
+                        session["currency_rate"] = rate
+
+                        session["total_price_EUR"] = total_price_EUR
+                        session["total_price_NATIVE"] = total_price
+
                         session["order_id"] = order_id
                         session['access_granted_no_payment_order'] = True
 
@@ -1484,6 +1522,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         "orderID":order_id,
                         "timestamp": human_readable_time_format,
                         "total_paid": total_price,
+                        "total_paid_EUR": total_price_EUR,
                         "mom_ai_restaurant_assistant_fee": 0,
                         "paypal_fee": 0,
                         "paid":"NOT PAID",
@@ -1494,7 +1533,7 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
                         
                         string_of_items = transform_orders_to_string(items_ordered)
 
-                        no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} Euros\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
+                        no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} {res_currency}\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
                         
                         restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
                         all_ids_chats = restaurant_instance.get("notif_destin", [])
