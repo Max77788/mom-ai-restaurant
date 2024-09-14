@@ -1,6 +1,9 @@
 {% extends 'layout.html' %}
 
 {% block content %}
+<!-- Load the Google API Client Library -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <div id="login-container" style="display: flex; flex-direction: column; align-items: center; text-align: center;">
         <h1>Login</h1>
         <p>Fill in the details below to enter your account.</p>
@@ -23,7 +26,19 @@
                 {{ form.submit }}
             </div>
         </form>
-        <p style="margin-top: 7px;">Not registered yet? <a href="{{ url_for('landing_page') }}"><b><u>Register Now</u></b></a>.</p>
+
+        <p>OR</p>
+
+    <!-- Google Sign-In button -->
+  <div id="g_id_onload" style="margin-top: 10px;"
+    data-client_id="{{ GOOGLE_OAUTH_CLIENT_ID }}"
+    data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+
+    <p style="margin-top: 7px;">Not registered yet? <a href="{{ url_for('landing_page') }}"><b><u>Register Now</u></b></a>.</p>
+</div>
+        
     </div>
 
     <style>
@@ -49,6 +64,45 @@
         }
     </style>
     <script>
+        // This function will handle the ID token returned by Google after successful sign-in
+    function handleCredentialResponse(response) {
+        console.log("Encoded JWT ID token: " + response.credential);
+
+        // Prepare the token to send to the backend
+        const token = response.credential;
+
+        // Send the token to your server for verification
+        fetch('/google-callback', {
+            method: 'POST', // We use POST to securely send the token
+            headers: {
+                'Content-Type': 'application/json', // Set the correct header to send JSON
+            },
+            body: JSON.stringify({
+                token: token, // Send the token to the server as JSON
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Server response:", data);
+            // Handle the server's response (success or error handling)
+            if (data.success) {
+                if (data.send_to_dashboard) {
+                    window.location.href = "/dashboard"
+                } else {
+                    window.location.href = "/setup_public_profile"
+                }
+            } else {
+                location.reload();
+                // Handle failure (e.g., display error to the user)
+                console.error("Login failed:", data.message);
+            }
+        })
+        .catch(error => {
+            // Handle any errors that occur during the request
+            console.error('Error sending token to the server:', error);
+        });
+    }
+
         function togglePassword(fieldId) {
         var passwordField = document.getElementById(fieldId);
         var type = passwordField.type === "password" ? "text" : "password";

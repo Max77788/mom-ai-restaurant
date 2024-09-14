@@ -116,12 +116,16 @@ function downloadImage() {
     <div class="dashboard-header">
         <div class="total-earned">
             <span><strong>Available Funds:</strong> {{ current_balance }} {{ res_currency }}</span>
-            <br><span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}</span>
-            <br><a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
+            <hr>
+            <span><strong>Spent on Assistant:</strong> {{ assistant_spent }} {{ res_currency }}</span>
+            <hr>
+            <a href="/withdraw-funds" class="withdraw-button" target="_blank"><i><u>Withdraw Funds</u></i></a>
             {% if awaiting_withdrawal > 0 %}
-            <br><span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span> EUR
+            <span><strong>Awaiting Withdrawal:</strong> {{ awaiting_withdrawal }}</span> EUR
             {% endif %}
-            <br><i><a href="javascript:void(0);" onclick="toggleVisibilityAndConvert('currency-converter', '{{ res_currency }}');"><u>Show/Hide Currency Converter</u></a></i>
+            <hr>
+            <i><a href="javascript:void(0);" onclick="toggleVisibilityAndConvert('currency-converter', '{{ res_currency }}');"><u>Show/Hide Currency Converter</u></a></i>
+            <hr>
             <div id="currency-converter" style="display: none;">
                 <p style="font-size: 18px;">Available Funds of <b>{{ current_balance }} {{ res_currency }}</b> in other currencies:</p>
                 <span id="available-funds" style="display: none;">{{ current_balance }}</span>
@@ -265,9 +269,11 @@ function downloadImage() {
                     }
                 }).render('#paypal-button-container');
             });
-        
+            
+            const paypalModal = document.querySelector('.close'); 
+
             // Close the modal
-            document.querySelector('.close').addEventListener('click', function() {
+            paypalModal.addEventListener('click', function() {
                 document.getElementById('paypal-modal').style.display = 'none';
             });
         </script>
@@ -286,10 +292,14 @@ function downloadImage() {
                 {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
                 <span id="assistantStatus">
                     {% if not default_menu %}
-                        {% if assistant_turned_on and current_balance|float >= 0.5 %}
+                        {% if assistant_turned_on and current_balanceHigherThanTwentyCents %}
                         Assistant is ON<br><p style="font-size:0.7em"><i>*the assistant is currently taking orders<br><strong><a href="/set-working-hours" target="_blank">during the working hours</a></strong></i></p>
                         {% else %}
-                        <span style="text-decoration: underline; text-decoration-color: red;">Assistant is OFF</span><br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+                            {% if not current_balanceHigherThanTwentyCents %}
+                            <span style="text-decoration: underline; text-decoration-color: red;">Assistant is OFF</span><br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i><br><b>TOP UP THE BALANCE NOW!</b></p>
+                            {% else %}
+                            <span style="text-decoration: underline; text-decoration-color: red;">Assistant is OFF</span><br><p style="font-size:0.7em"><i>*the assistant is currently<br><b>NOT</b> taking orders</i></p>
+                            {% endif %}
                         {% endif %}
                     {% else %}
                     <span id="assistantStatus">
@@ -300,9 +310,13 @@ function downloadImage() {
                 </span>
                 {% if not default_menu %}
                 <label class="switch">
-                    <input type="checkbox" id="assistantToggle" {% if assistant_turned_on and current_balance|float >= 0.5 %}checked{% endif %}
-                    {% if current_balance|float < 0.5 %}disabled{% endif %}>
+                    <input type="checkbox" id="assistantToggle" {% if assistant_turned_on and current_balanceHigherThanTwentyCents %}checked{% endif %}
+                    {% if not current_balanceHigherThanTwentyCents %}disabled{% endif %}>
+                    {% if not not current_balanceHigherThanTwentyCents %}
                     <span class="slider round"></span>
+                    {% else %}
+                    <span class="slider-disabled round"></span>
+                    {% endif %}
                 </label>
                 {% endif %}
                 {% else %}
@@ -358,7 +372,35 @@ function downloadImage() {
         {% else %}
         <div style="display:block" id="paymentAndFeeDiv">
         {% endif %}
+        <div id="delivery-offered-toggle" class="switch-container">
+            <span id="deliveryOfferedStatus">
+                {% if delivery_offered %}
+                Delivery Option is ON<br><p style="font-size:0.7em"><i>*currently users CAN order delivery</i></p>
+                {% else %}
+                Delivery Option is OFF<br><p style="font-size:0.7em"><i>*currently users CANNOT order delivery</i></p>
+                {% endif %}
+            </span>
+        
+            <label class="switch">
+                <input type="checkbox" id="deliveryOfferedToggle" {% if delivery_offered %}checked{% endif %}>
+                <span class="slider round"></span>
+            </label>
+        
+            
+        </div>
+
+        {% if delivery_offered %}
+            <!-- Adding the input field for delivery radius -->
+            <div id="deliveryRadiusInputContainer" style="clear: both; margin-top: 10px; display: block; width: 100%;">
+                <label for="deliveryRadius" style="display: block;">Delivery Radius (km):</label>
+                <input type="number" id="deliveryRadiusInput" name="deliveryRadius" min="1" max="100" step="1" value="{% if delivery_radius %}{{ delivery_radius }}{% else %}10{% endif %}" style="display: block; width: auto;">
+                <small style="display: block;"><i>*This is the radius in kilometers within which your restaurant provides delivery</i></small>
+            </div>
+        {% endif %}
+        
+        
            
+        <hr>
             <div id="payment-gateway-toggler" class="switch-container">
                 <span id="paymentGatewayStatus">
                     {% if gateway_is_on %}
@@ -376,7 +418,7 @@ function downloadImage() {
             </div>
             <hr>
             {% if gateway_is_on %}
-            <div id="add-fees-toggler" class="switch-container">
+            <div id="addFeesSection" class="switch-container">
                 {% else %}
                 <div id="addFeesSection" class="switch-container" style="display: none;">
                     {% endif %}
@@ -476,6 +518,18 @@ function downloadImage() {
             right: 0;
             bottom: 0;
             background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider-disabled {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #000;
             transition: .4s;
             border-radius: 20px;
         }
@@ -617,7 +671,38 @@ function downloadImage() {
             }
         }
 
+        // Function to send the radius value to the server
+        function sendRadiusValue(radiusValue) {
+            fetch('/delivery_offered_toggler', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json' // If you are using CSRF tokens
+                },
+                body: JSON.stringify({
+                    radius: radiusValue
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log('Radius value successfully sent');
+                } else {
+                    console.error('Failed to send radius value');
+                }
+            })
+            .catch(error => {
+                console.error('Error sending radius value:', error);
+            });
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
+            const radiusInputElement = document.getElementById("deliveryRadiusInput");
+
+            if (radiusInputElement){
+            radiusInputElement.addEventListener('input', function() {
+                    sendRadiusValue(radiusInputElement.value);
+                });
+            };
+
             var tabs = document.querySelectorAll('.no-right-click-tab');
 
             function loadTabContent(event) {
@@ -641,6 +726,103 @@ function downloadImage() {
                     e.preventDefault();
                 });
             });
+
+            // Get reference to the checkbox and parent container
+        const deliveryOfferedToggle = document.getElementById('deliveryOfferedToggle');
+        const parentContainer = document.getElementById('delivery-offered-toggle'); // Parent container to append after
+
+        // Function to create and insert the delivery radius input container if it doesn't exist
+        function createDeliveryRadiusInput() {
+            // Check if the element already exists
+            let deliveryRadiusInputContainer = document.getElementById('deliveryRadiusInputContainer');
+            
+            if (!deliveryRadiusInputContainer) {
+                // If it doesn't exist, create it
+                deliveryRadiusInputContainer = document.createElement('div');
+                deliveryRadiusInputContainer.id = 'deliveryRadiusInputContainer';
+                deliveryRadiusInputContainer.style.marginTop = '10px';
+                deliveryRadiusInputContainer.style.display = 'block';
+                
+                // Create the label element
+                const label = document.createElement('label');
+                label.htmlFor = 'deliveryRadius';
+                label.textContent = 'Delivery Radius (km):';
+                label.style.display = 'block';
+
+                // Create the input element
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.id = 'deliveryRadiusInput';
+                input.name = 'deliveryRadius';
+                input.min = '1';
+                input.max = '100';
+                input.step = '1';
+                input.value = '{{ delivery_radius }}'; // Default value, you can change it as needed
+                input.style.display = 'block';
+                input.style.width = 'auto';
+
+                // Add event listener to send the value when changed
+                input.addEventListener('input', function() {
+                    sendRadiusValue(input.value);
+                });
+
+                // Create the small explanation text
+                const smallText = document.createElement('small');
+                smallText.style.display = 'block';
+                smallText.innerHTML = '<i>*This is the radius in kilometers within which your restaurant provides delivery</i>';
+
+                // Append label, input, and small text to the container
+                deliveryRadiusInputContainer.appendChild(label);
+                deliveryRadiusInputContainer.appendChild(input);
+                deliveryRadiusInputContainer.appendChild(smallText);
+
+                // Insert the container after the parent container
+                parentContainer.insertAdjacentElement('afterend', deliveryRadiusInputContainer);
+            } else {
+                // If it already exists, just ensure it's visible
+                deliveryRadiusInputContainer.style.display = 'block';
+            }
+        }
+
+        // Function to toggle the visibility of the delivery radius input container
+        function toggleDeliveryRadiusInput() {
+            if (deliveryOfferedToggle.checked) {
+                // Create and show the element if the toggle is checked
+                createDeliveryRadiusInput();
+            } else {
+                // Hide the element if it's unchecked
+                const deliveryRadiusInputContainer = document.getElementById('deliveryRadiusInputContainer');
+                if (deliveryRadiusInputContainer) {
+                    deliveryRadiusInputContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // Attach event listener to the checkbox to detect changes
+        deliveryOfferedToggle.addEventListener('change', toggleDeliveryRadiusInput);
+
+        // Run the function initially to ensure the correct state is set on page load
+        toggleDeliveryRadiusInput();
+
+        // Function to toggle the visibility of the delivery radius input container
+        function toggleDeliveryRadiusInput() {
+            if (deliveryOfferedToggle.checked) {
+                // Create and show the element if the toggle is checked
+                createDeliveryRadiusInput();
+            } else {
+                // Hide the element if it's unchecked
+                const deliveryRadiusInputContainer = document.getElementById('deliveryRadiusInputContainer');
+                if (deliveryRadiusInputContainer) {
+                    deliveryRadiusInputContainer.style.display = 'none';
+                }
+            }
+        }
+
+        // Attach event listener to the checkbox to detect changes
+        deliveryOfferedToggle.addEventListener('change', toggleDeliveryRadiusInput);
+
+        // Run the function initially to ensure the correct state is set on page load
+        toggleDeliveryRadiusInput();
         });
 
         document.addEventListener('DOMContentLoaded', (event) => {
@@ -648,8 +830,10 @@ function downloadImage() {
             const paymentGatewayStatus = document.getElementById('paymentGatewayStatus');
             const addFeesSectionDiv = document.getElementById("addFeesSection")
 
+
             if (paymentGatewayToggle) {
                 paymentGatewayToggle.addEventListener('change', function() {
+                    console.log("Toggling...")
                     var paymentGatewayTurnedOn = this.checked;
 
                     if (paymentGatewayTurnedOn) {
@@ -674,7 +858,41 @@ function downloadImage() {
                     };
                     xhr.send(JSON.stringify({ payment_gateway_turned_on: paymentGatewayTurnedOn }));
                 });
-            }
+            };
+
+            const deliveryOfferedToggle = document.getElementById('deliveryOfferedToggle');
+            const deliveryOfferedStatus = document.getElementById('deliveryOfferedStatus');
+            const deliveryRadiusInput = document.getElementById('deliveryRadiusInput');
+
+            if (deliveryOfferedToggle) {
+                deliveryOfferedToggle.addEventListener('change', function() {
+                    console.log("Toggling...")
+                    var deliveryOfferedTurnedOn = this.checked;
+
+                    if (deliveryOfferedTurnedOn) {
+                        deliveryOfferedStatus.innerHTML = 'Delivery Option is ON<br><p style="font-size:0.7em"><i>*currently users CAN order delivery</i></p>';
+                        
+                    } else {
+                        deliveryOfferedStatus.innerHTML = 'Delivery Option is OFF<br><p style="font-size:0.7em"><i>*currently users CANNOT order delivery</i></p>';
+                        
+                    }
+
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/delivery_offered_toggler', true);
+                    xhr.setRequestHeader('Content-Type', 'application/json');
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                console.log('Delivery offered state updated successfully.');
+                            } else {
+                                console.error('Error updating Delivery offered state.');
+                            }
+                        }
+                    };
+                    xhr.send(JSON.stringify({ delivery_offered_turned_on: deliveryOfferedTurnedOn }));
+                });
+            };
+
 
             const toggle = document.getElementById('assistantToggle');
             const statusLabel = document.getElementById('assistantStatus');

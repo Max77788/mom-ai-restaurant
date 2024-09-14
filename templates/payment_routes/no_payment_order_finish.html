@@ -127,11 +127,14 @@
 
 <div id="web3Modal" class="modal">
     <div class="modal-content">
+        <img src="/static/assets/confetti.gif" width="250">
         <span class="close">&times;</span>
         <h2>Connect Your Web3 Wallet</h2>
         <p>🪙You have earned 50 MOM tokens by making this order<br>🔌Connect your Web3 wallet in one click and redeem your prize!</p>
         <button id="walletOrGetTokensButton" class="web3-button" onclick="connectWalletAndSendTokens()">Connect Web3 Wallet &<br>Get 50 MOM tokens</button>
         <div id="response-message"></div>
+        <!-- New div to display the current wallet address -->
+        <div id="current-wallet-address" style="margin-top: 20px;"></div>
     </div>
 </div>
 
@@ -150,10 +153,15 @@
                 </li>
             {% endfor %}
         </ul>
+        {% if res_currency != "EUR" %}
         <b>Total to pay in the restaurant:<br>
         {{ total_price_NATIVE }} {{ res_currency }}<br>
         or<br>
         {{ total_price_EUR }} EUR</b>
+        {% else %}
+        <b>Total to pay in the restaurant:<br>
+        {{ total_price_EUR }} EUR</b>
+        {% endif %}
         </div>
         <hr>
         <!-- <h2>Visit <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=res_unique_azz_id) }}' target="_blank">{{ restaurant_name.replace("_", " ") }}</a> to pick up your food shortly.</h2> -->
@@ -167,15 +175,19 @@
             <h2>Receive your Order ID</h2>
             <form id="orderIdForm">
                 <input type="email" id="email" name="email" placeholder="Enter your email address" required>
-                <button id="emailSubmitButton" type="submit">Receive my Order ID</button>
+                <button id="emailSubmitButton" type="submit" style="background-color: black;">Receive my Order ID</button>
             </form>
             <div id="loadingContainer" style="align-items:center;">
                <img id="loadingGif" src="/static/assets/loading-gif.gif" alt="Loading..." style="display:none;" width="70" height="auto">
             </div>
             </div>
             <div id="message"></div>
-            
         
+        <hr>
+        <h2>Want to earn more??</h2>
+        <h3>Go to <a href="/restaurant/{{ unique_azz_id }}" target="_blank" style="color: darkred;">this link.</a><br>Leave the review of your order and get extra MOM tokens.</h3>
+            
+        <hr>
     
         <script>
             // Get the modal element
@@ -191,13 +203,6 @@
     // Function to close the modal
     closeButton.onclick = function() {
         modal.style.display = "none";
-    };
-
-    // Optional: Close the modal when the user clicks anywhere outside of the modal
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
     };
             
             
@@ -236,9 +241,13 @@
                 }
             });
 
-            if (localStorage.getItem('walletAddress')){
+            let walletAddress = localStorage.getItem('walletAddress');
+
+            if (walletAddress){
         console.log("Entered loop")
         document.getElementById("walletOrGetTokensButton").innerHTML = "Get 50 MOM tokens"
+        const walletDiv = document.getElementById('current-wallet-address');
+        walletDiv.innerHTML = `<p>Current wallet attached: ${walletAddress}</p>`;
     }
 
 

@@ -30,7 +30,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import FROM_EMAIL, app, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID 
+from functions_to_use import FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -55,6 +55,8 @@ import pytz
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 import time
+from google.oauth2 import id_token
+from google.auth.transport import requests
 
 """
 logging.basicConfig(level=logging.DEBUG,
@@ -128,8 +130,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 app.config.from_object(Config)
-
-
 
 
 
@@ -572,6 +572,9 @@ def landing_page():
 def register():
     referral_id = request.args.get("referral_id")
 
+    if request.args.get("no_google_login") == "True":
+        flash("No MOM AI Restaurant account is conected to this Google Profile - Please, register.")
+
     form = RestaurantForm()
     print("Form Created")
 
@@ -684,16 +687,18 @@ def register():
             
             print(f"Menu TXT path passed {menu_txt_path}")
 
-            assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_txt_path, client=CLIENT_OPENAI)
+            # assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_txt_path, client=CLIENT_OPENAI)
 
             unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
 
             
+            """
             session['assistant_id'] = assistant.id
             session['menu_file_id'] = menu_file_id
             session['menu_vector_id'] = menu_vector_id
             session['unique_azz_id'] = unique_azz_id
-
+            """
+            
             messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
             session['messages'] = messages
             
@@ -733,23 +738,17 @@ def register():
         #session["menu_encoded"] = menu_encoded
         #session["script_encoded"] = script_encoded
 
-        assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
-        session['assistant_id'] = assistant.id
-        session['menu_vector_id'] = menu_vector_id
-        session['menu_file_id'] = menu_file_id
+        # assistant, menu_vector_id, menu_file_id = create_assistant(restaurant_name, currency, menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
+        # session['assistant_id'] = assistant.id
+        # session['menu_vector_id'] = menu_vector_id
+        # session['menu_file_id'] = menu_file_id
 
-        unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
+        # unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
         session["unique_azz_id"] = unique_azz_id
         
         print("We are right before qr code generation")
 
-        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/assistant_order_chat/"+unique_azz_id) #assistant_code
-
-        print(f"Type of qr code id: {type(qr_code_id)}")
-        print("We are past qr code function")
-        qr_code_id = str(qr_code_id)
-
-        session["qr_code_id"] = qr_code_id
+        # session["qr_code_id"] = qr_code_id
 
         # Optionally, you can insert these details into a database here
         # insert_document(collection, restaurant_name, menu_encoded, script_encoded, assistant.id)
@@ -797,7 +796,10 @@ def register():
                 if "csrf" in error.lower():
                     flash(f"Error in field '{field}': {error} - PLEASE, RELOAD THE PAGE!", 'danger')
         print("Form not submitted or validation failed")
-    return render_template('start/register.html', form=form, title="Register", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+    return render_template('start/register.html', 
+                           form=form, title="Register", 
+                           GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY,
+                           GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -818,7 +820,9 @@ def login():
             print('Login failed. Check your email and password.')
             flash('Login failed. Check your email and password.')
             return redirect(url_for('login'))
-    return render_template('start/login.html', form=form, title="Login", GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
+    return render_template('start/login.html', form=form, title="Login", 
+                           GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY,
+                           GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID)
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -1153,8 +1157,8 @@ def confirm_email(res_email):
 
     #session["res_email"] = session.get("verified_res_email")
 
-    res_name = session.get("restaurant_name", "name_placeholder")
-    print(f"Restaurant Name: {res_name}")
+    res_name = session.get("restaurant_name", "name_default")
+    # print(f"Restaurant Name: {res_name}")
 
     #menu_file = session.get("menu_encoded", "menu_placeholder")
     #print(f"Menu File: {menu_file}")
@@ -1163,10 +1167,10 @@ def confirm_email(res_email):
     #print(f"Script File: {script_file}")
 
     assistant_id = session.get("assistant_id", "assistant_id_placeholder")
-    print(f"Assistant ID: {assistant_id}")
+    # print(f"Assistant ID: {assistant_id}")
 
-    res_password = session.get("password", "password_placeholder")
-    print(f"Restaurant Password: {res_password}")
+    res_password = session.get("password", None)
+    # print(f"Restaurant Password: {res_password}")
 
     #verified_res_email = session.get("verified_res_email", "email_placeholder")
 
@@ -1199,11 +1203,11 @@ def confirm_email(res_email):
     id_of_who_referred = session.get("id_of_who_referred")
 
     # Add referee to the referees' list of the referral
-    if id_of_who_referred:
-        print("id of who referred found")
-        collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
+    # if id_of_who_referred:
+        # print("id of who referred found")
+        # collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
     
-    insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code=qr_code_id, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, id_of_who_referred=id_of_who_referred, logo_id=file_id)
+    # insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code=qr_code_id, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, id_of_who_referred=id_of_who_referred, logo_id=file_id)
     send_confirmation_email_registered(mail, res_email, restaurant_name, FROM_EMAIL)
     print("Confirmation of registarion Email has been sent and the account created.\n\n")
     print(f"Setup hashed res password in session:{hashed_res_password}")
@@ -1409,9 +1413,6 @@ def dashboard_display(show_popup=False):
     res_email = session.get("res_email")
     res_password = session.get("password")
 
-    hashed_res_password = session.get("hashed_res_password")
-    print(f"hashed_res_password on dashboard {hashed_res_password}")
-
     # Find the instance in MongoDB
     restaurant_instance = collection.find_one({"email": res_email}) 
 
@@ -1424,6 +1425,8 @@ def dashboard_display(show_popup=False):
         assistant_id = restaurant_instance.get("assistant_id")
         web3_wallet_address = restaurant_instance.get("web3_wallet_address")
         current_balance = restaurant_instance.get("balance")
+        current_balanceHigherThanTwentyCents = round(current_balance, 2) >= 0.2
+        print(f"Balance is higer than 20 cents: {current_balanceHigherThanTwentyCents}")
         res_unique_azz_id = restaurant_instance.get("unique_azz_id")
         awaiting_withdrawal = restaurant_instance.get("await_withdrawal")
         res_currency = restaurant_instance.get("res_currency")
@@ -1431,6 +1434,8 @@ def dashboard_display(show_popup=False):
         discovery_mode = restaurant_instance.get("discovery_mode")
         assistant_spent = restaurant_instance.get("assistant_fund")
         default_menu = False
+        delivery_offered = restaurant_instance.get("delivery_offered")
+        delivery_radius = restaurant_instance.get("radius_delivery_value")
         menu_vector_id = restaurant_instance.get("menu_vector_id")
         if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
             default_menu = True
@@ -1499,7 +1504,10 @@ def dashboard_display(show_popup=False):
                            default_menu=default_menu,
                            referral_id=referral_id,
                            num_of_referees=num_of_referees,
-                           discovery_mode=discovery_mode)
+                           discovery_mode=discovery_mode,
+                           delivery_offered=delivery_offered,
+                           delivery_radius=delivery_radius,
+                           current_balanceHigherThanTwentyCents=current_balanceHigherThanTwentyCents)
 
 ###################################### Dashboard Buttons ######################################
 
@@ -1567,6 +1575,30 @@ def toggle_payment_gateway():
     
     # Respond with the new state
     return jsonify({'paymentGatewayTurnedOn': paymentGatewayTurnedOn})
+
+@app.route('/delivery_offered_toggler', methods=['POST'])
+def delivery_offered_gateway():
+    data = request.get_json()
+    print(data)
+    deliveryOfferedTurnedOn = data.get('delivery_offered_turned_on', None)
+    radiusDeliveryKm = data.get('radius', None)
+    
+    if deliveryOfferedTurnedOn is not None:
+        print(f"Delivery offered toggled: {deliveryOfferedTurnedOn}")
+
+        unique_azz_id = session.get("unique_azz_id")
+        print(unique_azz_id)
+        collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"delivery_offered": deliveryOfferedTurnedOn}})
+    
+    if radiusDeliveryKm is not None:
+        print(f"Radius delivery value: {radiusDeliveryKm}")
+
+        unique_azz_id = session.get("unique_azz_id")
+        print(unique_azz_id)
+        collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"radius_delivery_value": int(radiusDeliveryKm)}})
+    
+    # Respond with the new state
+    return jsonify({'delivery_offered_turned_on': deliveryOfferedTurnedOn, 'ok':True})
 
 @app.route('/profile_visibility_toggler', methods=['POST'])
 def toggle_profile_visibility():
@@ -1707,16 +1739,52 @@ def setup_public_profile():
         #abort(403)  # Forbidden
     
     form = ProfileForm()
-    unique_azz_id = session.get("unique_azz_id")
 
-    restaurant_name = collection.find_one({"unique_azz_id": unique_azz_id}).get("name")
+    # unique_azz_id = session.get("unique_azz_id")
+
+    # restaurant_name = collection.find_one({"unique_azz_id": unique_azz_id}).get("name")
+
+    res_email = session.get("res_email")
     
     if form.validate_on_submit():
         website_url = form.website_url.data
         logo = form.logo.data
         description = form.description.data
+        res_name = form.name.data
+        print(res_name)
+        locationName = form.locationName.data
+        locationCoord = form.location.data
+        print("location coord: ", locationCoord)
+        id_of_who_referred = form.referral_id.data
+
+        assistant, menu_vector_id, menu_file_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
+        unique_azz_id = res_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
+
+        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/assistant_order_chat/"+unique_azz_id) #assistant_code
+
+        print(f"Type of qr code id: {type(qr_code_id)}")
+        print("We are past qr code function")
+        qr_code_id = str(qr_code_id)
 
         print(website_url, logo, description)
+        
+        res_password = session.get("password", "google_acc")
+        if res_password != "google_acc":
+            hashed_res_password = hash_password(res_password)
+        else:
+            hashed_res_password = res_password
+        
+        # Add referee to the referees' list of the referral
+        if id_of_who_referred:
+            print("id of who referred found")
+            collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
+
+        insert_restaurant(collection, res_name, unique_azz_id, res_email, 
+                          hashed_res_password, website_url, assistant.id, 
+                          MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, "EUR", 
+                          MOM_AI_EXEMPLARY_MENU_HTML, qr_code_id, None, None, locationCoord,
+                          locationName, id_of_who_referred, "666af654dee400a1d635eb08"
+                          )
         
         # Handle file upload and other logic here
         if logo:
@@ -1738,8 +1806,8 @@ def setup_public_profile():
     
     return render_template('start/setup_public_profile.html', 
                            form=form,
-                           restaurant_name=restaurant_name,
-                           title="Setup Public Profile")
+                           title="Setup Public Profile",
+                           GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY)
 
 
 
@@ -2199,7 +2267,7 @@ def update_menu_manual():
     flash("Menu updated successfully!", category="success")
     
 
-    return jsonify(success=True)
+    return jsonify({"success":True})
 
 @app.route('/update_menu_gui')
 def update_menu_gui(initial_setup=None):
@@ -2280,7 +2348,7 @@ def payment_buffer(unique_azz_id, id):
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
 
-    item_db =  db_items_cache[unique_azz_id].find_one({"id":id})
+    item_db = db_items_cache[unique_azz_id].find_one({"id":id})
 
     if item_db == None:
        abort(403)  # Forbidden
@@ -2295,7 +2363,7 @@ def payment_buffer(unique_azz_id, id):
 
     res_currency = restaurant.get("res_currency")
 
-    conversion_rate = session.get("currency_rate")
+    conversion_rate = cache.get("currency_rate")
 
     #checkout_link = session.get("paypal_link")
     if restaurant['addFees']:
@@ -2846,6 +2914,7 @@ def assistant_order_chat(unique_azz_id):
     menu_file_id = res_instance.get("menu_file_id")
     menu_vector_id = res_instance.get("menu_vector_id")
     res_currency = res_instance.get("res_currency")
+    current_balanceHigherThanTwentyCents = round(res_instance.get("balance"), 2) >= 0.2
     default_menu = False
     discovery_mode = res_instance.get("discovery_mode")
     menu_vector_id = res_instance.get("menu_vector_id")
@@ -2898,7 +2967,8 @@ def assistant_order_chat(unique_azz_id):
                            iframe=iframe, 
                            isWorkingHours=isWorkingHours,
                            default_menu=default_menu,
-                           discovery_mode=discovery_mode)
+                           discovery_mode=discovery_mode,
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents)
 
 
 
@@ -3011,6 +3081,79 @@ def generate_voice_output(unique_azz_id):
     )
 
 
+### Celery Integration ###
+@app.route('/trigger_generate_response/<unique_azz_id>', methods=['POST'])
+def trigger_generate_response(unique_azz_id):
+    data = request.form
+    print(data)
+    user_message = data.get('message', '')
+    thread_id = data.get('thread_id')
+    assistant_id = data.get('assistant_id')
+    language = data.get("language", "en-US")[:2]
+
+    # Retrieve other parameters
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    discovery_mode = restaurant_instance.get('discovery_mode')
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    res_currency = restaurant_instance.get("res_currency")
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    list_of_image_links = None  # Set or retrieve if necessary
+
+    # Trigger the asynchronous task
+    task = get_assistants_response_celery.apply_async(
+        args=[
+            user_message, language, thread_id, assistant_id, menu_file_id, 
+            payment_on, html_menu_tuples, list_of_image_links, unique_azz_id, res_currency, discovery_mode
+        ]
+    )
+
+    return jsonify({"task_id": task.id}), 202  # Return task ID to the client
+
+@app.route('/generate_response_task_status/<task_id>', methods=['GET'])
+def task_status(task_id):
+    task = celery.AsyncResult(task_id)
+
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
+        }
+    elif task.state == 'SUCCESS':
+        response = {
+            'state': task.state,
+            'result': replace_markdown_images(task.result[0]),  # Task result when completed
+            'status': 'Task completed!'
+        }
+    elif task.state == 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': str(task.info)  # Exception message if failed
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': task.state  # Other states like 'RETRY'
+        }
+
+    return jsonify(response)
+
+def replace_markdown_images(text):
+    # Regular expression pattern to find ![text](url)
+    pattern = r'!\[(.*?)\]\((.*?)\)'
+    
+    # Function to replace the matched pattern with the desired <img> tag
+    def replace_match(match):
+        alt_text = match.group(1)
+        src_url = match.group(2)
+        return f'<img src="{src_url}" alt="Image of {alt_text}" width="170" height="auto">'
+    
+    # Use re.sub to replace all occurrences of the pattern
+    return re.sub(pattern, replace_match, text)
+
+
+### Celery part END ### 
+
 
 @app.route('/generate_response/<unique_azz_id>', methods=['POST', 'GET'])
 def generate_response(unique_azz_id):
@@ -3110,7 +3253,6 @@ def generate_response(unique_azz_id):
     return jsonify({"response_llm":response_llm})
 
 
-
 def replace_markdown_images(text):
     # Regular expression pattern to find ![text](url)
     pattern = r'!\[(.*?)\]\((.*?)\)'
@@ -3123,6 +3265,7 @@ def replace_markdown_images(text):
     
     # Use re.sub to replace all occurrences of the pattern
     return re.sub(pattern, replace_match, text)
+
 
 
 
@@ -3195,6 +3338,8 @@ def quick_registration():
 
     password = generate_random_string(10)
     hashed_password = hash_password(password)
+
+
     
     insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_password, restaurant_url, assistant_id, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, "EUR", MOM_AI_EXEMPLARY_MENU_HTML, None, None, None, None, None, logo_id="666af654dee400a1d635eb08", **quick_reg)
     send_confirmation_email_quick_registered(mail, res_email, password, res_name, FROM_EMAIL)
@@ -3203,11 +3348,44 @@ def quick_registration():
 
 ################## Payment routes/Order Posting ###################
 
-@app.route("/takeaway_delivery")
-def takeaway_delivery_template():
+# Endpoint to receive the POST request
+@app.route('/set_session_ordertype', methods=['POST'])
+def set_session_ordertype():
+    # Get the data from the request
+    data = request.get_json()
+
+    session["orderType"] = data.get('orderType')
+    session["text_address"] = data.get('text_address')
+    session["user_longitude"] = data.get('user_longitude')
+    session["user_latitude"] = data.get('user_latitude')
+
+    return jsonify({"success": True})
+
+
+@app.route("/takeaway_delivery/<unique_azz_id>")
+def takeaway_delivery_template(unique_azz_id):
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+    
+    location_coord = restaurant.get("location_coord")
+
+    location_coord = json.loads(location_coord)
+
+    restaurant_latitude = location_coord["lat"]
+    restaurant_longtitude = location_coord["lng"]
+
+    restaurant_delivery_radius = restaurant.get("radius_delivery_value")
+    delivery_offered = restaurant.get("delivery_offered")
+    
     # Render the template that asks the user for delivery or takeaway options
-    restaurant_address = "address example"
-    return render_template('/payment_routes/takeaway_delivery_ask.html', GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY, restaurant_address=restaurant_address)
+    restaurant_address = restaurant.get("location_name")
+    return render_template('/payment_routes/takeaway_delivery_ask.html', 
+                           title="Choose Place",
+                           restaurant_latitude=restaurant_latitude,
+                           restaurant_longtitude=restaurant_longtitude,
+                           restaurant_delivery_radius=restaurant_delivery_radius,
+                           GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY, 
+                           restaurant_address=restaurant_address,
+                           delivery_offered=delivery_offered)
 
 @app.route('/submit_address', methods=['POST'])
 def submit_address():
@@ -3224,26 +3402,76 @@ def submit_address():
 
 @app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])
 def no_payment_order_placed(unique_azz_id):
-    suggest_web3_bonus = session.get("suggest_web3_bonus")
+    suggest_web3_bonus = cache.get("suggest_web3_bonus")
     
-    if not session.get('access_granted_no_payment_order'):
+    if not cache.get('access_granted_no_payment_order'):
         abort(403)  # Forbidden
     # Find the instance in MongoDB
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
     
+    
+    
+    orderType = session.get('orderType')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
+
+    
+    
+    
+    
+    
+    
     res_currency = current_restaurant_instance.get("res_currency")
     
-    total_price_EUR = session.get("total_price_EUR")
-    total_price_NATIVE = session.get("total_price_NATIVE")
+    total_price_EUR = cache.get("total_price_EUR")
+    total_price_NATIVE = cache.get("total_price_NATIVE")
 
-    order_id = session.get("order_id")
-    items_ordered = session.get("items_ordered")
+    order_id = cache.get("order_id")
+    items_ordered = cache.get("items_ordered")
 
     restaurant_name = current_restaurant_instance.get("name")
     MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
     
+    # Convert the timestamp to a datetime object
+    current_utc_timestamp = time.time()
+    utc_datetime = datetime.utcfromtimestamp(current_utc_timestamp)
 
+    # Format the datetime object to a human-readable string
+    human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
+
+
+
+    if orderType == "delivery":
+        order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
+                            "orderID":order_id,
+                            "timestamp": human_readable_time_format,
+                            "total_paid": total_price_NATIVE,
+                            "total_paid_EUR": total_price_EUR,
+                            "mom_ai_restaurant_assistant_fee": 0,
+                            "paypal_fee": 0,
+                            "paid":"NOT PAID",
+                            "order_type": orderType,
+                            "link_of_user_address": f"https://www.google.com/maps?q={user_latitude},{user_longitude}",
+                            "text_address": text_address,
+                            "published":True}
+    else:
+        order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
+                            "orderID":order_id,
+                            "timestamp": human_readable_time_format,
+                            "total_paid": total_price_NATIVE,
+                            "total_paid_EUR": total_price_EUR,
+                            "mom_ai_restaurant_assistant_fee": 0,
+                            "paypal_fee": 0,
+                            "paid":"NOT PAID",
+                            "order_type": orderType,
+                            "published":True}
+    
+    
+    db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+    # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
+    
     items = items_ordered
 
     ordered_items_names = [item["name"] for item in items]
@@ -3266,10 +3494,15 @@ def no_payment_order_placed(unique_azz_id):
 
     for index, image_url in enumerate(image_urls):
         items[index]['image_url'] = image_url
+    
+    all_ids_chats = current_restaurant_instance.get("notif_destin", [])
+
+    for chat_id in all_ids_chats:
+        send_telegram_notification(chat_id)
 
 
     if suggest_web3_bonus:
-        session.pop("suggest_web3_bonus")
+        cache.delete("suggest_web3_bonus")
 
     # suggest_web3_bonus = True
     
@@ -3284,7 +3517,8 @@ def no_payment_order_placed(unique_azz_id):
                            res_currency=res_currency, 
                            restaurant_name=restaurant_name.replace('_', ' '), 
                            items=items_ordered,
-                           suggest_web3_bonus=suggest_web3_bonus)
+                           suggest_web3_bonus=suggest_web3_bonus,
+                           unique_azz_id=unique_azz_id)
 
 
 
@@ -3298,6 +3532,11 @@ def success_payment_backend(unique_azz_id):
     else:
         session["suggest_web3_bonus"] = False
 
+    orderType = session.get('orderType')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
+    
     print("Setup suggest web3 hours in session to ", session["suggest_web3_bonus"])
     
     if not session.get('access_granted_payment_result'):
@@ -3337,15 +3576,30 @@ def success_payment_backend(unique_azz_id):
     
     assistant_used = session["unique_azz_id"]
     
-    order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
-                        "orderID":order_id,
-                        "timestamp": timestamp_utc,
-                        "total_paid": total_paid_native,
-                        "total_paid_EUR": total_paid_EUR,
-                        "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
-                        "paypal_fee": float(round(PAYPAL_FEE, 2)),
-                        "paid":"PAID",
-                        "published":True}
+    if orderType == "delivery":
+        order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
+                            "orderID":order_id,
+                            "timestamp": timestamp_utc,
+                            "total_paid": total_paid_native,
+                            "total_paid_EUR": total_paid_EUR,
+                            "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
+                            "paypal_fee": float(round(PAYPAL_FEE, 2)),
+                            "paid":"PAID",
+                            "order_type": orderType,
+                            "link_of_user_address": f"https://www.google.com/maps?q={user_latitude},{user_longitude}",
+                            "text_address": text_address,
+                            "published":True}
+    else:
+        order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
+                            "orderID":order_id,
+                            "timestamp": timestamp_utc,
+                            "total_paid": total_paid_native,
+                            "total_paid_EUR": total_paid_EUR,
+                            "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
+                            "paypal_fee": float(round(PAYPAL_FEE, 2)),
+                            "paid":"PAID",
+                            "order_type": orderType,
+                            "published":True}
     
     order_dashboard_id = assistant_used
 
@@ -3442,7 +3696,8 @@ def success_payment_display(unique_azz_id, id):
                            order_id=id, 
                            suggest_web3_bonus=suggest_web3_bonus, 
                            items=items,
-                           total_paid=total_paid)
+                           total_paid=total_paid,
+                           unique_azz_id=unique_azz_id)
     
 
 @app.route('/cancel_payment/<unique_azz_id>')
@@ -3706,9 +3961,62 @@ def show_restaurant_profile_public(unique_azz_id):
                            there_are_reviews=there_are_reviews,
                            html_menu_tuples=html_menu_tuples)
 
+
+@app.route('/google-callback', methods=['POST'])
+def google_callback():
+    # Get the token from the request
+    
+    token = request.json.get('token')
+    type_ = request.args.get("type")
+
+    # print("Token: ", token)
+
+    try:
+        print("Entered 'try'")
+        # Verify the token using Google's API
+        id_info = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_OAUTH_CLIENT_ID)
+
+        # If the token is valid, id_info will contain user data
+        user_data = {
+            "user_id": id_info.get("sub"),
+            "email": id_info.get("email"),
+            "name": id_info.get("name"),
+            "picture": id_info.get("picture"),
+        }
+
+        restaurant = collection.find_one({"email": user_data["email"]})
+ 
+        send_to_dashboard = False
+
+        if restaurant:
+            session["res_email"] = restaurant.get("email")
+            send_to_dashboard = True
+
+        print(user_data)
+
+        session["res_email"] = user_data["email"]
+        session['access_granted_assistant_demo_chat'] = True
+
+        # Here you can process user data (e.g., log them in, create an account, etc.)
+        return jsonify({
+            "success": True,
+            "user_data": user_data,
+            "send_to_dashboard": send_to_dashboard
+        }), 200
+
+    except ValueError as e:
+        flash(e)
+
+        # Token is invalid, return an error response
+        return jsonify({
+            "success": False,
+            "message": "Invalid token",
+            "type": type_
+        }), 400
+
     
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="localhost", port=5000, debug=True)
 
 
 

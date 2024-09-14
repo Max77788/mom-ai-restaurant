@@ -11,15 +11,15 @@ def OptionalURL(message=None):
 
 
 class RestaurantForm(FlaskForm):
-    restaurant_name = StringField('Restaurant Name', validators=[DataRequired()])
-    restaurant_url = StringField('Restaurant Website', validators=[Optional(),
-        URL()])
+    # restaurant_name = StringField('Restaurant Name', validators=[DataRequired()])
+    # restaurant_url = StringField('Restaurant Website', validators=[Optional(),
+        # URL()])
     #restaurant_url = StringField('Restaurant Website', validators=[
         #DataRequired(), URL(require_tld=True, message="Invalid URL. Please enter a valid URL.")])
     email = StringField('Email', validators=[DataRequired(), Email()])
-    menu = FileField('Upload Menu')#, validators=[DataRequired()])
-    location = StringField('Location', validators=[DataRequired()])
-    locationName = StringField('Location Name', validators=[DataRequired()])
+    # menu = FileField('Upload Menu')#, validators=[DataRequired()])
+    # location = StringField('Location', validators=[DataRequired()])
+    # locationName = StringField('Location Name', validators=[DataRequired()])
     #currency = RadioField('Currency of your restaurant', choices=[('USD','USD'), ('EUR','EUR')], validators=[DataRequired()])
     #script = FileField('Upload Script', validators=[DataRequired()])
     #other_instructions = StringField('Other Instructions (Optional)')
@@ -29,7 +29,7 @@ class RestaurantForm(FlaskForm):
     confirm_password = PasswordField('Confirm Password', validators=[
         DataRequired(), EqualTo('password', message='Passwords must match.')])
     
-    referral_id = StringField('Referral ID', validators=[Optional()])
+    # referral_id = StringField('Referral ID', validators=[Optional()])
 
     # Add the field for image upload
     image = FileField('Upload Image', validators=[
@@ -94,9 +94,13 @@ class ChangeCredentialsForm(FlaskForm):
     submit = SubmitField('Change Credentials')
 
 class ProfileForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
     website_url = StringField('Website URL', validators=[URL(), Optional()], description="Must follow 'https://yourrestaurantsite.com'")
     logo = FileField('Logo', validators=[Optional(), FileAllowed(['jpg', 'png'], 'Images only!')])
     description = TextAreaField('Description', validators=[
         InputRequired(message="Description is required."),
         Length(min=50, max=350, message="Description must be between 100 and 350 characters.")
     ])
+    referral_id = StringField('Referral ID', validators=[Optional()])
+    location = StringField('Location', validators=[DataRequired()])
+    locationName = StringField('Location Name', validators=[DataRequired()])

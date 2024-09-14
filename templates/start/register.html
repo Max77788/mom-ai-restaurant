@@ -2,6 +2,9 @@
 
 {% block content %}
 
+<!-- Load the Google API Client Library -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <!-- Existing Registration Form Section -->
 <div id="upper-part" style="margin-bottom: 15px; display: flex; flex-direction: column; align-items: center; text-align: center;">
     <div>
@@ -13,10 +16,12 @@
     <form action="/register" method="post" enctype="multipart/form-data" style="display: flex; flex-direction: column; align-items: center;">
         {{ form.hidden_tag() }}
         {{ form.csrf_token }}
+        <!--
         <div class="form-group">
             <label for="restaurant_name">Restaurant Name:</label>
             {{ form.restaurant_name }}
         </div>
+        -->
         <!--
         <div class="form-group">
             <label for="restaurant_url">Restaurant Website:</label>
@@ -37,21 +42,19 @@
             {{ form.email }}
         </div>
         
-        <!-- Map Container -->
+        <!-- Map Container 
         <div class="form-group">
             <label for="location">Restaurant Location:</label>
-            <!-- Input for location search -->
             <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
                 <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
                     <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location" required>
                     <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
                 </div>
             </div>
-            <!-- Hidden input for location data -->
             <input type="hidden" id="locationInput" name="location" required>
-            <!-- Hidden input for location name -->
             <input type="hidden" id="locationName" name="locationName" required>
         </div>
+    -->
 
         <div class="form-group">
             <label for="password">Password:</label>
@@ -71,15 +74,26 @@
             </div>
         </div>
 
+        <!--
         <div class="form-group">
             <label for="email">*If someone invited you input their referral ID<br>(you both will earn from it):</label>
             {{ form.referral_id }}
         </div>
+        -->
 
         <div class="form-group">
             {{ form.submit }}
         </div>
     </form>
+
+    <p>OR</p>
+
+    <!-- Google Sign-In button -->
+  <div id="g_id_onload" style="margin-top: 10px;"
+    data-client_id="{{ GOOGLE_OAUTH_CLIENT_ID }}"
+    data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard" data-text="signup_with"></div>
 
     <p style="margin-top: 5px;">Already registered? <a href="{{ url_for('login') }}"><b><u>Log In</u></b></a></p>
 </div>
@@ -88,9 +102,50 @@
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 
 <script>
+    // This function will handle the ID token returned by Google after successful sign-in
+    function handleCredentialResponse(response) {
+        console.log("Encoded JWT ID token: " + response.credential);
+
+        // Prepare the token to send to the backend
+        const token = response.credential;
+
+        // Send the token to your server for verification
+        fetch('/google-callback', {
+            method: 'POST', // We use POST to securely send the token
+            headers: {
+                'Content-Type': 'application/json', // Set the correct header to send JSON
+            },
+            body: JSON.stringify({
+                token: token, // Send the token to the server as JSON
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Server response:", data);
+            // Handle the server's response (success or error handling)
+            if (data.success) {
+                if (data.send_to_dashboard) {
+                    window.location.href = "/dashboard"
+                } else {
+                    window.location.href = "/setup_public_profile"
+                }
+            } else {
+                location.reload();
+                // Handle failure (e.g., display error to the user)
+                console.error("Login failed:", data.message);
+            }
+        })
+        .catch(error => {
+            // Handle any errors that occur during the request
+            console.error('Error sending token to the server:', error);
+        });
+    }
+
+    
     function initAutocomplete() {
         const input = document.getElementById('pac-input');
         const autocomplete = new google.maps.places.Autocomplete(input);
+
 
         // Autocomplete select listener
         autocomplete.addListener('place_changed', function() {
@@ -106,45 +161,41 @@
     }
 
     function formatAddressWithCity(place) {
-        let addressComponents = place.address_components;
-        let street = '', buildingNumber = '', city = '', region = '', country = '';
+    let addressComponents = place.address_components;
+    let street = '', buildingNumber = '', city = '', region = '', country = '';
 
-        addressComponents.forEach(component => {
-            if (component.types.includes('route')) {
-                street = component.long_name;
-            }
-            if (component.types.includes('street_number')) {
-                buildingNumber = component.long_name;
-            }
-            if (component.types.includes('locality')) {
-                city = component.long_name;
-            }
-            if (component.types.includes('administrative_area_level_1')) {
-                region = component.long_name;
-            }
-            if (component.types.includes('country')) {
-                country = component.long_name;
-            }
-        });
+    addressComponents.forEach(component => {
+        if (component.types.includes('route')) {
+            street = component.long_name;
+        }
+        if (component.types.includes('street_number')) {
+            buildingNumber = component.long_name;
+        }
+        if (component.types.includes('locality')) {
+            city = component.long_name;
+        }
+        if (component.types.includes('administrative_area_level_1')) {
+            region = component.long_name;
+        }
+        if (component.types.includes('country')) {
+            country = component.long_name;
+        }
+    });
 
-        // Ensure that required components are present
-        if (!street || !city || !country) {
-            alert("Please select a valid location including street, city, and country.");
-            return '';
-        }
-
-        // Construct formatted address
-        let formattedAddress = `${street}`;
-        if (buildingNumber) {
-            formattedAddress += `, ${buildingNumber}`;
-        }
-        formattedAddress += `, ${city}`;
-        if (region) {
-            formattedAddress += `, ${region}`;
-        }
-        formattedAddress += `, ${country}`;
-        return formattedAddress;
+    // Ensure that required components are present
+    if (!street || !buildingNumber || !city || !country) {
+        alert("Please select a valid location including street, building number, city, and country.");
+        return '';
     }
+
+    // Construct formatted address
+    let formattedAddress = `${street}, ${buildingNumber}, ${city}`;
+    if (region) {
+        formattedAddress += `, ${region}`;
+    }
+    formattedAddress += `, ${country}`;
+    return formattedAddress;
+};
 
     function updateLocation(position, formattedAddress) {
         if (formattedAddress) {

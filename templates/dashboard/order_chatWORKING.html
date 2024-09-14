@@ -44,9 +44,115 @@
     }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/web3@1.3.5/dist/web3.min.js"></script>
+
 <div style="width: 100%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
-    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
-        Make the Order in {{ restaurant_name.replace("_"," ") }}
+    
+    <div id="overlay" style="position: fixed; width: 100%; height: 100%; top: 0; left: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;">
+        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 300px; width: 90%;">
+            <h2>Select Language & Start</h2>
+            <select id="languageSelectOverlay" style="margin: 10px 0; padding: 10px; width: 100%;">
+                <option value="en-US">English (US) 🇺🇸</option>
+                <option value="es-ES">Spanish 🇪🇸</option>
+                <option value="uk-UA">Ukrainian 🇺🇦</option>
+                <option value="is-IS">Icelandic 🇮🇸</option>
+                <option value="zh-CN">Chinese (Simplified) 🇨🇳</option>
+                <option value="hi-IN">Hindi 🇮🇳</option>
+                <option value="ar-SA">Arabic 🇸🇦</option>
+                <option value="fr-FR">French 🇫🇷</option>
+                <option value="ru-RU">Russian 🇷🇺</option>
+                <option value="ja-JP">Japanese 🇯🇵</option>
+                <option value="de-DE">German 🇩🇪</option>
+                <option value="pt-BR">Portuguese 🇧🇷</option>
+
+            </select>
+            <button onclick="startChat()" style="padding: 10px; width: 100%;">Start</button>
+            <!--
+            <p style="font-size: 14px; margin-top: 5px;">Connect your web3 wallet<br>&<br>get MOM tokens upon placing the order.</p>
+            <button id="connectWalletButtonOverlay" onclick="connectWallet()" style="margin-top: 10px; padding: 10px; width: 100%;">Connect Web3 Wallet</button>
+            <p id="walletSuccessMessage" style="display: none; color: green; margin-top: 10px;">Wallet connected successfully!<br>Order and get MOM</p>
+            -->
+        </div>
+    </div>
+    
+    <!--
+    <script>
+        async function connectWallet() {
+            let accounts;
+    
+            if (window.ethereum) {
+                try {
+                    // Request account access if needed
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    accounts = await window.ethereum.request({ method: 'eth_accounts' });
+                    
+                    const account = accounts[0];
+    
+                    // Store account in local storage
+                    localStorage.setItem("web3_wallet", account);
+    
+                    // Hide the connect wallet button
+                    document.getElementById('connectWalletButtonOverlay').style.display = 'none';
+    
+                    // Show the success message
+                    document.getElementById('walletSuccessMessage').style.display = 'block';
+                
+                    // Fetch and display MOM token balance
+                    await fetchTokenBalance(account);
+                } catch (error) {
+                    console.error('User rejected the request:', error);
+                    return;
+                }
+            }
+        }
+
+        connectWallet()
+        
+        async function fetchTokenBalance(account) {
+            const tokenAddress = '0xdB1022f9fABB6B6208969ac289fFd69957eE3092'; // Replace with your MOM token contract address
+            const tokenABI = [
+                // Only the 'balanceOf' function is needed here
+                {
+                    "constant": true,
+                    "inputs": [
+                        {
+                            "name": "_owner",
+                            "type": "address"
+                        }
+                    ],
+                    "name": "balanceOf",
+                    "outputs": [
+                        {
+                            "name": "balance",
+                            "type": "uint256"
+                        }
+                    ],
+                    "type": "function"
+                }
+            ];
+
+            const web3 = new Web3(window.ethereum);
+            const tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
+
+            try {
+                const balance = await tokenContract.methods.balanceOf(account).call();
+                const formattedBalance = web3.utils.fromWei(balance, 'ether'); // Adjust if the token has different decimals
+                localStorage.setItem("momsBalance", formattedBalance)
+                document.getElementById('tokenBalance').innerText = 'MOM Token Balance: ' + formattedBalance;
+            } catch (error) {
+                console.error('Error fetching token balance', error);
+                document.getElementById('tokenBalance').innerText = 'Error fetching token balance';
+            }
+        }
+    </script>
+
+    <div id="tokenBalance" style="text-align: center; margin: 10px 0; font-size: 16px; color: black;">
+        Connect wallet to see MOM token balance
+    </div>
+    -->
+
+    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;" id="orderHeader">
+        Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </header>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
@@ -64,9 +170,14 @@
             {% else %}
                 <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<!-- <br>Click below to start chatting. </p> -->
             {% endif %}
-            {% if assistant_turned_on and isWorkingHours %}
+            
+            {% if default_menu %}
+                <p id="offMessage">{{ restaurant_name }} hasn't uploaded the menu yet. Come back later😉</p>
             {% else %}
-            <p><b>We are currently off. You will be able to take the order later.</b></p>
+                {% if assistant_turned_on and isWorkingHours %}
+                {% else %}
+                <p id="offMessage"><b>We are currently off. You will be able to make the order later.</b></p>
+                {% endif %}
             {% endif %}
         </div>
     </div>
@@ -74,462 +185,896 @@
 <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: relative; display: flex; flex-direction: column; align-items: center;">
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px;" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px;">
-        <button onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send</button>
+        <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
         <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">🎤</button>
     </div>
     <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
         <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
     </div>
-    <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
+    <!-- <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
     <select id="languageSelect" style="margin-top: 10px; padding: 5px;" value="en-US">
         <option value="en-US">English (US)🇺🇸</option>
         <option value="es-ES">Spanish🇪🇸</option>
         <option value="uk-UA">Ukrainian🇺🇦</option>
         <option value="pl-PL">Polish🇵🇱</option>
-    </select>
+    </select> -->
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 <script>
     window.onload = function() {
-        console.log("Window loaded");
+    
+    
+    let currentThreadId = null;
+    let currentAssistantId = null;
+    let isRecording = false;
+    let blockMicButton = false;
+    let mediaRecorder;
+    let audioChunks = [];
+    let userLanguage = 'en-US';
 
-        let currentThreadId = null;
-        let currentAssistantId = null;
-        let isRecording = false;
-        let blockMicButton = false;
-        let mediaRecorder;
-        let audioChunks = [];
+    // Dictionary for translations (can be expanded)
+    const restaurant_name = "{{ restaurant_name }}";
+    
+    const translations = {
+    'en-US': {
+        initialMessage: "Hello, welcome in",
+        phrase: "How can I help you?",
+        makeOrder: `Conversate with ${restaurant_name} AI-Assistant`,
+        typeMessage: "Type your message here✍️",
+        send: "Send",
+        offMessage: "We are currently off. You will be able to make the order later."
+    },
+    'uk-UA': {
+        initialMessage: "Привіт, ласкаво просимо",
+        phrase: "Чим можу допомогти?",
+        makeOrder: `Спілкуйтеся з ${restaurant_name} AI-асистентом`,
+        typeMessage: "Введіть своє повідомлення тут✍️",
+        send: "Надіслати",
+        offMessage: "Зараз ми не працюємо. Ви зможете зробити замовлення пізніше."
+    },
+    'is-IS': {
+        initialMessage: "Halló, velkomin",
+        phrase: "Hvernig get ég hjálpað þér?",
+        makeOrder: `Ræðið við ${restaurant_name} AI-aðstoðarmanneskju`,
+        typeMessage: "Skrifaðu skilaboðin þín hér✍️",
+        send: "Senda",
+        offMessage: "Við erum ekki í boði eins og er. Þú munt geta pantað seinna."
+    },
+    'es-ES': {
+        initialMessage: "Hola, bienvenido a",
+        phrase: "¿Cómo puedo ayudarte?",
+        makeOrder: `Converse con el asistente AI de ${restaurant_name}`,
+        typeMessage: "Escriba su mensaje aquí✍️",
+        send: "Enviar",
+        offMessage: "Actualmente estamos cerrados. Podrá hacer el pedido más tarde."
+    },
+    'zh-CN': {
+        initialMessage: "您好，欢迎来到",
+        phrase: "我能帮您什么？",
+        makeOrder: `与 ${restaurant_name} AI 助手对话`,
+        typeMessage: "在这里输入您的消息✍️",
+        send: "发送",
+        offMessage: "我们现在不营业。稍后您可以下订单。"
+    },
+    'hi-IN': {
+        initialMessage: "नमस्ते, में आपका स्वागत है",
+        phrase: "मैं आपकी कैसे सहायता कर सकता हूँ?",
+        makeOrder: `${restaurant_name} AI-सहायक के साथ बातचीत करें`,
+        typeMessage: "यहां अपना संदेश टाइप करें✍️",
+        send: "भेजें",
+        offMessage: "हम फिलहाल बंद हैं। आप बाद में ऑर्डर कर पाएंगे।"
+    },
+    'ar-SA': {
+        initialMessage: "مرحبا، مرحبا بكم في",
+        phrase: "كيف يمكنني مساعدتك؟",
+        makeOrder: `تحدث مع مساعد الذكاء الاصطناعي لـ${restaurant_name}`,
+        typeMessage: "اكتب رسالتك هنا✍️",
+        send: "إرسال",
+        offMessage: "نحن حاليا مغلقون. ستتمكن من تقديم الطلب لاحقًا."
+    },
+    'fr-FR': {
+        initialMessage: "Bonjour, bienvenue à",
+        phrase: "Comment puis-je vous aider?",
+        makeOrder: `Discutez avec l'assistant AI de ${restaurant_name}`,
+        typeMessage: "Tapez votre message ici✍️",
+        send: "Envoyer",
+        offMessage: "Nous sommes actuellement fermés. Vous pourrez passer la commande plus tard."
+    },
+    'ru-RU': {
+        initialMessage: "Здравствуйте, добро пожаловать в",
+        phrase: "Чем могу помочь?",
+        makeOrder: `Общайтесь с AI-ассистентом ${restaurant_name}`,
+        typeMessage: "Введите ваше сообщение здесь✍️",
+        send: "Отправить",
+        offMessage: "Мы сейчас закрыты. Вы сможете сделать заказ позже."
+    },
+    'ja-JP': {
+        initialMessage: "こんにちは、ようこそ",
+        phrase: "どのようにお手伝いできますか？",
+        makeOrder: `${restaurant_name} AIアシスタントと対話する`,
+        typeMessage: "ここにメッセージを入力✍️",
+        send: "送信",
+        offMessage: "現在営業時間外です。後で注文できます。"
+    },
+    'de-DE': {
+        initialMessage: "Hallo, willkommen in",
+        phrase: "Wie kann ich Ihnen helfen?",
+        makeOrder: `Unterhalten Sie sich mit dem KI-Assistenten von ${restaurant_name}`,
+        typeMessage: "Geben Sie hier Ihre Nachricht ein✍️",
+        send: "Senden",
+        offMessage: "Wir haben derzeit geschlossen. Sie können die Bestellung später aufgeben."
+    },
+    'pt-BR': {
+        initialMessage: "Olá, bem-vindo ao",
+        phrase: "Como posso ajudar?",
+        makeOrder: `Converse com o Assistente de IA de ${restaurant_name}`,
+        typeMessage: "Digite sua mensagem aqui✍️",
+        send: "Enviar",
+        offMessage: "Estamos atualmente fechados. Você poderá fazer o pedido mais tarde."
+    }
+};
 
-        function startConversation() {
-            const assistantId = "{{ assistant_id }}";
-            fetch(`/assistant_start/${assistantId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })
-            })
-            .then(response => response.json())
-            .then(data => {
-                currentThreadId = data.thread_id;
-                currentAssistantId = data.assistant_id;
 
-                console.log("Received Thread ID: ", data.thread_id);
-                console.log("Current Assistant ID: ", data.assistant_id);
-                
-                document.getElementById('restaurantLogo').style.display = 'none';
-                document.getElementById('welcomeMessage').style.display = 'none';
 
-                const initialMessage = `Hello, welcome in {{ restaurant_name.replace('_', ' ') }}.<br>Please, type in the message or start the voice input to make the order.`;
-                
-                appendMessage(initialMessage, 'assistant');
-                
-                enableInput();
-            })
-            .catch(error => {
-                console.error("Error starting conversation: ", error);
-            });
+
+    function startChat() {
+        userLanguage = document.getElementById('languageSelectOverlay').value;
+
+        sessionStorage.setItem('userLanguage', userLanguage);
+        console.log("Setup language (", userLanguage, ") in session")
+
+        // Hide the overlay
+        document.getElementById('overlay').style.display = 'none';
+
+        // Translate the texts
+        translateTexts(userLanguage);
+
+        // Start the conversation
+        startConversation();
+        /*
+        // Fetch MOM token balance if wallet is connected
+        const account = localStorage.getItem("web3_wallet");
+        if (account) {
+            fetchTokenBalance(account);
+        } else {
+            document.getElementById('tokenBalance').innerText = 'Connect wallet to see MOM token balance';
+        }
+        */    
+    }
+
+    window.startChat = startChat;
+
+    function translateTexts(language) {
+        const translation = translations[language];
+        document.getElementById('orderHeader').textContent = `${translation.makeOrder}`;
+        document.getElementById('userMessage').placeholder = translation.typeMessage;
+        document.getElementById('sendButton').textContent = translation.send;
+        if (document.getElementById('offMessage')){
+        document.getElementById('offMessage').textContent = translation.offMessage;
+        }
+    }
+
+    function appendStarterPhrases() {
+    const userLanguage = sessionStorage.getItem('userLanguage') || 'en-US';
+
+    // Translated starter phrases for each language
+    const starterPhrasesTranslations = {
+        'en-US': [
+            "What specials do you have?",
+            "Help me with the recommendations based on my preferences.",
+            "I'd like to know more about the menu.",
+            "Can you assist me with today's offers?"
+        ],
+        'uk-UA': [
+            "Які у вас є спеціальні пропозиції?",
+            "Допоможіть мені з рекомендаціями на основі моїх вподобань.",
+            "Я хотів би дізнатися більше про меню.",
+            "Чи можете ви допомогти мені з сьогоднішніми пропозиціями?"
+        ],
+        'is-IS': [
+        "Hvaða sértilboð hafið þið?",
+        "Getið þið aðstoðað mig með tillögur út frá mínum óskum?",
+        "Mig langar að vita meira um matseðilinn.",
+        "Getið þið hjálpað mér með tilboðin í dag?"
+        ],
+        'es-ES': [
+            "¿Qué especiales tienes?",
+            "Ayúdame con recomendaciones según mis preferencias.",
+            "Me gustaría saber más sobre el menú.",
+            "¿Puedes ayudarme con las ofertas de hoy?"
+        ],
+        'zh-CN': [
+            "你们有什么特色菜?",
+            "请根据我的喜好推荐菜肴。",
+            "我想了解更多菜单信息。",
+            "能告诉我今天的优惠吗？"
+        ],
+        'hi-IN': [
+            "आपके पास क्या स्पेशल हैं?",
+            "मेरी पसंद के आधार पर सिफारिशें करें।",
+            "मुझे मेनू के बारे में और जानना है।",
+            "क्या आप आज की पेशकशों में मेरी सहायता कर सकते हैं?"
+        ],
+        'ar-SA': [
+            "ما هي العروض الخاصة لديكم؟",
+            "ساعدني في التوصيات بناءً على تفضيلاتي.",
+            "أود معرفة المزيد عن القائمة.",
+            "هل يمكنك مساعدتي في عروض اليوم؟"
+        ],
+        'fr-FR': [
+            "Quels sont vos plats du jour ?",
+            "Aidez-moi avec des recommandations basées sur mes préférences.",
+            "J'aimerais en savoir plus sur le menu.",
+            "Pouvez-vous m'aider avec les offres d'aujourd'hui ?"
+        ],
+        'ru-RU': [
+            "Какие у вас есть специальные предложения?",
+            "Помогите мне с рекомендациями на основе моих предпочтений.",
+            "Я хотел бы узнать больше о меню.",
+            "Можете помочь с сегодняшними предложениями?"
+        ],
+        'ja-JP': [
+            "今日のおすすめは何ですか？",
+            "私の好みに基づいたおすすめを教えてください。",
+            "メニューについてもっと知りたいです。",
+            "今日のオファーについて手伝ってくれませんか？"
+        ],
+        'de-DE': [
+            "Welche Specials habt ihr?",
+            "Hilf mir mit Empfehlungen basierend auf meinen Vorlieben.",
+            "Ich möchte mehr über das Menü erfahren.",
+            "Können Sie mir bei den heutigen Angeboten helfen?"
+        ],
+        'pt-BR': [
+            "Quais são os especiais de hoje?",
+            "Me ajude com recomendações com base nas minhas preferências.",
+            "Gostaria de saber mais sobre o cardápio.",
+            "Você pode me ajudar com as ofertas de hoje?"
+        ]
+    };
+
+    // Get the translated phrases based on selected language
+    const starterPhrases = starterPhrasesTranslations[userLanguage] || starterPhrasesTranslations['en-US'];
+
+    const chatBox = document.getElementById('chatBox');
+    const starterButtonsDiv = document.createElement('div');
+    starterButtonsDiv.id = 'starterButtonsDiv';
+    starterButtonsDiv.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 20px 0;';
+
+    // Iterate through each starter phrase and create buttons
+    starterPhrases.forEach(phrase => {
+        const button = document.createElement('button');
+        button.textContent = phrase;
+        button.style.cssText = `
+            background: none;
+            border: 2px solid #333;
+            border-radius: 20px;
+            padding: 10px 20px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            white-space: normal;
+            transition: background 0.3s, color 0.3s;
+        `;
+
+        // Change button style on hover
+        button.onmouseover = function() {
+            this.style.backgroundColor = '#333';
+            this.style.color = '#fff';
+        };
+        button.onmouseout = function() {
+            this.style.background = 'none';
+            this.style.color = '#333';
+        };
+
+        // Handle button click event
+        button.onclick = function() {
+            sendMessage(phrase);  // Simulate user message
+            starterButtonsDiv.remove();  // Remove the starter buttons after a click
+        };
+
+        starterButtonsDiv.appendChild(button);
+    });
+
+    chatBox.appendChild(starterButtonsDiv);
+    scrollToBottom(starterButtonsDiv);  // Scroll to the bottom when adding buttons
+}
+
+    function startConversation() {
+        const assistantId = "{{ assistant_id }}";
+        fetch(`/assistant_start/${assistantId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assistant_id: '{{ assistant_id }}' })
+        })
+        .then(response => response.json())
+        .then(data => {
+            currentThreadId = data.thread_id;
+            currentAssistantId = data.assistant_id;
+
+            // console.log("Received Thread ID: ", data.thread_id);
+            // console.log("Current Assistant ID: ", data.assistant_id);
+            
+            document.getElementById('restaurantLogo').style.display = 'none';
+            document.getElementById('welcomeMessage').style.display = 'none';
+
+            const translation = translations[userLanguage];
+            const initialMessage = `${translation.initialMessage} {{ restaurant_name.replace('_', ' ') }}.<br>${translation.phrase}`;
+            
+            {% if assistant_turned_on and isWorkingHours %}
+            appendMessage(initialMessage, 'assistant');
+            appendStarterPhrases();  // Append starter phrases here
+            {% endif %}
+
+            
+            enableInput();
+        })
+        .catch(error => {
+            console.error("Error starting conversation: ", error);
+        });
+    }
+
+    function enableInput() {
+        console.log("Enabling input fields and buttons");
+        document.getElementById('userMessage').disabled = false;
+        document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+        document.getElementById('micButton').disabled = false;
+        console.log("Input and buttons enabled");
+    }
+
+    
+    window.sendMessage = function sendMessage(message=null) {
+      console.log(`Message within the sendMessage function (right off the bat) ${message}`)
+      
+      let userMessage;
+     
+      if (!message){
+       userMessage = document.getElementById('userMessage').value;
+    } else {
+        userMessage = message;
+    }
+
+    console.log("Send button clicked");
+    console.log("User message: ", userMessage);
+    if (userMessage.trim() === '') {
+        console.log("Empty message, not sending.");
+        return;
+    }
+
+    appendMessage(userMessage, 'user');
+
+    const spinner = document.getElementById('spinner');
+    const userMessageInput = document.getElementById('userMessage');
+    const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+
+    if (spinner) {
+        spinner.style.display = 'block';
+        showWittyPhrase(true);
+    }
+    userMessageInput.disabled = true;
+    sendButton.disabled = true;
+
+    const unique_azz_id = "{{ unique_azz_id }}";
+    let llmResponse;
+
+    const formData = new FormData();
+    let userLanguage = sessionStorage.getItem('userLanguage');
+    
+    formData.append('message', userMessage);
+    formData.append('language', userLanguage);
+    formData.append('thread_id', currentThreadId);
+    formData.append('assistant_id', currentAssistantId);
+
+    fetch(`/generate_response/${unique_azz_id}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Received response: ", data);
+        llmResponse = data.response_llm;
+        // appendMessage(llmResponse, 'assistant');
+
+        if (llmResponse.includes("/payment_buffer")){
+            window.location.href = llmResponse;
+            // appendMessage(llmResponse, "assistant")
+            return; // Terminate the function here
+        };
+
+        if (llmResponse.includes("Thank you very much! You ordered")){
+            const unique_azz_id = "{{ unique_azz_id }}"
+            window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+            // appendMessage(llmResponse, "assistant")
+            return; // Terminate the function here
         }
 
-        function enableInput() {
-            console.log("Enabling input fields and buttons");
-            document.getElementById('userMessage').disabled = false;
-            document.querySelector('button[onclick="sendMessage()"]').disabled = false;
-            document.getElementById('micButton').disabled = false;
-            console.log("Input and buttons enabled");
-        }
+        const voiceFormData = new FormData();
+        voiceFormData.append('full_gpts_response', llmResponse);
+        voiceFormData.append('language', userLanguage);
 
-        const activeAndWorking = "{{ assistant_turned_on }} && {{ isWorkingHours }}";
-        console.log("Active and working: ", activeAndWorking);
-        if (activeAndWorking === "True && True") {
-            startConversation();
-        }
-        
-        window.startConversation = startConversation;
+        return fetch(`/generate_voice_output/${unique_azz_id}`, {
+            method: 'POST',
+            body: voiceFormData
+        });
+    })
+    .then(response => response.blob())
+    .then(audioBlob => {
+        console.log("Received audio blob");
+        const audioUrl = window.URL.createObjectURL(audioBlob);
+        appendMessage(llmResponse, 'assistant');
+        const audio = new Audio(audioUrl);
+        console.log("Started Playing audio");
+        audio.play();
 
-        function sendMessage() {
-            const userMessage = document.getElementById('userMessage').value;
-            console.log("Send button clicked");
-            console.log("User message: ", userMessage);
-            if (userMessage.trim() === '') {
-                console.log("Empty message, not sending.");
-                return;
+        if (spinner) spinner.style.display = 'none';
+        showWittyPhrase(false);
+        userMessageInput.value = '';
+        userMessageInput.disabled = false;
+        sendButton.disabled = false;
+    })
+    .catch(error => {
+        console.error("Error: ", error);
+        if (spinner) spinner.style.display = 'none';
+        showWittyPhrase(false);
+        userMessageInput.disabled = false;
+        sendButton.disabled = false;
+    });
+}
+
+
+
+    window.showWittyPhrase = function showWittyPhrase(visible, voice_input) {
+        const phrases = {
+ 'en-US': [
+            "Your Order is Our Command! ✨",
+            "The Beauty in Simplicity 😮‍💨",
+            "Love is AI Serving You 💓",
+            "Prepare for the Tasty Journey 😋",
+            "Don't Worry, Just Eat It! 🍽️"
+        ],
+        'uk-UA': [
+            "Ваше замовлення — це наш наказ! ✨",
+            "Краса в простоті 😮‍💨",
+            "Любов — це AI, що служить вам 💓",
+            "Приготуйтеся до смачної подорожі 😋",
+            "Не хвилюйтеся, просто їжте! 🍽️"
+        ],
+        'is-IS': [
+        "Pöntunin þín er skipun okkar! ✨",
+        "Fegurðin felst í einfaldleikanum 😮‍💨",
+        "Ástin er AI sem þjónar þér 💓",
+        "Undirbúðu þig fyrir ljúffenga ferð 😋",
+        "Ekki hafa áhyggjur, bara borðaðu það! 🍽️"
+        ],
+        'es-ES': [
+            "¡Tu pedido es nuestra orden! ✨",
+            "La belleza está en la simplicidad 😮‍💨",
+            "El amor es la IA sirviéndote 💓",
+            "Prepárate para un viaje sabroso 😋",
+            "¡No te preocupes, solo cómelo! 🍽️"
+        ],
+        'zh-CN': [
+            "您的订单就是我们的命令！✨",
+            "简单就是美 😮‍💨",
+            "爱就是AI为您服务 💓",
+            "准备好美味的旅程吧 😋",
+            "别担心，尽情享受吧！🍽️"
+        ],
+        'hi-IN': [
+            "आपका ऑर्डर हमारा हुक्म है! ✨",
+            "सरलता में सुंदरता है 😮‍💨",
+            "AI का प्यार आपको सेवा दे रहा है 💓",
+            "स्वादिष्ट यात्रा के लिए तैयार हो जाइए 😋",
+            "चिंता मत करें, बस खाइए! 🍽️"
+        ],
+        'ar-SA': [
+            "طلبك هو أمرنا! ✨",
+            "الجمال في البساطة 😮‍💨",
+            "الحب هو أن يخدمك الذكاء الاصطناعي 💓",
+            "استعد للرحلة اللذيذة 😋",
+            "لا تقلق، فقط تناول الطعام! 🍽️"
+        ],
+        'fr-FR': [
+            "Votre commande est notre commande ! ✨",
+            "La beauté dans la simplicité 😮‍💨",
+            "L'amour, c'est l'IA qui vous sert 💓",
+            "Préparez-vous pour un voyage savoureux 😋",
+            "Ne vous inquiétez pas, mangez simplement ! 🍽️"
+        ],
+        'ru-RU': [
+            "Ваш заказ — наш приказ! ✨",
+            "Красота в простоте 😮‍💨",
+            "Любовь — это ИИ, служащий вам 💓",
+            "Приготовьтесь к вкусному путешествию 😋",
+            "Не волнуйтесь, просто ешьте! 🍽️"
+        ],
+        'ja-JP': [
+            "ご注文は私たちの使命です！✨",
+            "シンプルさの美しさ 😮‍💨",
+            "AIがあなたに奉仕する愛 💓",
+            "美味しい旅に備えて 😋",
+            "心配せずに、ただ食べて！🍽️"
+        ],
+        'de-DE': [
+            "Dein Auftrag ist unser Befehl! ✨",
+            "Die Schönheit liegt in der Einfachheit 😮‍💨",
+            "Liebe ist, wenn KI dir dient 💓",
+            "Mach dich bereit für die leckere Reise 😋",
+            "Keine Sorge, iss einfach! 🍽️"
+        ],
+        'pt-BR': [
+            "Seu pedido é a nossa ordem! ✨",
+            "A beleza está na simplicidade 😮‍💨",
+            "O amor é a IA servindo você 💓",
+            "Prepare-se para a jornada saborosa 😋",
+            "Não se preocupe, apenas coma! 🍽️"
+        ]
+};
+
+        const userLanguage = sessionStorage.getItem('userLanguage');
+        console.log(`User Language ${userLanguage}`)
+
+        const phraseDisplay = document.getElementById('wittyPhrase');
+        if (visible) {
+            const randomPhrase = phrases[userLanguage][Math.floor(Math.random() * phrases[userLanguage].length)];
+            if (phraseDisplay) {
+                phraseDisplay.textContent = randomPhrase;
+                phraseDisplay.style.display = 'block';
             }
+        } else if (visible && voice_input) {  
+            phraseDisplay.textContent = "Please, speak your truth NOW!";
+            phraseDisplay.style.display = 'block'; 
+        } else {
+            if (phraseDisplay) {
+                phraseDisplay.style.display = 'none';
+            }
+        }
+    }
 
-            appendMessage(userMessage, 'user');
+    const footer = document.getElementById('chatInputFooter');
+    const wittyPhraseDiv = document.createElement('div');
+    wittyPhraseDiv.id = 'wittyPhrase';
+    wittyPhraseDiv.style.marginBottom = '20px';
+    wittyPhraseDiv.style.marginRight = '7px';
+    wittyPhraseDiv.style.fontSize = '16px';
+    wittyPhraseDiv.style.display = 'none';
+    footer.insertBefore(wittyPhraseDiv, footer.firstChild);
 
+    function appendMessage(message, sender) {
+    let isRichContent = false;
+
+    if (sender === 'user') {
+        const starterButtonsDiv = document.getElementById("starterButtonsDiv");
+        if (starterButtonsDiv) {  // Check if the element exists
+            starterButtonsDiv.style.display = "none";
+            console.log("Hid button section");
+        } else {
+            console.log("Element 'starterButtonsDiv' not found.");
+        }
+    }
+
+    if (sender === 'assistant') {
+    // Regular expressions to check for specific markdown elements
+    const markdownPatterns = [
+        /#{1,6}\s/,    // Headings (#, ##, ###, etc.)
+        /\*\*.*?\*\*/, // Bold (**bold**)
+        /\*.*?\*/,     // Italics (*italics*)
+        /\[.*?\]\(.*?\)/, // Links [text](url)
+        /`.*?`/,       // Inline code (`code`)
+        /```[\s\S]*?```/ // Code blocks (```code```)
+    ];
+
+    if (message.includes("/payment_buffer") && sender === "assistant"){
+        window.location.href = llmResponse;
+        // appendMessage(llmResponse, "assistant")
+        return; // Terminate the function here
+    };
+
+    if (message.includes("Thank you very much! You ordered") && sender === "assistant"){
+        const unique_azz_id = "{{ unique_azz_id }}"
+        window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+        // appendMessage(llmResponse, "assistant")
+        return; // Terminate the function here
+    }
+
+    // Check if any markdown pattern is found in the message
+    const containsMarkdown = markdownPatterns.some((pattern) => pattern.test(message));
+
+    // Configuration to allow raw HTML inside Markdown
+    marked.setOptions({
+        breaks: true,            // Enable line breaks in markdown
+        gfm: true,               // GitHub flavored markdown
+        sanitize: false,         // Allow raw HTML inside Markdown (important for your use case)
+    });
+    
+    if (containsMarkdown) {
+        try {
+            message = marked.parse(message);  // Convert Markdown to HTML
+            isRichContent = true;  // Indicate that the content is rich (contains HTML)
+        } catch (error) {
+            console.error("Marked conversion error: ", error);
+            message = message;  // Fallback to plain message in case of error
+        }
+    } else {
+        isRichContent = false;  // No markdown detected, so no rich content
+    }
+}
+
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        margin-top: 10px;
+        margin-right: 10px;
+        margin-left: 10px;
+        margin-bottom: 40px;
+        padding: 15px;
+        border-radius: 15px;
+        font-family: 'Arial', sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        word-wrap: break-word;
+        max-width: 80%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    `;
+
+    // If it's rich content, directly insert HTML; otherwise, treat as plain text
+    if (isRichContent) {
+        messageDiv.innerHTML = message;  // Insert the HTML content directly
+    } else {
+        messageDiv.textContent = message;  // For plain text, use textContent
+    }
+
+    const iconDiv = document.createElement('div');
+    iconDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin: 10px; flex-shrink: 0;';
+
+    const messageContainer = document.createElement('div');
+
+    if (sender === 'user') {
+        messageDiv.style.backgroundColor = '#f1f1f1';
+        messageDiv.style.color = '#333';
+        messageDiv.style.textAlign = 'left';
+
+        const userIcon = document.createElement('img');
+        userIcon.src = '/static/images/user_icon.png';
+        userIcon.style.width = '100%';
+        userIcon.style.height = '100%';
+        userIcon.style.objectFit = 'cover';
+        iconDiv.appendChild(userIcon);
+
+        messageContainer.style.cssText = 'display: flex; flex-direction: row; align-items: flex-start;';
+        messageContainer.appendChild(iconDiv);
+        messageContainer.appendChild(messageDiv);
+
+    } else if (sender === 'assistant') {
+        messageDiv.style.backgroundColor = '#333';
+        messageDiv.style.color = '#ffffff';
+        messageDiv.style.textAlign = 'right';
+
+        const assistantIcon = document.createElement('img');
+        assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
+        assistantIcon.style.width = '40px';
+        assistantIcon.style.height = '40px';
+        assistantIcon.style.objectFit = 'cover';
+        iconDiv.appendChild(assistantIcon);
+
+        messageContainer.style.cssText = 'display: flex; flex-direction: row-reverse; align-items: flex-start;';
+        messageContainer.appendChild(iconDiv);
+        messageContainer.appendChild(messageDiv);
+
+    } else if (sender === 'system') {
+        messageDiv.style.backgroundColor = '#4CAF50';
+        messageDiv.style.color = 'white';
+        messageDiv.style.textAlign = 'center';
+
+        messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
+        messageContainer.appendChild(messageDiv);
+    }
+
+    document.getElementById('chatBox').appendChild(messageContainer);
+    scrollToBottom(messageContainer);
+
+    console.log(`IsRichContent value: ${isRichContent}`)
+
+    // If not rich content and sender is assistant, apply word-by-word effect
+    if (!isRichContent) {
+        displayWord(messageDiv, message);
+    }
+}
+
+// Word-by-word display function, only used for non-rich content
+function displayWord(element, message) {
+    const words = message.split(' ');
+    element.innerHTML = '';  // Clear the content first
+
+    let wordIndex = 0;
+
+    function showNextWord() {
+        if (wordIndex < words.length) {
+            element.innerHTML += words[wordIndex] + ' ';
+            wordIndex++;
+            setTimeout(showNextWord, 257);  // Adjust delay as needed
+        }
+    }
+
+    showNextWord();
+};
+
+const micButton = document.getElementById('micButton');
+    micButton.addEventListener('click', () => {
+        if (isRecording && !blockMicButton) {
+            mediaRecorder.stop();
+            micButton.textContent = '🎤';
             const spinner = document.getElementById('spinner');
-            const userMessageInput = document.getElementById('userMessage');
-            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            spinner.style.display = 'none';
+        } else if (!isRecording && blockMicButton) {
+            mediaRecorder.stop();
+            micButton.textContent = '🎤';
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'none';
+        } else {
+            startRecording();
+            micButton.textContent = '⏹️';
+            const spinner = document.getElementById('spinner');
+            spinner.style.display = 'block';
+        }
+        isRecording = !isRecording;
+    });
 
+    async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+
+    mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.webm');
+        const userLanguage = sessionStorage.getItem('userLanguage');
+        formData.append('language', userLanguage);
+
+        const spinner = document.getElementById('spinner');
+        const userMessageInput = document.getElementById('userMessage');
+        const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+        const micButton = document.getElementById('micButton');
+
+        try {
+            blockMicButton = true;
             if (spinner) {
                 spinner.style.display = 'block';
                 showWittyPhrase(true);
             }
-            userMessageInput.disabled = true;
-            sendButton.disabled = true;
+            if (userMessageInput) userMessageInput.disabled = true;
+            if (sendButton) sendButton.disabled = true;
+            if (micButton) micButton.disabled = true;
 
-            const unique_azz_id = "{{ unique_azz_id }}";
-
-            fetch(`/generate_response/${unique_azz_id}`, {
+            const transcribeResponse = await fetch('/transcribe_voice', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ message: userMessage, thread_id: currentThreadId, assistant_id: currentAssistantId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("Received response: ", data);
-                if (data.order_formed) {
-                    appendMessage(data.response_llm, 'assistant');
-                    appendMessage("Press here to proceed", 'system');
-                    userMessageInput.disabled = true;
-                    sendButton.disabled = true;
-                    document.getElementById('chatBox').innerHTML += '<p style="text-align: center"><strong>Order complete.<br>Please proceed to checkout.</strong></p>';
-                } else if (data.response_llm.includes("/payment_buffer")) {
-                    appendMessage(data.response_llm, 'assistant');  
-                    userMessageInput.disabled = true;
-                    sendButton.disabled = true;
-                    document.getElementById('chatBox').innerHTML += '<p style="text-align: center; align-items: center"><strong>Please, proceed to checkout☝️<br>➕To make the order, update the page➕</strong></p>';
-                } else {
-                    appendMessage(data.response_llm, 'assistant');
-                    userMessageInput.disabled = false;
-                    sendButton.disabled = false;
-
-                    const chosen_language = document.getElementById('languageSelect').value;
-                    if (chosen_language !== "is-IS"){
-                        speak(data.for_voice);
-                        console.log("Entered the loop");
-                    }
-                }
-
-                if (spinner) spinner.style.display = 'none';
-                showWittyPhrase(false);
-                userMessageInput.value = '';
-            })
-            .catch(error => {
-                console.error("Error: ", error);
-                if (spinner) spinner.style.display = 'none';
-                showWittyPhrase(false);
-                userMessageInput.disabled = false;
-                sendButton.disabled = false;
+                body: formData
             });
-        }
 
-        window.sendMessage = sendMessage;
+            const transcribeData = await transcribeResponse.json();
+            if (transcribeResponse.ok && transcribeData.status === 'success') {
+                const transcription = transcribeData.transcription;
+                appendMessage(transcription, "user");
 
-        function showWittyPhrase(visible, voice_input) {
-            const phrases = [
-                "Your Order is Our Command! ✨",
-                "The Beauty in Simplicity 😮‍💨",
-                "Love is AI Serving You 💓",
-                "Prepare for the Tasty Journey 😋",
-                "Don't Worry, Just Eat It! 🍽️"
-            ];
-            const phraseDisplay = document.getElementById('wittyPhrase');
-            if (visible) {
-                const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
-                if (phraseDisplay) {
-                    phraseDisplay.textContent = randomPhrase;
-                    phraseDisplay.style.display = 'block';
+                const responseFormData = new FormData();
+                responseFormData.append('message', transcription);
+                responseFormData.append('thread_id', currentThreadId);
+                responseFormData.append('assistant_id', currentAssistantId);
+                responseFormData.append('language', userLanguage);
+
+                const unique_azz_id = "{{ unique_azz_id }}";
+                let llmResponse;
+
+                const response = await fetch(`/generate_response/${unique_azz_id}`, {
+                    method: 'POST',
+                    body: responseFormData
+                });
+
+                const data = await response.json();
+                llmResponse = data.response_llm;
+
+                if (llmResponse.includes("/payment_buffer")){
+                    window.location.href = llmResponse;
+                    // appendMessage(llmResponse, "assistant")
+                    return; // Terminate the function here
+                };
+
+                if (llmResponse.includes("Thank you very much! You ordered")){
+                    const unique_azz_id = "{{ unique_azz_id }}"
+                    window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+                    // appendMessage(llmResponse, "assistant")
+                    return; // Terminate the function here
                 }
-              
-            } else if (visible && voice_input) {  
-                    phraseDisplay.textContent = "Please, speak your truth NOW!";
-                    phraseDisplay.style.display = 'block'; 
+
+                const voiceFormData = new FormData();
+                voiceFormData.append('full_gpts_response', llmResponse);
+                voiceFormData.append('language', userLanguage);
+
+                const voiceResponse = await fetch(`/generate_voice_output/${unique_azz_id}`, {
+                    method: 'POST',
+                    body: voiceFormData
+                });
+
+                const audioBlob = await voiceResponse.blob();
+                console.log("Received audio blob");
+                const audioUrl = window.URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                
+                appendMessage(llmResponse, 'assistant');
+                
+                console.log("Started Playing audio");
+                audio.play();
+
+                blockMicButton = false;
             } else {
-                if (phraseDisplay) {
-                    phraseDisplay.style.display = 'none';
-                }
+                appendMessage('Transcription failed. Please try again.', 'system');
+                blockMicButton = false;
             }
-        }
-
-        window.showWittyPhrase = showWittyPhrase;
-
-        const footer = document.getElementById('chatInputFooter');
-        const wittyPhraseDiv = document.createElement('div');
-        wittyPhraseDiv.id = 'wittyPhrase';
-        wittyPhraseDiv.style.marginBottom = '20px';
-        wittyPhraseDiv.style.marginRight = '7px';
-        wittyPhraseDiv.style.fontSize = '16px';
-        wittyPhraseDiv.style.display = 'none';
-        footer.insertBefore(wittyPhraseDiv, footer.firstChild);
-
-        function appendMessage(message, sender) {
-            if (message.includes("/payment_buffer")) {
-                const isIframeRaw = "{{ iframe }}";
-                let isIframe = isIframeRaw === "True";
-
-                console.log('Entered includes payment buffer loop');
-
-                if (isIframe) {
-                    let clickable_link = `<a href="${message}" style="color: #00ffff;" target="_blank"><u>Press here to proceed👆</u></a>`;
-                    message = `Order formed successfully. Please, follow this link to finish the purchase: ${clickable_link}`;
-                } else {
-                    window.location.href = message;
-                    return;
-                }
-            } else if (message.includes("Come to the restaurant and pick up")) {
-                const isIframeRaw = "{{ iframe }}";
-                let isIframe = isIframeRaw === "True";
-
-                console.log('Entered includes "Come to the restaurant" loop');
-
-                if (isIframe) {
-                    message = message;
-                    document.getElementById('userMessage').disabled = true;
-                    document.querySelector('button[onclick="sendMessage()"]').disabled = true;
-                    document.getElementById('micButton').disabled = true;
-                } else {
-                    const unique_azz_id = "{{ unique_azz_id }}";
-                    window.location.href = `/no-payment-order-placed/${unique_azz_id}`;
-                    return;
-                }
-            }
-
-            const messageDiv = document.createElement('div');
-            messageDiv.style.cssText = 'margin: 10px; padding: 10px; border-radius: 10px;';
-            console.log("Opened appendMessage function");
-
-            try {
-                const htmlContent = marked.parse(message);
-                messageDiv.innerHTML = htmlContent;
-            } catch (error) {
-                console.error("Marked conversion error: ", error);
-                messageDiv.textContent = message;
-            }
-
-            const iconDiv = document.createElement('div');
-            iconDiv.style.cssText = 'width: 30px; height: 30px; border-radius: 50%; overflow: hidden; margin: 10px;';
-
-            const messageContainer = document.createElement('div'); // Define messageContainer here
-
-            if (sender === 'user') {
-                messageDiv.style.backgroundColor = '#e5e5e5';
-                messageDiv.style.textAlign = 'left';
-
-                const userIcon = document.createElement('img');
-                userIcon.src = '/static/images/user_icon.png'; // Replace with your user icon path
-                userIcon.style.width = '100%';
-                userIcon.style.height = '100%';
-                userIcon.style.objectFit = 'cover';
-                iconDiv.appendChild(userIcon);
-
-                messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-start;';
-                messageContainer.appendChild(messageDiv);
-                messageContainer.appendChild(iconDiv);
-
-                document.getElementById('chatBox').appendChild(messageContainer);
-
-            } else if (sender === 'assistant') {
-                messageDiv.style.backgroundColor = '#000000';
-                messageDiv.style.color = 'white';
-                messageDiv.style.textAlign = 'right';
-
-                const assistantIcon = document.createElement('img');
-                assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}'; // Replace with your assistant icon path or restaurant logo
-                assistantIcon.style.width = '100%';
-                assistantIcon.style.height = '100%';
-                assistantIcon.style.objectFit = 'cover';
-                iconDiv.appendChild(assistantIcon);
-
-                messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: flex-end;';
-                messageContainer.appendChild(messageDiv);
-                messageContainer.appendChild(iconDiv);
-
-                document.getElementById('chatBox').appendChild(messageContainer);
-
-            } else if (sender === 'system') {
-                messageDiv.style.backgroundColor = '#4CAF50';
-                messageDiv.style.color = 'white';
-                messageDiv.style.textAlign = 'center';
-
-                messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
-                messageContainer.appendChild(messageDiv);
-
-                document.getElementById('chatBox').appendChild(messageContainer);
-            }
-
-            scrollToBottom(messageContainer);
-        }
-
-        window.appendMessage = appendMessage;
-
-        function scrollToBottom(element) {
-            const chatBox = document.getElementById('chatBox');
-            chatBox.scrollTop = element.offsetTop + element.offsetHeight;
-            console.log("Scrolled to bottom of: ", element);
-        }
-
-        window.scrollToBottom = scrollToBottom;
-
-        var flashMessages = document.querySelector('.flash-messages');
-        if (flashMessages) {
-            setTimeout(function() {
-                flashMessages.style.display = 'none';
-            }, 5000);
-        }
-
-        /*
-        function startVoiceInput() {
-            const recognition = new webkitSpeechRecognition();
-            recognition.lang = "en-US"; // Set the language
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onresult = function(event) {
-                const result = event.results[0][0].transcript;
-                console.log('Voice input result: ', result);
-                document.getElementById('userMessage').value = result;
-                // appendMessage(result, 'user');  // Add transcription to chat history as user message
-                sendMessage();
-            };
-
-            recognition.onerror = function(event) {
-                console.error('Voice recognition error: ', event.error);
-            };
-
-            recognition.start();
-        }
-
-        window.startVoiceInput = startVoiceInput;
-        */
-
-        async function speak(text) {
-            console.log("Started Speaking");
-            const synthesis = window.speechSynthesis;
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = document.getElementById('languageSelect').value;
-            synthesis.speak(utterance);
-        }
-
-        window.speak = speak;
-
-        const micButton = document.getElementById('micButton');
-        // Event listener for micButton
-        micButton.addEventListener('click', () => {
-            if (isRecording && !blockMicButton) {
-                mediaRecorder.stop();
-                console.log("Stopped media recorder!");
-                micButton.textContent = '🎤';
-                const spinner = document.getElementById('spinner');
+        } catch (error) {
+            appendMessage('An error occurred. Please try again.', 'system');
+            blockMicButton = false;
+        } finally {
+            if (spinner) {
                 spinner.style.display = 'none';
-            } else if (!isRecording && blockMicButton) {
-                mediaRecorder.stop();
-                console.log("Stopped media recorder!");
-                micButton.textContent = '🎤';
-                const spinner = document.getElementById('spinner');
-                spinner.style.display = 'none';
-            } else {
-                startRecording();
-                micButton.textContent = '⏹️';
-                const spinner = document.getElementById('spinner');
-                spinner.style.display = 'block';
+                showWittyPhrase(false);
             }
-            isRecording = !isRecording;
-        });
-
-        async function startRecording() {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-
-            mediaRecorder.ondataavailable = event => {
-                audioChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const formData = new FormData();
-                formData.append('file', audioBlob, 'audio.webm');
-                const chosen_language = document.getElementById('languageSelect').value; // Get the selected language
-                formData.append('language', chosen_language); // Add the language to the form data
-
-                const spinner = document.getElementById('spinner');
-                const userMessageInput = document.getElementById('userMessage');
-                const sendButton = document.querySelector('button[onclick="sendMessage()"]');
-                const micButton = document.getElementById('micButton'); // Correct the querySelector
-
-                try {
-                    blockMicButton = true;
-                    if (spinner) {
-                        spinner.style.display = 'block';
-                        showWittyPhrase(true);
-                    }
-                    if (userMessageInput) userMessageInput.disabled = true;
-                    if (sendButton) sendButton.disabled = true;
-                    if (micButton) micButton.disabled = true;
-
-                    // Send request to the /transcribe_voice endpoint
-                    const transcribeResponse = await fetch('/transcribe_voice', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const transcribeData = await transcribeResponse.json();
-                    console.log('Transcription data: ', transcribeData);
-
-                    if (transcribeResponse.ok && transcribeData.status === 'success') {
-                        const transcription = transcribeData.transcription;
-                        appendMessage(transcription, "user");
-
-                        // Create form data for the /generate_response endpoint
-                        const responseFormData = new FormData();
-                        responseFormData.append('message', transcription);
-                        responseFormData.append('thread_id', currentThreadId);
-                        responseFormData.append('assistant_id', currentAssistantId);
-                        responseFormData.append('language', chosen_language);
-
-                        const unique_azz_id = "{{ unique_azz_id }}";  // Replace with your actual unique AZZ ID
-
-                        // Send the transcription result to the /generate_response endpoint
-                        const response = await fetch(`/generate_response/${unique_azz_id}`, {
-                            method: 'POST',
-                            body: responseFormData
-                        });
-
-                        const data = await response.json();
-                        console.log('Full data: ', data);
-                        appendMessage(data.response_llm, 'assistant');
-                        
-                        blockMicButton = false; // Unlock mic button after response is received
-                    } else {
-                        console.error('Error in transcription: ', transcribeData.error || 'Unknown error');
-                        appendMessage('Transcription failed. Please try again.', 'system');
-                        blockMicButton = false; // Unlock mic button on error
-                    }
-                } catch (error) {
-                    console.error('Error: ', error);
-                    appendMessage('An error occurred. Please try again.', 'system');
-                    blockMicButton = false; // Unlock mic button on error
-                } finally {
-                    if (spinner) {
-                        spinner.style.display = 'none';
-                        showWittyPhrase(false);
-                    }
-                    if (userMessageInput) userMessageInput.disabled = false;
-                    if (sendButton) sendButton.disabled = false;
-                    if (micButton) micButton.disabled = false;
-                    audioChunks = [];
-                }
-
-                // Stop all tracks in the MediaStream to ensure recording is stopped completely
-                stream.getTracks().forEach(track => track.stop());
-            };
-
-            mediaRecorder.start();
+            if (userMessageInput) userMessageInput.disabled = false;
+            if (sendButton) sendButton.disabled = false;
+            if (micButton) micButton.disabled = false;
+            audioChunks = [];
         }
+
+        stream.getTracks().forEach(track => track.stop());
     };
+
+    mediaRecorder.start();
+};
+
+}
+
+
+    window.appendMessage = appendMessage;
+
+    function scrollToBottom(element) {
+        const chatBox = document.getElementById('chatBox');
+        chatBox.scrollTop = element.offsetTop + element.offsetHeight;
+    }
+
+    window.scrollToBottom = scrollToBottom;
+
+    var flashMessages = document.querySelector('.flash-messages');
+    if (flashMessages) {
+        setTimeout(function() {
+            flashMessages.style.display = 'none';
+        }, 5000);
+    }
+
+
+    /*
+    async function speak(text) {
+        const synthesis = window.speechSynthesis;
+        const utterance = new SpeechSynthesisUtterance(text);
+        
+        let userLanguage = sessionStorage.getItem('userLanguage');
+        console.log("The language user selected on start (accessed from speak function): ", userLanguage)
+        
+        // utterance.lang = document.getElementById('languageSelect').value;
+        utterance.lang = userLanguage;
+        synthesis.speak(utterance);
+    }
+
+    window.speak = speak;
+    */
+    
+    
 </script>
 
 
-
-
 {% endblock %}
-
-
-
-
-

@@ -129,11 +129,13 @@
 
 <div id="web3Modal" class="modal">
     <div class="modal-content">
+        <img src="/static/assets/confetti.gif" width="250">
         <span class="close">&times;</span>
         <h2>Connect Your Web3 Wallet</h2>
         <p>🪙You have earned 50 MOM tokens by making this order<br>🔌Connect your Web3 wallet in one click and redeem your prize!</p>
         <button id="walletOrGetTokensButton" class="web3-button" onclick="connectWalletAndSendTokens()">Connect Web3 Wallet &<br>Get 50 MOM tokens</button>
         <div id="response-message"></div>
+        <div id="current-wallet-address" style="margin-top: 20px;"></div>
     </div>
 </div>
 
@@ -147,6 +149,7 @@
                 {% if item['image_url'] %}
                 <br><img src="{{ item['image_url'] }}" alt="Image of {{ item['name'] }}" width="170" height="auto">
                 {% endif %}
+                <hr>
                 <!-- <b>{{ item['amount'] }} EUR <u>per 1 item</u></b> -->
             </li>
         {% endfor %}
@@ -162,13 +165,19 @@
         <h2>Receive your Order ID</h2>
         <form id="orderIdForm">
             <input type="email" id="email" name="email" placeholder="Enter your email address" required>
-            <button id="emailSubmitButton" type="submit">Receive my Order ID</button>
+            <button id="emailSubmitButton" type="submit" style="background-color: black;">Receive my Order ID</button>
         </form>
         <div id="loadingContainer" style="align-items:center;">
            <img id="loadingGif" src="/static/assets/loading-gif.gif" alt="Loading..." style="display:none;" width="70" height="auto">
         </div>
     </div>
     <div id="message"></div>
+
+    <hr>
+        <h2>Want to earn more??</h2>
+        <h3>Go to <a href="/restaurant/{{ unique_azz_id }}" target="_blank" style="color: darkred;">this link.</a><br>Leave the review of your order and get extra MOM tokens.</h3>
+            
+    <hr>
     
     <p>You can make another order in {{ restaurant_name }} by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
     <p style="margin-top: 8px;">To explore the family of AI-empowered restaurants click <a href="/ai-restaurants" target="_blank" style="color: darkred;">this link</a>.</p>
@@ -194,13 +203,6 @@
     // Function to close the modal
     closeButton.onclick = function() {
         modal.style.display = "none";
-    };
-
-    // Optional: Close the modal when the user clicks anywhere outside of the modal
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = "none";
-        }
     };
         
     document.getElementById('orderIdForm').addEventListener('submit', async function(event) {
@@ -241,6 +243,8 @@
     if (localStorage.getItem('walletAddress')){
         console.log("Entered loop")
         document.getElementById("walletOrGetTokensButton").innerHTML = "Get 50 MOM tokens"
+        const walletDiv = document.getElementById('current-wallet-address');
+        walletDiv.innerHTML = `<p>Current wallet attached: ${localStorage.getItem('walletAddress')}</p>`;
     }
 
     async function connectWalletAndSendTokens() {

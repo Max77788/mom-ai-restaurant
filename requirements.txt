@@ -41,3 +41,5 @@ geopy
 statistics
 flask-migrate
 currencyconverter
+celery
+flask-caching

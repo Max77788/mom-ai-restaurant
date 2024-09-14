@@ -10,6 +10,15 @@
         <form action="{{ url_for('setup_public_profile') }}" method="POST" enctype="multipart/form-data">
             {{ form.hidden_tag() }}
             
+            <!-- Name -->
+            <div>
+                <label for="name">Name of Your Restaurant</label>
+                {{ form.name(cols=50, rows=4, id='name-input') }}
+                {% if form.name.errors %}
+                    <span style="color: red;">{{ form.name.errors[0] }}</span>
+                {% endif %}
+            </div>
+            
             <!-- Description -->
             <div>
                 <label for="description">Description of your restaurant (50-350 characters):</label>
@@ -17,6 +26,19 @@
                 {% if form.description.errors %}
                     <span style="color: red;">{{ form.description.errors[0] }}</span>
                 {% endif %}
+            </div>
+
+            <!-- Location Input-->
+            <div class="form-group">
+                <label for="location">Restaurant Location:</label>
+                <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
+                    <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
+                        <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location" required>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
+                    </div>
+                </div>
+                <input type="hidden" id="locationInput" name="location" required>
+                <input type="hidden" id="locationName" name="locationName" required>
             </div>
             
             <!-- Website URL (Optional) -->
@@ -32,9 +54,16 @@
                 <p style="font-size: 14px;">The image should be square - for example, 1080x1080, 840x840</p>
             </div>
 
+            <div class="form-group">
+                <label for="email">*If someone invited you input their referral ID<br>(you both will earn from it):</label>
+                {{ form.referral_id }}
+            </div>
+
             <div style="margin-top: 10px;">
                 <button type="submit">Setup Public Profile</button>
             </div>
+
+            
         </form>
     </div>
 
@@ -45,13 +74,17 @@
             <div id="profile-logo" style="margin-bottom: 15px;">
                 <img id="logo-preview" src="/static/images/Black Bold Initial AI Business Logo.png" alt="Restaurant Logo" style="max-width: 150px; max-height: 150px;">
             </div>
-            <h2>{{ restaurant_name }}</h2>
+            <div id="profile-name" style="margin-bottom: 15px;">
+                <h2 id="name-preview">Your Restaurant Name</h2>
+            </div>
             <div id="profile-description" style="margin-bottom: 15px;">
                 <p id="description-preview">This is where your restaurant description will appear. Make it appealing to attract customers!</p>
             </div>
             <div id="profile-website-url">
                 <a id="website-url-preview" href="#" target="_blank">www.your-restaurant.com</a>
             </div>
+
+            
         </div>
     </div>
 </div>
@@ -62,6 +95,13 @@
     document.getElementById('description-input').oninput = function() {
         document.getElementById('description-preview').textContent = this.value || 'This is where your restaurant description will appear. Make it appealing to attract customers!';
     };
+
+    // Description Update
+    document.getElementById('name-input').oninput = function() {
+        document.getElementById('name-preview').textContent = this.value || 'Your Restaurant Name';
+    };
+
+
 
     // Website URL Update
     document.getElementById('website-url-input').oninput = function() {
@@ -84,5 +124,83 @@
             document.getElementById('logo-preview').src = 'https://i.ibb.co/fD13tSj/Black-Bold-Initial-AI-Business-Logo.png';
         }
     };
+
+
+    function initAutocomplete() {
+    const input = document.getElementById('pac-input');
+    const autocomplete = new google.maps.places.Autocomplete(input);
+
+    // Autocomplete select listener
+    autocomplete.addListener('place_changed', function() {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
+            console.log("Place details not found for input: " + input.value);
+            return;
+        }
+
+        const formattedAddress = formatAddressWithCity(place);
+        updateLocation(place.geometry.location, formattedAddress);
+    });
+}
+
+function formatAddressWithCity(place) {
+    let addressComponents = place.address_components;
+    let street = '', buildingNumber = '', city = '', region = '', country = '';
+
+    addressComponents.forEach(component => {
+        if (component.types.includes('route')) {
+            street = component.long_name;
+        }
+        if (component.types.includes('street_number')) {
+            buildingNumber = component.long_name;
+        }
+        if (component.types.includes('locality')) {
+            city = component.long_name;
+        }
+        if (component.types.includes('administrative_area_level_1')) {
+            region = component.long_name;
+        }
+        if (component.types.includes('country')) {
+            country = component.long_name;
+        }
+    });
+
+    let formattedAddress = '';
+    if (buildingNumber && street) {
+        formattedAddress += buildingNumber + ' ' + street;
+    } else if (street) {
+        formattedAddress += street;
+    }
+    if (city) {
+        formattedAddress += ', ' + city;
+    }
+    if (region) {
+        formattedAddress += ', ' + region;
+    }
+    if (country) {
+        formattedAddress += ', ' + country;
+    }
+
+    // Ensure that required components are present
+    if (!street || !buildingNumber || !city || !country) {
+        alert("Please select a valid location including street, building number, city, and country.");
+        return '';
+    }
+
+    return formattedAddress;
+}
+
+function updateLocation(position, formattedAddress) {
+    if (formattedAddress) {
+        document.getElementById('locationInput').value = JSON.stringify(position);
+        document.getElementById('locationName').value = formattedAddress;
+    }
+}
+
+
+
 </script>
+
+<!-- Include Google Maps JavaScript API with Places library -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>
 {% endblock %}

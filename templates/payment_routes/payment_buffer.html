@@ -18,7 +18,7 @@
             {% endfor %}
             {% if addFees %}    
             <li style="margin-top: 8px;">
-                <b>MOM AI and PayPal fee</b> : <b>{{ fees_amount }} EUR</b>
+                <b>MOM AI and PayPal fee</b> : <b>{{ fees_amount|round(2) }} EUR</b>
             </li>
             <p style="font-size: 10px">*MOM AI - 0.10€ + 1% of the order,<br>*PayPal - 0.35€ + 3.49% of the order</p>
             {% endif %}

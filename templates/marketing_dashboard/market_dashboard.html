@@ -104,7 +104,7 @@
             <p>You will <u>pay in-store</u></p>
             {% endif %}
             {% if restaurant.average_menu_price %}
-            <p>Average price on menu: {{ restaurant.average_menu_price | round(2) }}€</p>
+            <p>Average price on menu: {{ restaurant.average_menu_price | round(2) }} {{ restaurant.res_currency }}</p>
             {% else %}
             <p>Not Given</p>
             {% endif %}

@@ -4,8 +4,8 @@
 
 {% if start_setup %}
 <div style="display: flex; flex-direction: column; align-items: center;">
-    <h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">Quickly build your account</h1>
-    <p>After this 10-minutes straight forward setup you will have:</p>
+    <h1 style="text-align: center; font-family: 'Arial', sans-serif; color: #2c3e50; margin-top: 20px;">❗Unbelievable❗</h1>
+    <p>Just 1 more step and you will obtain these:</p>
 <ul>
     <li>🤖 AI-employee which works on all frontiers of your business: online, in-store and over the phone</li>
     <li>🔔 Working notification system to always be aware of new orders
@@ -14,7 +14,7 @@
     <li>🏆 Title of being "Revolutionary AI-empowered restaurant"</li>
 </ul>
 
-<h3>Let's start with the schedule:</h3>
+<h3>Setup the schedule:</h3>
 
 
 
@@ -184,7 +184,7 @@
                 console.log(data);
                 const start_setup = "{{ start_setup }}" === "True";
                 if (start_setup) {
-                    window.location.href = "/setup_public_profile";
+                    window.location.href = "/dashboard?show_popup=True";
                 } else {
                     window.location.href = "/set-working-hours";
                 }

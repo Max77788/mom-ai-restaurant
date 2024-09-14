@@ -186,7 +186,7 @@
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px;" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px;">
         <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
-        <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;">🎤</button>
+        <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
     </div>
     <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
         <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
@@ -342,7 +342,7 @@
             document.getElementById('tokenBalance').innerText = 'Connect wallet to see MOM token balance';
         }
         */    
-    }
+    };
 
     window.startChat = startChat;
 
@@ -510,7 +510,6 @@
             appendStarterPhrases();  // Append starter phrases here
             {% endif %}
 
-            
             enableInput();
         })
         .catch(error => {
@@ -519,12 +518,36 @@
     }
 
     function enableInput() {
+        const spinner = document.getElementById('spinner');
+        
+        if (spinner) {
+        spinner.style.display = 'none';
+        showWittyPhrase(false);
+        };
+        
         console.log("Enabling input fields and buttons");
         document.getElementById('userMessage').disabled = false;
         document.querySelector('button[onclick="sendMessage()"]').disabled = false;
         document.getElementById('micButton').disabled = false;
-        console.log("Input and buttons enabled");
+        console.log("Input and buttons ENABLED");
     }
+
+    function disableInput() {
+        const spinner = document.getElementById('spinner');
+        
+        if (spinner) {
+        spinner.style.display = 'block';
+        showWittyPhrase(true);
+        };
+        
+        console.log("Enabling input fields and buttons");
+        document.getElementById('userMessage').disabled = true;
+        document.getElementById('userMessage').value = '';
+        document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+        document.getElementById('micButton').disabled = true;
+        console.log("Input and buttons DISABLED");
+    }
+
 
     
     window.sendMessage = function sendMessage(message=null) {
@@ -538,25 +561,16 @@
         userMessage = message;
     }
 
+    disableInput();
+
     console.log("Send button clicked");
     console.log("User message: ", userMessage);
     if (userMessage.trim() === '') {
         console.log("Empty message, not sending.");
         return;
-    }
+    };
 
     appendMessage(userMessage, 'user');
-
-    const spinner = document.getElementById('spinner');
-    const userMessageInput = document.getElementById('userMessage');
-    const sendButton = document.querySelector('button[onclick="sendMessage()"]');
-
-    if (spinner) {
-        spinner.style.display = 'block';
-        showWittyPhrase(true);
-    }
-    userMessageInput.disabled = true;
-    sendButton.disabled = true;
 
     const unique_azz_id = "{{ unique_azz_id }}";
     let llmResponse;
@@ -569,65 +583,122 @@
     formData.append('thread_id', currentThreadId);
     formData.append('assistant_id', currentAssistantId);
 
-    fetch(`/generate_response/${unique_azz_id}`, {
+    console.log("Form Data we send")
+    console.log(formData)
+
+    fetch(`/trigger_generate_response/${unique_azz_id}`, {
         method: 'POST',
         body: formData
     })
     .then(response => response.json())
     .then(data => {
-        console.log("Received response: ", data);
-        llmResponse = data.response_llm;
-        // appendMessage(llmResponse, 'assistant');
+        const taskId = data.task_id;  // Get the task ID from the response
+        console.log("Task ID received: ", taskId);
+        pollTaskStatus(taskId);  // Poll the task status periodically
 
-        if (llmResponse.includes("/payment_buffer")){
-            window.location.href = llmResponse;
-            // appendMessage(llmResponse, "assistant")
-            return; // Terminate the function here
-        };
+    })
+    .catch(error => {
+        console.error("Error triggering task: ", error);
+        enableInput();
+    });
+};
 
-        if (llmResponse.includes("Thank you very much! You ordered")){
-            const unique_azz_id = "{{ unique_azz_id }}"
-            window.location.href = `/no-payment-order-placed/${unique_azz_id}`
-            // appendMessage(llmResponse, "assistant")
-            return; // Terminate the function here
-        }
+// Function to poll the task status
+function pollTaskStatus(taskId) {
+    const interval = setInterval(() => {
+        fetch(`/generate_response_task_status/${taskId}`, {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("Task status: ", data);
 
-        const voiceFormData = new FormData();
-        voiceFormData.append('full_gpts_response', llmResponse);
-        voiceFormData.append('language', userLanguage);
+            // When task is completed, get the response and process it
+            if (data.state === 'SUCCESS') {
+                clearInterval(interval);  // Stop polling
 
-        return fetch(`/generate_voice_output/${unique_azz_id}`, {
-            method: 'POST',
-            body: voiceFormData
+                const llmResponse = data.result;  // Get the assistant's response
+
+                if (llmResponse.includes("/payment_buffer")) {
+                    sessionStorage.setItem("next_link", llmResponse)
+                    window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
+                    return;
+                }
+
+                if (llmResponse.includes("Thank you very much! You ordered")) {
+                    const unique_azz_id = "{{ unique_azz_id }}";
+                    sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
+                    window.location.href = `/takeaway_delivery/${unique_azz_id}`;
+                    return;
+                }
+
+                console.log("\n\nLLM Response\n\n")
+                
+                console.log(llmResponse)
+
+                appendMessage(llmResponse, 'assistant');  // Display the assistant's message
+                
+                const phraseDisplay = document.getElementById('wittyPhrase');
+                phraseDisplay.style.display = 'none';
+
+                // Generate voice output for the response
+                generateVoiceOutput(llmResponse);
+
+                enableInput();
+            }
+
+            // Handle task failure
+            if (data.state === 'FAILURE') {
+                clearInterval(interval);  // Stop polling
+                console.error("Task failed: ", data.status);
+                appendMessage('An error occurred. Please try again.', 'system');
+                showWittyPhrase(false);
+
+
+                enableInput();
+            }
+
+            // If task is still pending, continue polling
+            if (data.state === 'PENDING' || data.state === 'RETRY') {
+                console.log("Task is still pending or retrying. Waiting...");
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching task status: ", error);
+            clearInterval(interval);  // Stop polling in case of an error
         });
+    }, 1000);  // Poll every 1 second
+}
+
+// Generate voice output for the assistant's response
+function generateVoiceOutput(llmResponse) {
+    const unique_azz_id = "{{ unique_azz_id }}";
+    const userLanguage = sessionStorage.getItem('userLanguage');
+
+    const voiceFormData = new FormData();
+    voiceFormData.append('full_gpts_response', llmResponse);
+    voiceFormData.append('language', userLanguage);
+
+    fetch(`/generate_voice_output/${unique_azz_id}`, {
+        method: 'POST',
+        body: voiceFormData
     })
     .then(response => response.blob())
     .then(audioBlob => {
         console.log("Received audio blob");
         const audioUrl = window.URL.createObjectURL(audioBlob);
-        appendMessage(llmResponse, 'assistant');
         const audio = new Audio(audioUrl);
-        console.log("Started Playing audio");
-        audio.play();
-
-        if (spinner) spinner.style.display = 'none';
-        showWittyPhrase(false);
-        userMessageInput.value = '';
-        userMessageInput.disabled = false;
-        sendButton.disabled = false;
+        audio.play();  // Play the audio response
     })
     .catch(error => {
-        console.error("Error: ", error);
-        if (spinner) spinner.style.display = 'none';
-        showWittyPhrase(false);
-        userMessageInput.disabled = false;
-        sendButton.disabled = false;
+        console.error("Error generating voice output: ", error);
     });
 }
 
 
 
-    window.showWittyPhrase = function showWittyPhrase(visible, voice_input) {
+
+    window.showWittyPhrase = function showWittyPhrase(visible, voice_input=false) {
         const phrases = {
  'en-US': [
             "Your Order is Our Command! ✨",
@@ -735,6 +806,10 @@
         }
     }
 
+     
+
+
+
     const footer = document.getElementById('chatInputFooter');
     const wittyPhraseDiv = document.createElement('div');
     wittyPhraseDiv.id = 'wittyPhrase';
@@ -769,14 +844,16 @@
     ];
 
     if (message.includes("/payment_buffer") && sender === "assistant"){
-        window.location.href = llmResponse;
+        sessionStorage.setItem("next_link", message)
+        window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
         // appendMessage(llmResponse, "assistant")
         return; // Terminate the function here
     };
 
     if (message.includes("Thank you very much! You ordered") && sender === "assistant"){
         const unique_azz_id = "{{ unique_azz_id }}"
-        window.location.href = `/no-payment-order-placed/${unique_azz_id}`
+        sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
+        window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
         // appendMessage(llmResponse, "assistant")
         return; // Terminate the function here
     }
@@ -784,6 +861,13 @@
     // Check if any markdown pattern is found in the message
     const containsMarkdown = markdownPatterns.some((pattern) => pattern.test(message));
 
+    // Configuration to allow raw HTML inside Markdown
+    marked.setOptions({
+        breaks: true,            // Enable line breaks in markdown
+        gfm: true,               // GitHub flavored markdown
+        sanitize: false,         // Allow raw HTML inside Markdown (important for your use case)
+    });
+    
     if (containsMarkdown) {
         try {
             message = marked.parse(message);  // Convert Markdown to HTML
@@ -916,7 +1000,10 @@ const micButton = document.getElementById('micButton');
         isRecording = !isRecording;
     });
 
+    
     async function startRecording() {
+    
+    
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
 
@@ -925,37 +1012,51 @@ const micButton = document.getElementById('micButton');
     };
 
     mediaRecorder.onstop = async () => {
+        disableInput();
+        mediaRecorder.stop();
+    
         const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
         const formData = new FormData();
         formData.append('file', audioBlob, 'audio.webm');
         const userLanguage = sessionStorage.getItem('userLanguage');
         formData.append('language', userLanguage);
 
-        const spinner = document.getElementById('spinner');
-        const userMessageInput = document.getElementById('userMessage');
-        const sendButton = document.querySelector('button[onclick="sendMessage()"]');
-        const micButton = document.getElementById('micButton');
-
         try {
+            const spinner = document.getElementById('spinner'); 
+            const userMessageInput = document.getElementById('userMessage');
+            const sendButton = document.querySelector('button[onclick="sendMessage()"]');
+            const micButton = document.getElementById('micButton');
+            
             blockMicButton = true;
+            
             if (spinner) {
                 spinner.style.display = 'block';
                 showWittyPhrase(true);
+                console.log("Displayed witty phrase!")
             }
             if (userMessageInput) userMessageInput.disabled = true;
             if (sendButton) sendButton.disabled = true;
             if (micButton) micButton.disabled = true;
 
+            // Transcribe voice
             const transcribeResponse = await fetch('/transcribe_voice', {
                 method: 'POST',
                 body: formData
             });
 
             const transcribeData = await transcribeResponse.json();
+            
             if (transcribeResponse.ok && transcribeData.status === 'success') {
                 const transcription = transcribeData.transcription;
                 appendMessage(transcription, "user");
 
+                if (spinner) {
+                    spinner.style.display = 'block';
+                    showWittyPhrase(true);
+                    console.log("Displayed witty phrase!")
+                }
+
+                // Create a new FormData for the response generation
                 const responseFormData = new FormData();
                 responseFormData.append('message', transcription);
                 responseFormData.append('thread_id', currentThreadId);
@@ -963,64 +1064,30 @@ const micButton = document.getElementById('micButton');
                 responseFormData.append('language', userLanguage);
 
                 const unique_azz_id = "{{ unique_azz_id }}";
-                let llmResponse;
 
-                const response = await fetch(`/generate_response/${unique_azz_id}`, {
+                // Trigger the Celery task for response generation
+                const triggerResponse = await fetch(`/trigger_generate_response/${unique_azz_id}`, {
                     method: 'POST',
                     body: responseFormData
                 });
 
-                const data = await response.json();
-                llmResponse = data.response_llm;
+                const triggerData = await triggerResponse.json();
+                const taskId = triggerData.task_id;  // Get the task ID
 
-                if (llmResponse.includes("/payment_buffer")){
-                    window.location.href = llmResponse;
-                    // appendMessage(llmResponse, "assistant")
-                    return; // Terminate the function here
-                };
+                // Poll the task status
+                pollTaskStatus(taskId, userLanguage, unique_azz_id);
 
-                if (llmResponse.includes("Thank you very much! You ordered")){
-                    const unique_azz_id = "{{ unique_azz_id }}"
-                    window.location.href = `/no-payment-order-placed/${unique_azz_id}`
-                    // appendMessage(llmResponse, "assistant")
-                    return; // Terminate the function here
-                }
+                // showWittyPhrase(false);
 
-                const voiceFormData = new FormData();
-                voiceFormData.append('full_gpts_response', llmResponse);
-                voiceFormData.append('language', userLanguage);
-
-                const voiceResponse = await fetch(`/generate_voice_output/${unique_azz_id}`, {
-                    method: 'POST',
-                    body: voiceFormData
-                });
-
-                const audioBlob = await voiceResponse.blob();
-                console.log("Received audio blob");
-                const audioUrl = window.URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioUrl);
-                
-                appendMessage(llmResponse, 'assistant');
-                
-                console.log("Started Playing audio");
-                audio.play();
-
-                blockMicButton = false;
             } else {
                 appendMessage('Transcription failed. Please try again.', 'system');
-                blockMicButton = false;
+                enableInput();
             }
         } catch (error) {
             appendMessage('An error occurred. Please try again.', 'system');
-            blockMicButton = false;
+            enableInput();
         } finally {
-            if (spinner) {
-                spinner.style.display = 'none';
-                showWittyPhrase(false);
-            }
-            if (userMessageInput) userMessageInput.disabled = false;
-            if (sendButton) sendButton.disabled = false;
-            if (micButton) micButton.disabled = false;
+            enableInput();
             audioChunks = [];
         }
 
@@ -1028,8 +1095,6 @@ const micButton = document.getElementById('micButton');
     };
 
     mediaRecorder.start();
-};
-
 }
 
 
@@ -1048,6 +1113,7 @@ const micButton = document.getElementById('micButton');
             flashMessages.style.display = 'none';
         }, 5000);
     }
+}
 
 
     /*
