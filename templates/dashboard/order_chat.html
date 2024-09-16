@@ -507,6 +507,8 @@
             
             {% if assistant_turned_on and isWorkingHours %}
             appendMessage(initialMessage, 'assistant');
+            const intro_url = "{{ intro_video_link }}"
+            appendMessage(intro_url, 'assistant', true);
             appendStarterPhrases();  // Append starter phrases here
             {% endif %}
 
@@ -683,12 +685,30 @@ function generateVoiceOutput(llmResponse) {
         method: 'POST',
         body: voiceFormData
     })
-    .then(response => response.blob())
-    .then(audioBlob => {
-        console.log("Received audio blob");
-        const audioUrl = window.URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.play();  // Play the audio response
+    .then(response => response.json())  // Parse the JSON response
+    .then(data => {
+        console.log("Received response with video and audio links");
+
+        // Play the audio
+        const audioUrl = data.audio_file_url;
+        fetch(audioUrl)
+            .then(response => response.blob())
+            .then(audioBlob => {
+                const audioObjectUrl = window.URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioObjectUrl);
+                // audio.play();  // Play the audio response
+            })
+            .catch(error => console.error("Error playing audio: ", error));
+
+        // Handle the video URL
+        const videoUrl = data.video_url;
+        console.log("Video URL: ", videoUrl);
+        if (videoUrl) {
+            // Append video message to the chat
+            console.log("Start appending video")
+            appendMessage(videoUrl, 'assistant', true);  // The third argument (true) indicates this is a video
+        }
+        // Do something with the video URL (e.g., display or link)
     })
     .catch(error => {
         console.error("Error generating voice output: ", error);
@@ -819,8 +839,31 @@ function generateVoiceOutput(llmResponse) {
     wittyPhraseDiv.style.display = 'none';
     footer.insertBefore(wittyPhraseDiv, footer.firstChild);
 
-    function appendMessage(message, sender) {
+    function appendMessage(message, sender, isVideo = false) {
     let isRichContent = false;
+
+
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        margin-top: 10px;
+        margin-right: 10px;
+        margin-left: 10px;
+        margin-bottom: 40px;
+        padding: 15px;
+        border-radius: 15px;
+        font-family: 'Arial', sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        word-wrap: break-word;
+        max-width: 80%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;  /* This ensures the text and video are stacked */
+        align-items: flex-start;
+    `;
+
+    
+
 
     if (sender === 'user') {
         const starterButtonsDiv = document.getElementById("starterButtonsDiv");
@@ -881,22 +924,6 @@ function generateVoiceOutput(llmResponse) {
     }
 }
 
-    const messageDiv = document.createElement('div');
-    messageDiv.style.cssText = `
-        margin-top: 10px;
-        margin-right: 10px;
-        margin-left: 10px;
-        margin-bottom: 40px;
-        padding: 15px;
-        border-radius: 15px;
-        font-family: 'Arial', sans-serif;
-        font-size: 16px;
-        line-height: 1.6;
-        word-wrap: break-word;
-        max-width: 80%;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    `;
-
     // If it's rich content, directly insert HTML; otherwise, treat as plain text
     if (isRichContent) {
         messageDiv.innerHTML = message;  // Insert the HTML content directly
@@ -938,8 +965,26 @@ function generateVoiceOutput(llmResponse) {
         iconDiv.appendChild(assistantIcon);
 
         messageContainer.style.cssText = 'display: flex; flex-direction: row-reverse; align-items: flex-start;';
+        if (!isVideo) {
         messageContainer.appendChild(iconDiv);
         messageContainer.appendChild(messageDiv);
+        } else {
+        console.log("Entered appending video")
+        // Create a video element and append it to the messageDiv
+        const videoElement = document.createElement('video');
+        // videoElement.src = 'https://d-id-talks-prod.s3.us-west-2.amazonaws.com/google-oauth2%7C109894292927535905362/tlk_cu4eQaljDCglGT6pXunS0/1726408538427.mp4?AWSAccessKeyId=AKIA5CUMPJBIK65W6FGA&Expires=1726494941&Signature=uCivb21cEeGMl6TLSN%2F6LZDJpvw%3D';  // message is the video URL in this case
+        videoElement.src = message;
+        videoElement.controls = true;
+        videoElement.autoplay = true;
+        videoElement.style.maxWidth = '95%';
+        videoElement.style.height = 'auto';
+        videoElement.style.marginTop = '10px';
+        videoElement.style.marginRight = '40px';
+ 
+        console.log('Created video element:', videoElement);
+
+        messageContainer.appendChild(videoElement);
+        }
 
     } else if (sender === 'system') {
         messageDiv.style.backgroundColor = '#4CAF50';
