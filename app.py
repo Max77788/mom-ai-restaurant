@@ -1838,7 +1838,7 @@ def setup_public_profile():
 
 
 @app.route('/set-working-hours')
-def set_working_hours():
+def set_working_hours(start_setup=False):
     start_setup = request.args.get("start_setup") == "True"
     print("Start setup on server: ", start_setup)
     current_uni_azz_id = session.get("unique_azz_id")
@@ -2178,7 +2178,7 @@ def update_menu(initial_setup=False):
             return redirect(url_for("update_menu_gui"))
 
     if initial_setup:
-        return redirect(url_for("dashboard_display", show_popup=True))
+        return redirect(url_for("set_working_hours", start_setup=True))
     else:
         return redirect(url_for("update_menu_gui"))
 
