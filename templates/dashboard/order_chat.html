@@ -509,7 +509,7 @@
             appendMessage(initialMessage, 'assistant');
             const unique_azz_id = "{{ unique_azz_id }}"
             const intro_url = `https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
-            console.log(intro_url)
+            // console.log(intro_url)
             appendMessage(intro_url, 'assistant', true);
             appendStarterPhrases();  // Append starter phrases here
             {% endif %}
