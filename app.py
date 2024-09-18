@@ -1784,6 +1784,7 @@ def setup_public_profile():
         full_intro_in_momai_aws(video_url, intro_file_name)
 
         session["unique_azz_id"] = unique_azz_id
+        session["assistant_id"] = assistant.id
         
         insert_restaurant(
     collection=collection,
