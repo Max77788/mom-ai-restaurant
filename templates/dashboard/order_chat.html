@@ -507,7 +507,9 @@
             
             {% if assistant_turned_on and isWorkingHours %}
             appendMessage(initialMessage, 'assistant');
-            const intro_url = "{{ intro_video_link }}"
+            const unique_azz_id = "{{ unique_azz_id }}"
+            const intro_url = `https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
+            console.log(intro_url)
             appendMessage(intro_url, 'assistant', true);
             appendStarterPhrases();  // Append starter phrases here
             {% endif %}
@@ -974,14 +976,14 @@ function generateVoiceOutput(llmResponse) {
         const videoElement = document.createElement('video');
         // videoElement.src = 'https://d-id-talks-prod.s3.us-west-2.amazonaws.com/google-oauth2%7C109894292927535905362/tlk_cu4eQaljDCglGT6pXunS0/1726408538427.mp4?AWSAccessKeyId=AKIA5CUMPJBIK65W6FGA&Expires=1726494941&Signature=uCivb21cEeGMl6TLSN%2F6LZDJpvw%3D';  // message is the video URL in this case
         videoElement.src = message;
-        videoElement.controls = true;
         videoElement.autoplay = true;
-        videoElement.style.maxWidth = '95%';
+        videoElement.style.maxWidth = '85%';
         videoElement.style.height = 'auto';
         videoElement.style.marginTop = '10px';
         videoElement.style.marginRight = '40px';
+        videoElement.style.borderRadius = '15px';
  
-        console.log('Created video element:', videoElement);
+        // console.log('Created video element:', videoElement);
 
         messageContainer.appendChild(videoElement);
         }

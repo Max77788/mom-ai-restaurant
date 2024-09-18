@@ -30,7 +30,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import create_talk_video, get_talk_video, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -1778,8 +1778,12 @@ def setup_public_profile():
         if id_of_who_referred:
             print("id of who referred found")
             collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
+        
+        video_url = create_and_get_talk_video(f"Hi, welcome to {res_name}! How can I help you?")
+        intro_file_name = f"intro_{unique_azz_id}.mp4"
+        full_intro_in_momai_aws(video_url, intro_file_name)
 
-        id_of_created_intro = create_talk_video(f"Hi, welcome to {res_name}! How can I help you?")["id"]
+        session["unique_azz_id"] = unique_azz_id
         
         insert_restaurant(
     collection=collection,
@@ -1800,7 +1804,6 @@ def setup_public_profile():
     location_name=locationName,
     id_of_who_referred=id_of_who_referred,
     logo_id="666af654dee400a1d635eb08",
-    intro_video_id=id_of_created_intro
 )
         
         # Handle file upload and other logic here
@@ -1820,6 +1823,7 @@ def setup_public_profile():
         # flash('Public profile setup successfully!', 'success')
         return redirect(url_for('update_profile', attribute="notif_destin", tg_setup=True))
 
+    
     
     return render_template('start/setup_public_profile.html', 
                            form=form,
@@ -2299,6 +2303,11 @@ def update_menu_gui(initial_setup=None):
     # wrapped_html_table = wrap_images_in_html_table(html_menu)
 
     currency = restaurant.get("res_currency")
+
+    menu_vector_id = restaurant.get("menu_vector_id")
+    
+    if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
+        default_menu = True
 
     # print("That's the menu we've got ", wrapped_html_table)
     return render_template("settings/menu_edit.html", 
@@ -2940,9 +2949,11 @@ def assistant_order_chat(unique_azz_id):
     assistant_turned_on = res_instance.get("assistant_turned_on")
     print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
 
-    id_of_intro = res_instance.get("intro_video_id", "default_later_here")
-    intro_video_link = get_talk_video(id_of_intro)['result_url']
+    # id_of_intro = res_instance.get("intro_video_id", "default_later_here")
+    # intro_video_link = get_talk_video(id_of_intro)['result_url']
 
+    # print("Intro video link we send", intro_video_link)
+    
     start_work = res_instance.get("start_work")
     end_work = res_instance.get("end_work")
     timezone = res_instance.get("timezone")
@@ -2987,8 +2998,7 @@ def assistant_order_chat(unique_azz_id):
                            isWorkingHours=isWorkingHours,
                            default_menu=default_menu,
                            discovery_mode=discovery_mode,
-                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
-                           intro_video_link=intro_video_link)
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents)
 
 
 

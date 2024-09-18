@@ -19,6 +19,7 @@
 <!-- <img src="/static/images/bulls_logos/Telegram_logo.webp" alt="Telegram Logo" width="170"> -->
 <a href="https://t.me/mom_ai_rest_bot" target="_blank"><u><b>Visit MOM AI Restaurant Telegram bot now!</u></b></b></a>
 <p>Bot ID: <b>@mom_ai_rest_bot</b></p>
+<h2>Check Out the Quick Tutorial</h2>
 <iframe width="560" height="315" 
             src="https://www.youtube.com/embed/eLsadFTkL0s" 
             title="YouTube video player" 
@@ -100,6 +101,11 @@
     </table>
 </form>
 
+{% if tg_setup %}
+<div style="display:flex; align-items: center; flex-direction: column; margin-top: 10px;">
+<img src="/static/images/tg_happy.png" height="300px" width="auto">
+</div>
+{% endif %}
 <script>
     // Hide flash messages after 5 seconds
     var flashMessages = document.querySelector('.flash-messages');

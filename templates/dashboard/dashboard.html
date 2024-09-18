@@ -335,7 +335,7 @@ function downloadImage() {
                 <hr>
             {% endif %}
             -->
-
+            {% if not default_menu %}
             <div class="switch-container">
                 <span id="discoveryModeStatus">
                     {% if restaurant.discovery_mode %}
@@ -436,6 +436,7 @@ function downloadImage() {
                         <span class="slider round"></span>
                     </label>
                 </div>
+                {% endif %}
 
                 <div class="logout-section">
                     <form action="/logout" method="post">
@@ -445,6 +446,7 @@ function downloadImage() {
             </div>
         </div>
     </div>
+    
 
     <nav class="dashboard-nav">
         <a href="/payments" class="no-right-click-tab">Payments💰</a>
