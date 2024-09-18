@@ -2590,6 +2590,8 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
             Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
             The prices of the items are in this currency: {res_currency}
 
+            Provide the images as much as possible.
+
             Customer\'s message: {translated_user_message}    
             """
         else:
@@ -2598,6 +2600,8 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
             Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             The prices of the items are in this currency: {res_currency}
             
+            Provide the images as much as possible.
+
             Customer\'s message: {translated_user_message}    
             """
         
