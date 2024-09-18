@@ -49,3 +49,5 @@ Flask
 Flask-Migrate
 redis
 google-auth
+boto3
+botocore
