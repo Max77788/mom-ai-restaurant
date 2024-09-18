@@ -2117,7 +2117,8 @@ def update_menu(initial_setup=False):
         currency = session.get("res_currency")
         restaurant_name = session.get("restaurant_name")
         unique_azz_id = session.get("unique_azz_id")
-        assistant_id = session.get("assistant_id")
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+        assistant_id = restaurant.get("assistant_id")
 
         upload_response = upload_new_menu(menu_xlsx_path, menu_save_txt_path, currency, restaurant_name, collection, unique_azz_id, assistant_id)
         print(upload_response)
