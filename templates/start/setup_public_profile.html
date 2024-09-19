@@ -13,7 +13,7 @@
             <!-- Name -->
             <div>
                 <label for="name">Name of Your Restaurant</label>
-                {{ form.name(cols=50, rows=4, id='name-input') }}
+                {{ form.name(cols=50, rows=4, id='name-input', required=True) }}
                 {% if form.name.errors %}
                     <span style="color: red;">{{ form.name.errors[0] }}</span>
                 {% endif %}
@@ -22,7 +22,7 @@
             <!-- Description -->
             <div>
                 <label for="description">Description of your restaurant (50-350 characters):</label>
-                {{ form.description(cols=50, rows=4, id='description-input') }}
+                {{ form.description(cols=50, rows=4, id='description-input', required=True) }}
                 {% if form.description.errors %}
                     <span style="color: red;">{{ form.description.errors[0] }}</span>
                 {% endif %}
@@ -60,7 +60,7 @@
             </div>
 
             <div style="margin-top: 10px;">
-                <button type="submit">Setup Public Profile</button>
+                <button type="submit" id="submit-button" disabled>Setup Public Profile</button>
             </div>
 
             
@@ -196,6 +196,36 @@ function updateLocation(position, formattedAddress) {
         document.getElementById('locationName').value = formattedAddress;
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    const submitButton = document.getElementById('submit-button');
+    const requiredFields = [
+        document.getElementById('name-input'),
+        document.getElementById('description-input'),
+        document.getElementById('locationInput'),
+        document.getElementById('locationName'),
+        // Add other fields as necessary
+    ];
+
+    // Function to check if all required fields are filled
+    function checkFormValidity() {
+        const allValid = requiredFields.every(field => field.value.trim() !== '');
+        const minimum_50 = document.getElementById('description-input').value.length >= 50
+        submitButton.disabled = !(allValid && minimum_50);
+    }
+
+    // Attach input event listeners to required fields
+    requiredFields.forEach(field => {
+        field.addEventListener('input', checkFormValidity);
+    });
+
+    // Also attach event listener for the Google Places autocomplete (location field)
+    const pacInput = document.getElementById('pac-input');
+    pacInput.addEventListener('input', checkFormValidity);
+
+    // Ensure form is valid on page load
+    checkFormValidity();
+});
 
 
 

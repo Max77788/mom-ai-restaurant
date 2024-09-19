@@ -26,7 +26,6 @@ import re
 import os
 import base64
 from currency_converter import CurrencyConverter
-import requests
 # from flask_socketio import SocketIO, emit, disconnect
 from flask_mail import Message
 import uuid
@@ -44,6 +43,9 @@ import logging
 import bcrypt
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
+import boto3
+import requests
+from botocore.exceptions import NoCredentialsError
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
@@ -60,6 +62,17 @@ app.config['MAIL_PASSWORD'] = os.environ.get("PRIVATEEMAIL_PASSWORD")
 FROM_EMAIL = app.config['MAIL_USERNAME']
 mail = Mail(app)
 
+D_ID_API_KEY = os.environ.get("D_ID_API_KEY")
+
+AWS_ACCESS_KEY = os.environ.get("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = os.environ.get("AWS_SECRET_KEY")
+
+# Initialize the S3 client
+s3 = boto3.client('s3',
+                  aws_access_key_id=AWS_ACCESS_KEY,
+                    aws_secret_access_key=AWS_SECRET_KEY,
+                    region_name='eu-north-1'  # e.g., 'us-west-2'
+                  )
 
 
 # Initialize the CurrencyConverter class
@@ -203,7 +216,7 @@ def create_and_get_talk_video(script_text):
     timeout = 20  # seconds
 
     while True:
-        video_url_json = get_talk(createTalkJson["id"])
+        video_url_json = get_talk_video(createTalkJson["id"])
 
         print("\n\n\n", f"Video URL JSON: {video_url_json}", "\n\n\n")
 
@@ -242,7 +255,7 @@ def create_talk_video(script_text):
     headers = {
         "accept": "application/json",
         "content-type": "application/json",
-        "authorization": "Basic bW1hdHJvbmluQGdtYWlsLmNvbQ:e_Tp71DFi8RlI_iHgEjGa"
+        "authorization": f"Basic {D_ID_API_KEY}"
     }
 
     response = requests.post(url, json=payload, headers=headers)
@@ -254,12 +267,59 @@ def get_talk_video(id):
 
     headers = {
         "accept": "application/json",
-        "authorization": "Basic bW1hdHJvbmluQGdtYWlsLmNvbQ:e_Tp71DFi8RlI_iHgEjGa"
+        "authorization": f"Basic {D_ID_API_KEY}"
     }
 
     response = requests.get(url, headers=headers)
 
     return response.json()
+
+############ Upload Intro to my AWS ###############
+
+def full_intro_in_momai_aws(url, intro_filename):
+    download_video_from_url(url, intro_filename)
+    upload_to_s3(intro_filename, bucket="mom-ai-restaurant-images")
+
+def download_video_from_url(url, local_filename):
+    """
+    Downloads a file from the provided URL and saves it locally.
+
+    :param url: URL to the file
+    :param local_filename: Local file path where the file will be saved
+    """
+    response = requests.get(url, stream=True)
+    if response.status_code == 200:
+        with open(local_filename, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        print(f"File downloaded successfully from {url}")
+    else:
+        print(f"Failed to download file: Status code {response.status_code}")
+
+def upload_to_s3(file_name, bucket, object_name=None):
+    """
+    Uploads a file to an S3 bucket.
+
+    :param file_name: Local file to upload
+    :param bucket: Bucket to upload to
+    :param object_name: S3 object name. If not specified, file_name is used
+    :return: True if file was uploaded, else False
+    """
+    if object_name is None:
+        object_name = file_name
+
+    try:
+        s3.upload_file(file_name, bucket, "restaurant_intros/"+object_name)
+        print(f"File '{file_name}' uploaded to '{bucket}/{object_name}'")
+        return True
+    except FileNotFoundError:
+        print("The file was not found")
+        return False
+    except NoCredentialsError:
+        print("Credentials not available")
+        return False
+
+###################################################
 
 ############################################
 
@@ -1243,7 +1303,7 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
     if language_to_translate_into[:2] != "en":
         translator = GoogleTranslator(source='auto', target=language_to_translate_into[:2])
         response_text = translator.translate(response_text)
-    video_url = create_and_get_talk_video(response_text)
+    # video_url = create_and_get_talk_video(response_text)
     speech_file_path = Path(__file__).parent / "speech.mp3"
     response = client.audio.speech.create(
     model="tts-1-hd",
@@ -1254,7 +1314,8 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
     print(response)
 
     response.stream_to_file(speech_file_path)
-    
+
+    video_url = None
     
     return None, tokens_used, video_url
 

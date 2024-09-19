@@ -4,7 +4,7 @@ openai
 pymongo
 flask-mail
 requests
-web3==5.31.3
+web3==7.2.0
 binance
 python-binance
 paypalrestsdk
@@ -49,3 +49,5 @@ Flask
 Flask-Migrate
 redis
 google-auth
+boto3
+botocore
