@@ -3153,6 +3153,8 @@ def trigger_generate_response(unique_azz_id):
 def task_status(task_id):
     task = celery.AsyncResult(task_id)
 
+    print("Task state: ", task.state)
+
     if task.state == 'PENDING':
         response = {
             'state': task.state,
