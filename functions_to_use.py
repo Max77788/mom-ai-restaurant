@@ -167,7 +167,7 @@ polygon_url = url_base + infura_project_id
 web3 = Web3(Web3.HTTPProvider(polygon_url))
 
 # Check connection
-if web3.isConnected():
+if web3.is_connected():
     print("Connected to Polygon node")
 else:
     print("Failed to connect to Polygon node")
@@ -178,7 +178,7 @@ if not contract_address:
     raise ValueError("Contract address is not set in the environment variables")
 
 # Convert to checksum address
-contract_address = web3.toChecksumAddress(contract_address)
+contract_address = web3.to_checksum_address(contract_address)
 print(f"Contract Address: {contract_address}")
 
 # Load the contract
@@ -187,6 +187,81 @@ print("Contract loaded")
 
 POSTS_DIR = "posts"
 
+
+
+
+
+
+### Video Creation Section ###
+
+def create_and_get_talk_video(script_text):
+    createTalkJson = create_talk_video(script_text)
+    print("\n\n\n", createTalkJson, "\n\n\n")
+
+    # Call get_talk until the 'result_url' key is found or timeout occurs
+    start_time = time.time()
+    timeout = 20  # seconds
+
+    while True:
+        video_url_json = get_talk(createTalkJson["id"])
+
+        print("\n\n\n", f"Video URL JSON: {video_url_json}", "\n\n\n")
+
+        # Check if 'result_url' key is in the response
+        if 'result_url' in video_url_json:
+            print("Video URL JSON: ", video_url_json)
+            video_url = video_url_json['result_url']
+            return video_url
+
+        # Check if the timeout of 20 seconds has passed
+        if time.time() - start_time > timeout:
+            raise TimeoutError("Timed out waiting for 'result_url' after 20 seconds.")
+
+        # Sleep for a short duration before trying again
+        time.sleep(1)
+
+def create_talk_video(script_text):
+    url = "https://api.d-id.com/talks"
+
+    payload = {
+        "source_url": "https://d-id-public-bucket.s3.us-west-2.amazonaws.com/alice.jpg",
+        "script": {
+            "type": "text",
+            "subtitles": "false",
+            "provider": {
+                "type": "microsoft",
+                "voice_id": "Sara"
+            },
+            "input": script_text
+        },
+        "config": {
+            "fluent": "false",
+            "pad_audio": "0.0"
+        }
+    }
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "authorization": "Basic bW1hdHJvbmluQGdtYWlsLmNvbQ:e_Tp71DFi8RlI_iHgEjGa"
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    return response.json()
+
+def get_talk_video(id):
+    url = f"https://api.d-id.com/talks/{id}"
+
+    headers = {
+        "accept": "application/json",
+        "authorization": "Basic bW1hdHJvbmluQGdtYWlsLmNvbQ:e_Tp71DFi8RlI_iHgEjGa"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    return response.json()
+
+############################################
 
 def mint_and_send_tokens(user_address, amount):
     # Define the owner address and private key (never expose the private key in a real app)
@@ -1165,10 +1240,10 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
     response_text = response.choices[0].message.content
     tokens_used = response.usage.total_tokens
 
-    if language_to_translate_into != "en":
+    if language_to_translate_into[:2] != "en":
         translator = GoogleTranslator(source='auto', target=language_to_translate_into[:2])
         response_text = translator.translate(response_text)
-
+    video_url = create_and_get_talk_video(response_text)
     speech_file_path = Path(__file__).parent / "speech.mp3"
     response = client.audio.speech.create(
     model="tts-1-hd",
@@ -1181,7 +1256,7 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
     response.stream_to_file(speech_file_path)
     
     
-    return None, tokens_used
+    return None, tokens_used, video_url
 
 
 

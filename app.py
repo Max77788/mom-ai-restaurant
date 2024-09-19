@@ -30,7 +30,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import create_talk_video, get_talk_video, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -1779,12 +1779,29 @@ def setup_public_profile():
             print("id of who referred found")
             collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
 
-        insert_restaurant(collection, res_name, unique_azz_id, res_email, 
-                          hashed_res_password, website_url, assistant.id, 
-                          MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, "EUR", 
-                          MOM_AI_EXEMPLARY_MENU_HTML, qr_code_id, None, None, locationCoord,
-                          locationName, id_of_who_referred, "666af654dee400a1d635eb08"
-                          )
+        id_of_created_intro = create_talk_video(f"Hi, welcome to {res_name}! How can I help you?")["id"]
+        
+        insert_restaurant(
+    collection=collection,
+    name=res_name,
+    unique_azz_id=unique_azz_id,
+    email=res_email,
+    password=hashed_res_password,
+    website_url=website_url,
+    assistant_id=assistant.id,
+    menu_file_id=MOM_AI_EXEMPLARY_MENU_FILE_ID,
+    menu_vector_id=MOM_AI_EXEMPLARY_MENU_VECTOR_ID,
+    currency="EUR",
+    html_menu=MOM_AI_EXEMPLARY_MENU_HTML,
+    qr_code=qr_code_id,
+    wallet_public_key_address=None,
+    wallet_private_key=None,
+    location_coord=locationCoord,
+    location_name=locationName,
+    id_of_who_referred=id_of_who_referred,
+    logo_id="666af654dee400a1d635eb08",
+    intro_video_id=id_of_created_intro
+)
         
         # Handle file upload and other logic here
         if logo:
@@ -2923,6 +2940,8 @@ def assistant_order_chat(unique_azz_id):
     assistant_turned_on = res_instance.get("assistant_turned_on")
     print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
 
+    id_of_intro = res_instance.get("intro_video_id", "default_later_here")
+    intro_video_link = get_talk_video(id_of_intro)['result_url']
 
     start_work = res_instance.get("start_work")
     end_work = res_instance.get("end_work")
@@ -2968,7 +2987,8 @@ def assistant_order_chat(unique_azz_id):
                            isWorkingHours=isWorkingHours,
                            default_menu=default_menu,
                            discovery_mode=discovery_mode,
-                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents)
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
+                           intro_video_link=intro_video_link)
 
 
 
@@ -3055,10 +3075,7 @@ def generate_voice_output(unique_azz_id):
     full_gpts_response = data.get("full_gpts_response")
     language_to_translate_into = data.get("language")
 
-    # list_of_all_items = []
-    # list_of_image_links = []
-
-    _, tokens_used = generate_short_voice_output(full_gpts_response, language_to_translate_into)
+    _, tokens_used, video_url = generate_short_voice_output(full_gpts_response, language_to_translate_into)
     
     speech_file_path = Path(__file__).parent / "speech.mp3"
 
@@ -3072,7 +3089,17 @@ def generate_voice_output(unique_azz_id):
     else:
         print("No matching document found.")
 
-    
+    print(f"\n\n\nVideo URL: {video_url}\n\n\n")
+
+    # Return JSON with video URL and path for audio file
+    return jsonify({
+        "video_url": video_url,
+        "audio_file_url": "/download_audio"
+    })
+
+@app.route('/download_audio')
+def download_audio():
+    speech_file_path = Path(__file__).parent / "speech.mp3"
     return send_file(
         speech_file_path,
         mimetype='audio/mpeg',

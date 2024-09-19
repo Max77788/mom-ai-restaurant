@@ -43,3 +43,9 @@ flask-migrate
 currencyconverter
 celery
 flask-caching
+Flask
+Flask-SQLAlchemy
+Flask
+Flask-Migrate
+redis
+google-auth
