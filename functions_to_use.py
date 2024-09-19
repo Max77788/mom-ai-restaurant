@@ -84,7 +84,7 @@ db_items_cache = client_db["Items_Cache"]
 
 
 
-REDIS_URL = os.environ.get("REDIS_URL", 'redis://localhost:6379/0')
+REDIS_URL = os.environ.get("REDISCLOUD_URL", 'redis://localhost:6379/0')
 
 # Configure Flask-Caching
 app.config['CACHE_TYPE'] = 'RedisCache'  # Specify Redis as the cache type
@@ -2482,7 +2482,7 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
     while True:
         if time.time() - start_time > 25:
             response = 'O-oh, little issues when forming the response, repeat the message now'
-            return jsonify({"response": response}), 0
+            return {"response": response}, 0
         run_status = client.beta.threads.runs.retrieve(thread_id=thread_id,
                                                        run_id=run.id)
         print(run_status.status)
@@ -2503,7 +2503,7 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
 
             #print(f"\n\nRun steps: \n{run_steps}\n")
             response = 'O-oh, little issues, repeat the message now'
-            return jsonify({"response": response}), 0
+            return {"response": response}, 0
         elif run_status.status == "requires_action":
             if discovery_mode:
                 print("Action interrupted because of discovery mode.")
@@ -2562,7 +2562,7 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
             while True:
                 if time.time() - json_start_time > 25:
                     response = 'O-oh, little issues when forming the response, repeat the message now'
-                    return jsonify({"response": response}), 0
+                    return {"response": response}, 0
 
                 run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_json,
                                                                run_id=run_json.id)
@@ -2667,7 +2667,7 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
 
                     #print(f"\n\nRun steps: \n{run_steps}\n")
                     response = 'O-oh, little issues, repeat the message now'
-                    return jsonify({"response": response}), 0
+                    return {"response": response}, 0
 
         sleep(0.5)  # Reduce sleep duration
                     
