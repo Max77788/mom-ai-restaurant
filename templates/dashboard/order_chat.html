@@ -544,7 +544,7 @@
         showWittyPhrase(true);
         };
         
-        console.log("Enabling input fields and buttons");
+        console.log("Disabling input fields and buttons");
         document.getElementById('userMessage').disabled = true;
         document.getElementById('userMessage').value = '';
         document.querySelector('button[onclick="sendMessage()"]').disabled = true;
@@ -1104,6 +1104,7 @@ const micButton = document.getElementById('micButton');
             
             blockMicButton = true;
             
+            /*
             if (spinner) {
                 spinner.style.display = 'block';
                 showWittyPhrase(true);
@@ -1112,6 +1113,7 @@ const micButton = document.getElementById('micButton');
             if (userMessageInput) userMessageInput.disabled = true;
             if (sendButton) sendButton.disabled = true;
             if (micButton) micButton.disabled = true;
+            */
 
             // Transcribe voice
             const transcribeResponse = await fetch('/transcribe_voice', {
@@ -1125,11 +1127,7 @@ const micButton = document.getElementById('micButton');
                 const transcription = transcribeData.transcription;
                 appendMessage(transcription, "user");
 
-                if (spinner) {
-                    spinner.style.display = 'block';
-                    showWittyPhrase(true);
-                    console.log("Displayed witty phrase!")
-                }
+                disableInput();
 
                 // Create a new FormData for the response generation
                 const responseFormData = new FormData();
