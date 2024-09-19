@@ -627,7 +627,7 @@ function pollTaskStatus(taskId) {
         })
         .then(response => response.json())
         .then(data => {
-            console.log("Task status: ", data);
+            // console.log("Task status: ", data);
 
             // When task is completed, get the response and process it
             if (data.state === 'SUCCESS') {
