@@ -86,6 +86,8 @@ client_db = MongoClient(mongodb_connection_string)
 # Specify the database name
 db = client_db['MOM_AI_Restaurants']
 
+x=3
+
 fs = gridfs.GridFS(db)
 
 # Specify the collection name
