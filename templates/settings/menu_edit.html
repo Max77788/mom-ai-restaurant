@@ -59,6 +59,7 @@
 
     <!-- Button to submit the form -->
     <button type="submit" style="margin-top: 10px;">Set Currency</button>
+    
 </form>
 
 <hr>
@@ -180,6 +181,17 @@
             });
         });
 
+        document.addEventListener('DOMContentLoaded', function() {
+            var select = document.getElementById('currency');
+            var form = document.getElementById('currencyForm');
+            var initialValue = select.value;
+
+            select.addEventListener('change', function() {
+                if (this.value !== initialValue) {
+                    form.submit();
+                }
+            });
+        });
 
         // Add event listener to all delete buttons
         document.addEventListener('DOMContentLoaded', function() {

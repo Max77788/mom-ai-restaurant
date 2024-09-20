@@ -3161,6 +3161,14 @@ def task_status(task_id):
             'status': 'Pending...'
         }
     elif task.state == 'SUCCESS':
+        tokens_used = task.result[1]
+        PRICE_PER_1_TOKEN = 0.0000005
+        charge_for_message = PRICE_PER_1_TOKEN * tokens_used
+        print(f"Charge for message: {charge_for_message} USD")
+
+        unique_azz_id = session.get("unique_azz_id")
+
+        result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
         response = {
             'state': task.state,
             'result': replace_markdown_images(task.result[0]),  # Task result when completed

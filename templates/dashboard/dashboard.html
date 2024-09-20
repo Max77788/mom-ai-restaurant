@@ -288,6 +288,12 @@ function downloadImage() {
             <a href="/set_session_and_redirect"><u>Change Email or Password</u></a>
             </div>
             <hr>
+            <div class="logout-section">
+                <form action="/logout" method="post">
+                    <button type="submit">Logout</button>
+                </form>
+            </div>
+            <hr>
             <div class="switch-container">
                 {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
                 <span id="assistantStatus">
@@ -438,14 +444,11 @@ function downloadImage() {
                 </div>
                 {% endif %}
 
-                <div class="logout-section">
-                    <form action="/logout" method="post">
-                        <button type="submit">Logout</button>
-                    </form>
-                </div>
+                
             </div>
         </div>
     </div>
+    
     
 
     <nav class="dashboard-nav">
