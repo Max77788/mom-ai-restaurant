@@ -305,9 +305,9 @@
                         {% for item in html_menu_tuples %}
                         <tr>
                           <td contenteditable="true" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
-                          <td contenteditable="true" data-column="Item Description" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Description"] }}</td>
+                          <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
-                          <td contenteditable="true" data-column="Link to Image" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Link to Image"] }}</td>
+                          <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
                           <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
                           <td><button class="delete-row-btn">Delete</button></td>
                         </tr>
@@ -316,9 +316,9 @@
                         {% for item in html_menu_tuples %}
                         <tr>
                           <td contenteditable="false" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
-                          <td contenteditable="false" data-column="Item Description" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Description"] }}</td>
+                          <td contenteditable="false" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="false" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
-                          <td contenteditable="false" data-column="Link to Image" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Link to Image"] }}</td>
+                          <td contenteditable="false" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
                           <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
                         </tr>
                         {% endfor %}
