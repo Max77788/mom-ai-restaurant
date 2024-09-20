@@ -156,9 +156,9 @@
 
             newRow.innerHTML = `
                 <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemName}</td>
-                <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemDescription}</td>
+                <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemDescription}</td>
                 <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${parseFloat(itemPrice).toFixed(2)}</td>
-                <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemImageLink}</td>
+                <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemImageLink}</td>
                 <td contenteditable="false" data-column="Image" style="max-width: 170px;"><img src="${itemImageLink}" alt="Image of ${itemName}" width="170" height="auto"></td>
                 <td><button class="delete-add-oneByOne-row-btn">Delete</button></td>    
             `;
