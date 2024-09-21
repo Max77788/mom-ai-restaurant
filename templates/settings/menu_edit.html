@@ -112,7 +112,7 @@
                     <th>Link to Image</th>
                     <th>Image</th>
                     <th>Remove Item</th>
-                    <th>AI-image</th> <!-- New Column -->
+                    <th>AI-Image</th> <!-- New Column -->
                 </tr>
             </thead>
             <tbody>
@@ -162,7 +162,7 @@
                 <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemDescription}</td>
                 <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${parseFloat(itemPrice).toFixed(2)}</td>
                 <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemImageLink}</td>
-                <td contenteditable="false" data-column="Image" style="max-width: 170px;"><img src="${itemImageLink}" alt="Image of ${itemName}" width="170" height="auto"></td>
+                <td contenteditable="false" data-column="Image" style="max-width: 170px;"><img src="${itemImageLink}" alt="Here could be an image of ${itemName}. Have AI-image generated for 0.05 EUR in less than a minute➡️" width="170" height="auto"></td>
                 <td><button class="delete-add-oneByOne-row-btn">Delete</button></td>    
             `;
 
@@ -306,8 +306,9 @@
                             <th>Item Price ({{ currency }})</th>
                             <th>Link to Image</th>
                             <th>Image</th>
+                            <th>AI-Image</th> <!-- New Column -->
                             <th>Remove Item</th>
-                            <th>AI-image</th> <!-- New Column -->
+                            
                         </tr>
                     </thead>
                     <tbody>
@@ -318,8 +319,14 @@
                           <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
                           <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
-                          <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                          <td contenteditable="false" data-column="Image" style="max-width: 180px;"><img src="{{ item['Link to Image'] }}" alt="Here could be an image of {{ item['Item Name'] }}. Have AI-image generated for 0.05 EUR in less than a minute➡️" width="170" height="auto"></td>
+                          {% if 'AI-Image' in item %}
+                           <td contenteditable="false" data-column="AI-Image"><img src="{{ item['AI-Image'] }}" alt="AI-Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                           {% else %}
+                           <td contenteditable="false" data-column="AI-Image"></td>
+                           {% endif %}
                           <td><button class="delete-row-btn">Delete</button></td>
+                          
                         </tr>
                         {% endfor %}
                         {% else %}
@@ -397,53 +404,108 @@
                         });
 
                     
-                        // Add new AI-image column to each row
+                        const appendGenerateImageButton = () => {
                         document.querySelectorAll('#menuTable tbody tr').forEach(function(row) {
-                            let aiImageCell = row.insertCell();
-                            aiImageCell.setAttribute('data-column', 'AI-image');
-                            let aiImageButton = document.createElement('button');
-                            aiImageButton.innerText = 'Generate Image';
-                            aiImageButton.classList.add('generate-image-btn');
-                            aiImageCell.appendChild(aiImageButton);
+                            // Find the cell that has 'data-column' equal to 'AI-Image'
+                            row.querySelectorAll('td').forEach(function(cell) {
+                                let dataColumn = cell.getAttribute('data-column');
 
-                            attachGenerateImageListener(aiImageButton, row);
+                                // Check if the cell has the data-column 'AI-Image'
+                                if (dataColumn === 'AI-Image') {
+                                    // Check if the cell contains an image element
+                                    let imgElement = cell.querySelector('img');
+
+                                    // If no image element exists, append the "Generate Image" button
+                                    if (!imgElement) {
+                                        let aiImageButton = document.createElement('button');
+                                        aiImageButton.innerText = 'Generate Image';
+                                        aiImageButton.classList.add('generate-image-btn');
+                                        cell.appendChild(aiImageButton);
+
+                                        // Attach event listener to the generate button
+                                        attachGenerateImageListener(aiImageButton, row);
+                                    }
+                                }
+                            });
                         });
+                    };
+
+                    // Call the function
+                    appendGenerateImageButton();
+
+
 
                         function attachGenerateImageListener(button, row) {
                             button.addEventListener('click', function() {
                                 let itemName = row.querySelector('td[data-column="Item Name"]').innerText;
                                 let itemDescription = row.querySelector('td[data-column="Item Description"]').innerText;
-                                let aiImageCell = row.querySelector('td[data-column="AI-image"]');
+                                let aiImageCell = row.querySelector('td[data-column="AI-Image"]');
                                 
                                 // Show loading spinner
                                 aiImageCell.innerHTML = '<img src="/static/assets/loading-gif.gif" width="50" alt="Loading...">';
 
                                 // Send the name and description to generate the image
-                                fetch('/generate_menu_item_image', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        item_name: itemName,
-                                        item_description: itemDescription
+                                const triggerGenerateImage = (itemName, itemDescription, aiImageCell) => {
+                                    // Send a request to start image generation
+                                    fetch('/trigger_generate_menu_item_image', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            item_name: itemName,
+                                            item_description: itemDescription
+                                        })
                                     })
-                                })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.generated_link) {
-                                        aiImageCell.innerHTML = `<img src="${data.generated_link}" alt="AI-Image of ${itemName}" width="170" height="auto">`;
-                                    } else {
-                                        aiImageCell.innerHTML = 'Failed to generate image';
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error generating image:', error);
-                                    aiImageCell.innerHTML = 'Error generating image';
-                                });
-                            });
-                        }
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.task_id) {
+                                            // Poll the task status to get the generated image link
+                                            checkTaskStatus(data.task_id, aiImageCell);
+                                        } else {
+                                            aiImageCell.innerHTML = 'Failed to start image generation';
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error initiating image generation:', error);
+                                        aiImageCell.innerHTML = 'Error initiating image generation';
+                                    });
+                                };
 
+                                // Poll the task status using the task ID
+                                const checkTaskStatus = (task_id, aiImageCell) => {
+                                    // Poll the status at intervals (e.g., every 2 seconds)
+                                    const interval = setInterval(() => {
+                                        fetch(`/generate_menu_item_image_status/${task_id}`, {
+                                            method: 'GET'
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.state === 'SUCCESS') {
+                                                console.log(`Image Link: ${data.image_link}`)
+                                                // Task completed, display the generated image
+                                                aiImageCell.innerHTML = `<img src="${data.image_link}" alt="AI-Image of ${itemName}" width="170" height="auto">`;
+                                                clearInterval(interval);  // Stop polling
+                                            } else if (data.state === 'FAILURE') {
+                                                // Handle failure
+                                                aiImageCell.innerHTML = 'Failed to generate image';
+                                                clearInterval(interval);  // Stop polling
+                                            } else {
+                                                // Task is still in progress (e.g., pending or retrying)
+                                                aiImageCell.innerHTML = 'Generating image...';
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error checking task status:', error);
+                                            aiImageCell.innerHTML = 'Error checking task status';
+                                            clearInterval(interval);  // Stop polling on error
+                                        });
+                                    }, 2000);  // Poll every 2 seconds
+                                };
+                                // Trigger image generation
+                                triggerGenerateImage(itemName, itemDescription, aiImageCell);
+                        });
+                    };
 
 
                     document.getElementById('addNewItemBtn').addEventListener('click', function() {
@@ -515,16 +577,7 @@
                     // Clear the form after adding the item
                     document.getElementById('newItemForm').reset();
 
-                    // Then attach the generate image listener to the new row:
-                    newRow = document.getElementById('menuTable').getElementsByTagName('tbody')[0].rows[0]; // New row is added at the top
-                    let aiImageCell = newRow.insertCell();
-                    aiImageCell.setAttribute('data-column', 'AI-image');
-                    let aiImageButton = document.createElement('button');
-                    aiImageButton.innerText = 'Generate Image';
-                    aiImageButton.classList.add('generate-image-btn');
-                    aiImageCell.appendChild(aiImageButton);
-
-                    attachGenerateImageListener(aiImageButton, newRow);
+                    appendGenerateImageButton();
 
                     });
 
@@ -576,8 +629,17 @@
                         rows.forEach(function(row) {
                             let item = {};
                             row.querySelectorAll('td').forEach(function(cell) {
-                                if (cell.getAttribute('data-column') !== "Image"){
-                                    item[cell.getAttribute('data-column')] = cell.innerText;
+                                // For all columns except the image columns, store the cell's innerText
+                                let dataColumn = cell.getAttribute('data-column');
+                                if (dataColumn !== "Image" && dataColumn !== "AI-Image" && dataColumn !== null) {
+                                    item[dataColumn] = cell.innerText;
+                                } 
+                                // Access the img src for the AI image column
+                                else if(dataColumn === "AI-Image") {
+                                    let imgElement = cell.querySelector('img');  // Find the img element inside the td
+                                    if (imgElement) {
+                                        item[dataColumn] = imgElement.src;  // Store the img src in the item object
+                                    }
                                 }
                             });
                             updatedItems.push(item);

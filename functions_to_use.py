@@ -2125,6 +2125,8 @@ def generate_ai_menu_item_image(item_name, item_description, unique_azz_id):
     n=1,
     )
 
+    print("Response from image creation: ", response)
+
     image_url = response.data[0].url
 
     local_filename = f"ai_{item_name}_image.png"
@@ -2137,8 +2139,26 @@ def generate_ai_menu_item_image(item_name, item_description, unique_azz_id):
 
     aws_ai_image_link = f"https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
 
+    # Set the new field and value to add to the array element
+    new_field = "AI-Image"
 
+    PRICE_OF_ONE_IMAGE = 0.05
 
+    # Query to filter by unique_azz_id and update html_menu_tuples based on Item Name
+    result = collection.update_one(
+        { "unique_azz_id": unique_azz_id, "html_menu_tuples.Item Name": item_name },  # Filter criteria
+        { "$set": { "html_menu_tuples.$." + new_field: aws_ai_image_link },
+          "$inc": {"balance":-PRICE_OF_ONE_IMAGE, "assistant_fund":PRICE_OF_ONE_IMAGE} }  # Update specific element in the array
+    )
+
+    # Output the result
+    if result.matched_count > 0:
+        print(f"Document with unique_azz_id '{unique_azz_id}' and item '{item_name}' was updated.")
+        print(f"Matched {result.matched_count} document(s) and modified {result.modified_count} document(s).")
+    else:
+        print(f"No document found with unique_azz_id '{unique_azz_id}' and item '{item_name}'.")
+
+    return aws_ai_image_link
 
 
 def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currency):
@@ -2897,3 +2917,59 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
     
         
     return response, total_tokens_used
+
+@celery.task
+def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_id):
+    prompt_to_send = f"""
+    Role: you are the master food image taker for the restaurant industry. Your expertise is creating the pictures which make the user drool and hungry. 
+
+    Context: 
+    Here is the item on the menu to create the image for:
+    Name - {item_name}
+    Description - {item_description}
+    Task: Generate the great rocking saliva-causing picture for the specified dish.  Generate the image in the very natural real-life style.
+    """
+
+    client = CLIENT_OPENAI
+    response = client.images.generate(
+    model="dall-e-3",
+    prompt=prompt_to_send,
+    size="1024x1024",
+    quality="standard",
+    n=1,
+    )
+
+    print("Response from image creation: ", response)
+
+    image_url = response.data[0].url
+
+    local_filename = f"ai_{item_name}_image.png"
+
+    download_video_from_url(image_url, local_filename)
+
+    folder_name = f"ai_food_images/{unique_azz_id}"
+
+    upload_to_s3(local_filename, folder_name=folder_name)
+
+    aws_ai_image_link = f"https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
+
+    # Set the new field and value to add to the array element
+    new_field = "AI-Image"
+
+    PRICE_OF_ONE_IMAGE = 0.05
+
+    # Query to filter by unique_azz_id and update html_menu_tuples based on Item Name
+    result = collection.update_one(
+        { "unique_azz_id": unique_azz_id, "html_menu_tuples.Item Name": item_name },  # Filter criteria
+        { "$set": { "html_menu_tuples.$." + new_field: aws_ai_image_link },
+          "$inc": {"balance":-PRICE_OF_ONE_IMAGE, "assistant_fund":PRICE_OF_ONE_IMAGE} }  # Update specific element in the array
+    )
+
+    # Output the result
+    if result.matched_count > 0:
+        print(f"Document with unique_azz_id '{unique_azz_id}' and item '{item_name}' was updated.")
+        print(f"Matched {result.matched_count} document(s) and modified {result.modified_count} document(s).")
+    else:
+        print(f"No document found with unique_azz_id '{unique_azz_id}' and item '{item_name}'.")
+
+    return aws_ai_image_link

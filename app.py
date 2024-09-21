@@ -30,7 +30,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -2183,22 +2183,61 @@ def update_menu(initial_setup=False):
         return redirect(url_for("update_menu_gui"))
     
 
-@app.route('/generate_menu_item_image', methods=['POST'])
-def generate_menu_item_image():
+@app.route('/trigger_generate_menu_item_image', methods=['POST'])
+def trigger_generate_menu_item_image():
     data = request.get_json()
     item_name = data.get('item_name')
     item_description = data.get('item_description')
+    unique_azz_id = session.get('unique_azz_id')
 
     # Here, call your AI-image generation logic based on item_name and item_description
     # Assume we have a function that returns a link to the generated image
-    # generated_link = generate_ai_image(item_name, item_description)
-    
-    generated_link = "example"
+    start_time = time.time()
 
-    if generated_link:
-        return jsonify({'generated_link': generated_link}), 200
+    generated_link_task = generate_ai_menu_item_image_celery.apply_async(
+        args=[
+            item_name, item_description, unique_azz_id
+            ])
+
+    # print(f"It took {time.time()-start_time} seconds to generate the image")
+
+    if generated_link_task:
+        return jsonify({"task_id": generated_link_task.id}), 202
     else:
         return jsonify({'error': 'Image generation failed'}), 500
+    
+
+@app.route('/generate_menu_item_image_status/<task_id>', methods=['GET'])
+def generate_menu_image_task_status(task_id):
+    task = celery.AsyncResult(task_id)
+
+    print("Task state: ", task.state)
+
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
+        }
+    elif task.state == 'SUCCESS':
+        aws_image_link = task.result
+        
+        response = {
+            'state': task.state,
+            'image_link': aws_image_link,  # Task result when completed
+            'status': 'Task completed!'
+        }
+    elif task.state == 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': str(task.info)  # Exception message if failed
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': task.state  # Other states like 'RETRY'
+        }
+
+    return jsonify(response)
 
 
 
@@ -2219,7 +2258,10 @@ def update_menu_manual():
         menu_text += f"Item Name: {item.get('Item Name')}, "
         menu_text += f"Item Description: {item.get('Item Description')}, "
         menu_text += f"Item Price (EUR): {item.get('Item Price (EUR)')}, "
-        menu_text += f'Item\'s Image: <img src="{item.get("Link to Image")}" alt="{item.get("Item Name")}" width="170" height="auto">'
+        if item.get("Link to Image"):    
+            menu_text += f'Item\'s Image: <img src="{item.get("Link to Image")}" alt="Image of {item.get("Item Name")}" width="170" height="auto">'
+        if item.get("ai_image_url"):
+            menu_text += f'AI-generated Item Image: <img src="{item.get("ai_image_url")}" alt="AI-generated image of {item.get("Item Name")}" width="170" height="auto">'
         menu_text += "\n"  # Add a newline for better readability
 
     # Save the text to a .txt file
@@ -3156,7 +3198,27 @@ def trigger_generate_response(unique_azz_id):
     menu_file_id = restaurant_instance.get("menu_file_id")
     res_currency = restaurant_instance.get("res_currency")
     html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    
+    # Default image URL if no link is available
+    default_image_url = "https://png.pngtree.com/png-vector/20221125/ourmid/pngtree-no-image-available-icon-flatvector-illustration-pic-design-profile-vector-png-image_40966566.jpg"
+
+    # Iterate over each item in the 'html_menu_tuples' list
+    for item in html_menu_tuples:
+        # Step 1: Check if "Link to Image" is empty
+        if not item.get('Link to Image'):
+            # Step 2: If "Link to Image" is empty, check if "AI-Image" exists
+            if item.get('AI-Image'):
+                # Assign the AI image URL to "Link to Image"
+                item['Link to Image'] = item['AI-Image']
+                # Remove the 'AI-Image' field after assigning its value
+                del item['AI-Image']
+            else:
+                # Step 3: If "AI-Image" does not exist, assign the default image URL
+                item['Link to Image'] = default_image_url
+    
     list_of_image_links = None  # Set or retrieve if necessary
+
+    print("\n\n\n", html_menu_tuples, "\n\n\n")
 
     # Trigger the asynchronous task
     task = get_assistants_response_celery.apply_async(
