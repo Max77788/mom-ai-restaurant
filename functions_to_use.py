@@ -280,7 +280,7 @@ def get_talk_video(id):
 
 def full_intro_in_momai_aws(url, intro_filename):
     download_video_from_url(url, intro_filename)
-    upload_to_s3(intro_filename, bucket="mom-ai-restaurant-images")
+    upload_to_s3(intro_filename)
 
 def download_video_from_url(url, local_filename):
     """
@@ -298,7 +298,7 @@ def download_video_from_url(url, local_filename):
     else:
         print(f"Failed to download file: Status code {response.status_code}")
 
-def upload_to_s3(file_name, bucket, object_name=None):
+def upload_to_s3(file_name, bucket="mom-ai-restaurant-images", folder_name="restaurant_intros", object_name=None):
     """
     Uploads a file to an S3 bucket.
 
@@ -311,8 +311,9 @@ def upload_to_s3(file_name, bucket, object_name=None):
         object_name = file_name
 
     try:
-        s3.upload_file(file_name, bucket, "restaurant_intros/"+object_name)
+        s3.upload_file(file_name, bucket, f"{folder_name}/{object_name}")
         print(f"File '{file_name}' uploaded to '{bucket}/{object_name}'")
+        os.remove(file_name)
         return True
     except FileNotFoundError:
         print("The file was not found")
@@ -2102,6 +2103,41 @@ def setup_working_hours():
             """
             #print("Set isOpen for ", res_instance.get("unique_azz_id"), f" and it is {isWorkingHours}")
     #print(f"Updated working status successfully!")
+
+
+def generate_ai_menu_item_image(item_name, item_description, unique_azz_id):
+    prompt_to_send = f"""
+    Role: you are the master food image taker for the restaurant industry. Your expertise is creating the pictures which make the user drool and hungry. 
+
+    Context: 
+    Here is the item on the menu to create the image for:
+    Name - {item_name}
+    Description - {item_description}
+    Task: Generate the great rocking saliva-causing picture for the specified dish.  Generate the image in the very natural real-life style.
+    """
+
+    client = CLIENT_OPENAI
+    response = client.images.generate(
+    model="dall-e-3",
+    prompt=prompt_to_send,
+    size="1024x1024",
+    quality="standard",
+    n=1,
+    )
+
+    image_url = response.data[0].url
+
+    local_filename = f"ai_{item_name}_image.png"
+
+    download_video_from_url(image_url, local_filename)
+
+    folder_name = f"ai_food_images/{unique_azz_id}"
+
+    upload_to_s3(local_filename, folder_name=folder_name)
+
+    aws_ai_image_link = f"https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
+
+
 
 
 

@@ -105,12 +105,14 @@
 
         <table id="itemTable" border="1" class="dataframe table table-striped" style="margin-top: 20px;">
             <thead>
-                <tr>
+                <tr style="text-align: right;">
                     <th>Item Name</th>
                     <th>Item Description</th>
                     <th>Item Price ({{ currency }})</th>
-                    <th>Link to Image (optional)</th>
+                    <th>Link to Image</th>
                     <th>Image</th>
+                    <th>Remove Item</th>
+                    <th>AI-image</th> <!-- New Column -->
                 </tr>
             </thead>
             <tbody>
@@ -156,7 +158,7 @@
             let newRow = table.insertRow(0);
 
             newRow.innerHTML = `
-                <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemName}</td>
+                <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemName}</td>
                 <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemDescription}</td>
                 <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${parseFloat(itemPrice).toFixed(2)}</td>
                 <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemImageLink}</td>
@@ -288,23 +290,31 @@
     
 
         {% endif %}    
+        <!-- Export as CSV Button -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="exportCsvBtn">Export as CSV</button>
+        </div>
+
+        
         <div class="mt-4">
             <div class="menu-content table-responsive">
                 <table id="menuTable" border="1" class="dataframe table table-striped">
                     <thead>
-                      <tr style="text-align: right;">
-                        <th>Item Name</th>
-                        <th>Item Description</th>
-                        <th>Item Price ({{ currency }})</th>
-                        <th>Link to Image</th>
-                        <th>Image</th>
-                      </tr>
+                        <tr style="text-align: right;">
+                            <th>Item Name</th>
+                            <th>Item Description</th>
+                            <th>Item Price ({{ currency }})</th>
+                            <th>Link to Image</th>
+                            <th>Image</th>
+                            <th>Remove Item</th>
+                            <th>AI-image</th> <!-- New Column -->
+                        </tr>
                     </thead>
                     <tbody>
                         {% if not default_menu %}
                         {% for item in html_menu_tuples %}
                         <tr>
-                          <td contenteditable="true" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
+                          <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Name"] }}</td>
                           <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
                           <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
@@ -315,7 +325,7 @@
                         {% else %}
                         {% for item in html_menu_tuples %}
                         <tr>
-                          <td contenteditable="false" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
+                          <td contenteditable="false" data-column="Item Name" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Name"] }}</td>
                           <td contenteditable="false" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="false" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
                           <td contenteditable="false" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
@@ -344,6 +354,96 @@
                                 }
                             });
                         });
+
+                        document.getElementById('exportCsvBtn').addEventListener('click', function() {
+                            let table = document.getElementById('menuTable');
+                            let csv = [];
+                            let rows = table.querySelectorAll('tr');
+
+                            // Loop over the rows of the table
+                            for (let i = 0; i < rows.length; i++) {
+                                let row = [];
+                                let cols = rows[i].querySelectorAll('td, th');
+                                
+                                // Loop over the first 4 columns only
+                                for (let j = 0; j < 4 && j < cols.length; j++) {
+                                    row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"'); // Escape any quotes inside the cell data
+                                }
+
+                                csv.push(row.join(','));
+                            }
+
+                            // Create a CSV string from the rows array
+                            let csvString = csv.join('\n');
+
+                            // Create a Blob object from the CSV string
+                            let csvFile = new Blob([csvString], { type: 'text/csv' });
+
+                            // Create a link element
+                            let downloadLink = document.createElement('a');
+                            downloadLink.download = 'menu.csv';
+
+                            // Create a URL for the Blob and set it as the href of the link
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+
+                            // Append the link to the body
+                            document.body.appendChild(downloadLink);
+
+                            // Trigger the download by simulating a click
+                            downloadLink.click();
+
+                            // Remove the link from the document
+                            document.body.removeChild(downloadLink);
+                        });
+
+                    
+                        // Add new AI-image column to each row
+                        document.querySelectorAll('#menuTable tbody tr').forEach(function(row) {
+                            let aiImageCell = row.insertCell();
+                            aiImageCell.setAttribute('data-column', 'AI-image');
+                            let aiImageButton = document.createElement('button');
+                            aiImageButton.innerText = 'Generate Image';
+                            aiImageButton.classList.add('generate-image-btn');
+                            aiImageCell.appendChild(aiImageButton);
+
+                            attachGenerateImageListener(aiImageButton, row);
+                        });
+
+                        function attachGenerateImageListener(button, row) {
+                            button.addEventListener('click', function() {
+                                let itemName = row.querySelector('td[data-column="Item Name"]').innerText;
+                                let itemDescription = row.querySelector('td[data-column="Item Description"]').innerText;
+                                let aiImageCell = row.querySelector('td[data-column="AI-image"]');
+                                
+                                // Show loading spinner
+                                aiImageCell.innerHTML = '<img src="/static/assets/loading-gif.gif" width="50" alt="Loading...">';
+
+                                // Send the name and description to generate the image
+                                fetch('/generate_menu_item_image', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        item_name: itemName,
+                                        item_description: itemDescription
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.generated_link) {
+                                        aiImageCell.innerHTML = `<img src="${data.generated_link}" alt="AI-Image of ${itemName}" width="170" height="auto">`;
+                                    } else {
+                                        aiImageCell.innerHTML = 'Failed to generate image';
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error generating image:', error);
+                                    aiImageCell.innerHTML = 'Error generating image';
+                                });
+                            });
+                        }
+
 
 
                     document.getElementById('addNewItemBtn').addEventListener('click', function() {
@@ -414,6 +514,18 @@
                     
                     // Clear the form after adding the item
                     document.getElementById('newItemForm').reset();
+
+                    // Then attach the generate image listener to the new row:
+                    newRow = document.getElementById('menuTable').getElementsByTagName('tbody')[0].rows[0]; // New row is added at the top
+                    let aiImageCell = newRow.insertCell();
+                    aiImageCell.setAttribute('data-column', 'AI-image');
+                    let aiImageButton = document.createElement('button');
+                    aiImageButton.innerText = 'Generate Image';
+                    aiImageButton.classList.add('generate-image-btn');
+                    aiImageCell.appendChild(aiImageButton);
+
+                    attachGenerateImageListener(aiImageButton, newRow);
+
                     });
 
                     function attachDeleteListeners() {

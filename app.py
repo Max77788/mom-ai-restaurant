@@ -2181,6 +2181,25 @@ def update_menu(initial_setup=False):
         return redirect(url_for("set_working_hours", start_setup=True))
     else:
         return redirect(url_for("update_menu_gui"))
+    
+
+@app.route('/generate_menu_item_image', methods=['POST'])
+def generate_menu_item_image():
+    data = request.get_json()
+    item_name = data.get('item_name')
+    item_description = data.get('item_description')
+
+    # Here, call your AI-image generation logic based on item_name and item_description
+    # Assume we have a function that returns a link to the generated image
+    # generated_link = generate_ai_image(item_name, item_description)
+    
+    generated_link = "example"
+
+    if generated_link:
+        return jsonify({'generated_link': generated_link}), 200
+    else:
+        return jsonify({'error': 'Image generation failed'}), 500
+
 
 
 @app.route('/update_menu_manual', methods=['POST'])
