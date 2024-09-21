@@ -482,7 +482,7 @@
                                         .then(response => response.json())
                                         .then(data => {
                                             if (data.state === 'SUCCESS') {
-                                                console.log(`Image Link: ${data.image_link}`)
+                                                // console.log(`Image Link: ${data.image_link}`)
                                                 // Task completed, display the generated image
                                                 aiImageCell.innerHTML = `<img src="${data.image_link}" alt="AI-Image of ${itemName}" width="170" height="auto">`;
                                                 clearInterval(interval);  // Stop polling
