@@ -2244,9 +2244,12 @@ def upload_full_menu_picture():
         if file and allowed_file(file.filename):
             file_name = secure_filename(file.filename)
             file.save(file_name)
+            
+            unique_azz_id = session.get("unique_azz_id")
+            
             # Upload the file to S3
-            folder_name = session.get("unique_azz_id")+"_menu_picture"
-            object_name = f"{session.get("unique_azz_id")}_menu_picture_{index}_{file_name}"
+            folder_name = unique_azz_id+"_menu_picture"
+            object_name = unique_azz_id+"_menu_picture_"+index+"_"+file_name
             
             try:
                 s3.upload_file(file_name, bucket_name, f"{folder_name}/{object_name}")
