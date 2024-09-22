@@ -65,7 +65,7 @@
 <hr>
 
 
-    <h1 style="text-align: center;">Upload the menu file</h1>
+    <h1 style="text-align: center;">Upload the menu file & image</h1>
     {% if initial_setup %}
     <form action="/update_menu?initial_setup=True" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()">
         <div>
@@ -87,6 +87,75 @@
         </div>
     </form>
     {% endif %}
+    <form action="/upload_full_menu_picture" method="post" enctype="multipart/form-data" onsubmit="return checkFiles(); showLoadingGif()">
+        <div style="margin-top: 7px;">
+            <label id="menu_images_label" for="menu_images">⬇️Upload menu images (max 4 files)</label>
+            <input type="file" id="menu_images" name="menu_images" accept="image/*" multiple>
+        </div>
+    
+        <!-- New div to display previously uploaded images with X icon for deletion -->
+        <div style="margin-top: 7px; display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for image_url in menu_images %}
+                <div style="display: inline-block; position: relative;">
+                    <!-- X icon for deletion -->
+                    <span class="delete-btn" style="position: absolute; top: 5px; right: 5px; background-color: red; color: white; cursor: pointer; padding: 2px 5px; border-radius: 50%;" onclick="deleteImage('{{ image_url }}')">X</span>
+                    <img src="{{ image_url }}" alt="Menu Image" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+            {% endfor %}
+        </div>
+    
+        <div style="margin-top: 7px;">
+            <button type="submit" class="btn btn-primary">Upload Images</button>
+        </div>
+    </form>
+    
+    <script>
+        // Pass the number of already uploaded images from the server to JavaScript
+        var existingImageCount = {{ menu_images | length }};
+        var maxFiles = 4;
+        var remainingFiles = maxFiles - existingImageCount;
+    
+        // Dynamically update the label text
+        var label = document.getElementById('menu_images_label');
+        label.textContent = `⬇️Upload menu images (you can upload ${remainingFiles} more file${remainingFiles !== 1 ? 's' : ''})`;
+    
+        // Delete image function, calls the delete route via AJAX
+        function deleteImage(imageUrl) {
+            if (confirm("Are you sure you want to delete this image?")) {
+                // Send a delete request using AJAX (Fetch API)
+                fetch('/delete_menu_image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image_url: imageUrl })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Image deleted successfully');
+                        location.reload();  // Reload the page to reflect changes
+                    } else {
+                        alert('Failed to delete image');
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error);
+                });
+            }
+        }
+    
+        function checkFiles() {
+            var input = document.getElementById('menu_images');
+            var maxFilesAllowed = maxFiles - existingImageCount; // Dynamically calculate remaining file slots
+    
+            if (input.files.length > maxFilesAllowed) {
+                alert('You can only upload a maximum of ' + maxFilesAllowed + ' more file(s).');
+                return false;
+            }
+            return true;
+        }
+    </script>
 
     {% if initial_setup or default_menu %}
     <div style="display:flex; flex-direction: column; align-items: center;">

@@ -379,6 +379,45 @@
 
 
             <hr>
+            {% if menu_images %}
+            
+            <!-- Header for the image grid -->
+            <h2 style="text-align: center;">Menu Pictures</h2>
+
+            <!-- Image grid (2x2) -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                {% for image_url in menu_images %}
+                    <div style="position: relative;">
+                        <img src="{{ image_url }}" alt="Menu Image" style="width: 100%; height: auto; cursor: pointer;" onclick="openModal('{{ image_url }}')">
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Fullscreen modal -->
+            <div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.8); justify-content: center; align-items: center;">
+                <span style="position: absolute; top: 20px; right: 40px; font-size: 30px; color: white; cursor: pointer;" onclick="closeModal()">&times;</span>
+                <img id="modalImage" src="" style="max-width: 90%; max-height: 90%; margin: auto; display: block;">
+            </div>
+
+            <script>
+                // Open modal and display the clicked image fullscreen
+                function openModal(imageUrl) {
+                    var modal = document.getElementById("imageModal");
+                    var modalImage = document.getElementById("modalImage");
+                    modalImage.src = imageUrl;
+                    modal.style.display = "flex";
+                }
+
+                // Close the modal
+                function closeModal() {
+                    var modal = document.getElementById("imageModal");
+                    modal.style.display = "none";
+                }
+            </script>
+
+            <hr>
+            {% endif %}
+
 
             <div class="mt-4">
                 <div class="menu-content table-responsive">
