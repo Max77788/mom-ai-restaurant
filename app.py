@@ -2256,7 +2256,7 @@ def upload_full_menu_picture():
                 
                 os.remove(file_name)
                 
-                flash(f'File {file_name} successfully uploaded to S3!')
+                # flash(f'File {file_name} successfully uploaded to S3!')
                 aws_menu_image_link = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{folder_name}/{object_name}"
                 collection.update_one({"unique_azz_id": unique_azz_id}, {"$push": {"menu_images": aws_menu_image_link}})
             except Exception as e:
