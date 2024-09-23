@@ -65,7 +65,7 @@
 <hr>
 
 
-    <h1 style="text-align: center;">Upload the menu file</h1>
+    <h1 style="text-align: center;">Upload the menu file & image</h1>
     {% if initial_setup %}
     <form action="/update_menu?initial_setup=True" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()">
         <div>
@@ -87,6 +87,75 @@
         </div>
     </form>
     {% endif %}
+    <form action="/upload_full_menu_picture" method="post" enctype="multipart/form-data" onsubmit="return checkFiles(); showLoadingGif()">
+        <div style="margin-top: 7px;">
+            <label id="menu_images_label" for="menu_images">⬇️Upload menu images (max 4 files)</label>
+            <input type="file" id="menu_images" name="menu_images" accept="image/*" multiple>
+        </div>
+    
+        <!-- New div to display previously uploaded images with X icon for deletion -->
+        <div style="margin-top: 7px; display: flex; flex-wrap: wrap; gap: 10px;">
+            {% for image_url in menu_images %}
+                <div style="display: inline-block; position: relative;">
+                    <!-- X icon for deletion -->
+                    <span class="delete-btn" style="position: absolute; top: 5px; right: 5px; background-color: red; color: white; cursor: pointer; padding: 2px 5px; border-radius: 50%;" onclick="deleteImage('{{ image_url }}')">X</span>
+                    <img src="{{ image_url }}" alt="Menu Image" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+            {% endfor %}
+        </div>
+    
+        <div style="margin-top: 7px;">
+            <button type="submit" class="btn btn-primary">Upload Images</button>
+        </div>
+    </form>
+    
+    <script>
+        // Pass the number of already uploaded images from the server to JavaScript
+        var existingImageCount = {{ menu_images | length }};
+        var maxFiles = 4;
+        var remainingFiles = maxFiles - existingImageCount;
+    
+        // Dynamically update the label text
+        var label = document.getElementById('menu_images_label');
+        label.textContent = `⬇️Upload menu images (you can upload ${remainingFiles} more file${remainingFiles !== 1 ? 's' : ''})`;
+    
+        // Delete image function, calls the delete route via AJAX
+        function deleteImage(imageUrl) {
+            if (confirm("Are you sure you want to delete this image?")) {
+                // Send a delete request using AJAX (Fetch API)
+                fetch('/delete_menu_image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image_url: imageUrl })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Image deleted successfully');
+                        location.reload();  // Reload the page to reflect changes
+                    } else {
+                        alert('Failed to delete image');
+                    }
+                })
+                .catch(error => {
+                    alert('Error: ' + error);
+                });
+            }
+        }
+    
+        function checkFiles() {
+            var input = document.getElementById('menu_images');
+            var maxFilesAllowed = maxFiles - existingImageCount; // Dynamically calculate remaining file slots
+    
+            if (input.files.length > maxFilesAllowed) {
+                alert('You can only upload a maximum of ' + maxFilesAllowed + ' more file(s).');
+                return false;
+            }
+            return true;
+        }
+    </script>
 
     {% if initial_setup or default_menu %}
     <div style="display:flex; flex-direction: column; align-items: center;">
@@ -105,12 +174,14 @@
 
         <table id="itemTable" border="1" class="dataframe table table-striped" style="margin-top: 20px;">
             <thead>
-                <tr>
+                <tr style="text-align: right;">
                     <th>Item Name</th>
                     <th>Item Description</th>
                     <th>Item Price ({{ currency }})</th>
-                    <th>Link to Image (optional)</th>
+                    <th>Link to Image</th>
                     <th>Image</th>
+                    <th>Remove Item</th>
+                    <th>AI-Image</th> <!-- New Column -->
                 </tr>
             </thead>
             <tbody>
@@ -156,11 +227,11 @@
             let newRow = table.insertRow(0);
 
             newRow.innerHTML = `
-                <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${itemName}</td>
+                <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemName}</td>
                 <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemDescription}</td>
                 <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${parseFloat(itemPrice).toFixed(2)}</td>
                 <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">${itemImageLink}</td>
-                <td contenteditable="false" data-column="Image" style="max-width: 170px;"><img src="${itemImageLink}" alt="Image of ${itemName}" width="170" height="auto"></td>
+                <td contenteditable="false" data-column="Image" style="max-width: 170px;"><img src="${itemImageLink}" alt="Here could be an image of ${itemName}. Have AI-image generated for 0.05 EUR in less than a minute➡️" width="170" height="auto"></td>
                 <td><button class="delete-add-oneByOne-row-btn">Delete</button></td>    
             `;
 
@@ -288,34 +359,49 @@
     
 
         {% endif %}    
+        <!-- Export as CSV Button -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button id="exportCsvBtn">Export as CSV</button>
+        </div>
+
+        
         <div class="mt-4">
             <div class="menu-content table-responsive">
                 <table id="menuTable" border="1" class="dataframe table table-striped">
                     <thead>
-                      <tr style="text-align: right;">
-                        <th>Item Name</th>
-                        <th>Item Description</th>
-                        <th>Item Price ({{ currency }})</th>
-                        <th>Link to Image</th>
-                        <th>Image</th>
-                      </tr>
+                        <tr style="text-align: right;">
+                            <th>Item Name</th>
+                            <th>Item Description</th>
+                            <th>Item Price ({{ currency }})</th>
+                            <th>Link to Image</th>
+                            <th>Image</th>
+                            <th>AI-Image</th> <!-- New Column -->
+                            <th>Remove Item</th>
+                            
+                        </tr>
                     </thead>
                     <tbody>
                         {% if not default_menu %}
                         {% for item in html_menu_tuples %}
                         <tr>
-                          <td contenteditable="true" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
+                          <td contenteditable="true" data-column="Item Name" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Name"] }}</td>
                           <td contenteditable="true" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="true" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
                           <td contenteditable="true" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
-                          <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                          <td contenteditable="false" data-column="Image" style="max-width: 180px;"><img src="{{ item['Link to Image'] }}" alt="Here could be an image of {{ item['Item Name'] }}. Have AI-image generated for 0.05 EUR in less than a minute➡️" width="170" height="auto"></td>
+                          {% if 'AI-Image' in item %}
+                           <td contenteditable="false" data-column="AI-Image"><img src="{{ item['AI-Image'] }}" alt="AI-Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                           {% else %}
+                           <td contenteditable="false" data-column="AI-Image"></td>
+                           {% endif %}
                           <td><button class="delete-row-btn">Delete</button></td>
+                          
                         </tr>
                         {% endfor %}
                         {% else %}
                         {% for item in html_menu_tuples %}
                         <tr>
-                          <td contenteditable="false" data-column="Item Name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Name"] }}</td>
+                          <td contenteditable="false" data-column="Item Name" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Name"] }}</td>
                           <td contenteditable="false" data-column="Item Description" style="max-width: 300px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Item Description"] }}</td>
                           <td contenteditable="false" data-column="Item Price (EUR)" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ item["Item Price (EUR)"] }}</td>
                           <td contenteditable="false" data-column="Link to Image" style="max-width: 200px; overflow-wrap: break-word; word-wrap: break-word; white-space: normal;">{{ item["Link to Image"] }}</td>
@@ -344,6 +430,151 @@
                                 }
                             });
                         });
+
+                        document.getElementById('exportCsvBtn').addEventListener('click', function() {
+                            let table = document.getElementById('menuTable');
+                            let csv = [];
+                            let rows = table.querySelectorAll('tr');
+
+                            // Loop over the rows of the table
+                            for (let i = 0; i < rows.length; i++) {
+                                let row = [];
+                                let cols = rows[i].querySelectorAll('td, th');
+                                
+                                // Loop over the first 4 columns only
+                                for (let j = 0; j < 4 && j < cols.length; j++) {
+                                    row.push('"' + cols[j].innerText.replace(/"/g, '""') + '"'); // Escape any quotes inside the cell data
+                                }
+
+                                csv.push(row.join(','));
+                            }
+
+                            // Create a CSV string from the rows array
+                            let csvString = csv.join('\n');
+
+                            // Create a Blob object from the CSV string
+                            let csvFile = new Blob([csvString], { type: 'text/csv' });
+
+                            // Create a link element
+                            let downloadLink = document.createElement('a');
+                            downloadLink.download = 'menu.csv';
+
+                            // Create a URL for the Blob and set it as the href of the link
+                            downloadLink.href = window.URL.createObjectURL(csvFile);
+
+                            // Append the link to the body
+                            document.body.appendChild(downloadLink);
+
+                            // Trigger the download by simulating a click
+                            downloadLink.click();
+
+                            // Remove the link from the document
+                            document.body.removeChild(downloadLink);
+                        });
+
+                    
+                        const appendGenerateImageButton = () => {
+                        document.querySelectorAll('#menuTable tbody tr').forEach(function(row) {
+                            // Find the cell that has 'data-column' equal to 'AI-Image'
+                            row.querySelectorAll('td').forEach(function(cell) {
+                                let dataColumn = cell.getAttribute('data-column');
+
+                                // Check if the cell has the data-column 'AI-Image'
+                                if (dataColumn === 'AI-Image') {
+                                    // Check if the cell contains an image element
+                                    let imgElement = cell.querySelector('img');
+
+                                    // If no image element exists, append the "Generate Image" button
+                                    if (!imgElement) {
+                                        let aiImageButton = document.createElement('button');
+                                        aiImageButton.innerText = 'Generate Image';
+                                        aiImageButton.classList.add('generate-image-btn');
+                                        cell.appendChild(aiImageButton);
+
+                                        // Attach event listener to the generate button
+                                        attachGenerateImageListener(aiImageButton, row);
+                                    }
+                                }
+                            });
+                        });
+                    };
+
+                    // Call the function
+                    appendGenerateImageButton();
+
+
+
+                        function attachGenerateImageListener(button, row) {
+                            button.addEventListener('click', function() {
+                                let itemName = row.querySelector('td[data-column="Item Name"]').innerText;
+                                let itemDescription = row.querySelector('td[data-column="Item Description"]').innerText;
+                                let aiImageCell = row.querySelector('td[data-column="AI-Image"]');
+                                
+                                // Show loading spinner
+                                aiImageCell.innerHTML = '<img src="/static/assets/loading-gif.gif" width="50" alt="Loading...">';
+
+                                // Send the name and description to generate the image
+                                const triggerGenerateImage = (itemName, itemDescription, aiImageCell) => {
+                                    // Send a request to start image generation
+                                    fetch('/trigger_generate_menu_item_image', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            item_name: itemName,
+                                            item_description: itemDescription
+                                        })
+                                    })
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        if (data.task_id) {
+                                            // Poll the task status to get the generated image link
+                                            checkTaskStatus(data.task_id, aiImageCell);
+                                        } else {
+                                            aiImageCell.innerHTML = 'Failed to start image generation';
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error initiating image generation:', error);
+                                        aiImageCell.innerHTML = 'Error initiating image generation';
+                                    });
+                                };
+
+                                // Poll the task status using the task ID
+                                const checkTaskStatus = (task_id, aiImageCell) => {
+                                    // Poll the status at intervals (e.g., every 2 seconds)
+                                    const interval = setInterval(() => {
+                                        fetch(`/generate_menu_item_image_status/${task_id}`, {
+                                            method: 'GET'
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.state === 'SUCCESS') {
+                                                // console.log(`Image Link: ${data.image_link}`)
+                                                // Task completed, display the generated image
+                                                aiImageCell.innerHTML = `<img src="${data.image_link}" alt="AI-Image of ${itemName}" width="170" height="auto">`;
+                                                clearInterval(interval);  // Stop polling
+                                            } else if (data.state === 'FAILURE') {
+                                                // Handle failure
+                                                aiImageCell.innerHTML = 'Failed to generate image';
+                                                clearInterval(interval);  // Stop polling
+                                            } else {
+                                                // Task is still in progress (e.g., pending or retrying)
+                                                aiImageCell.innerHTML = 'Generating image...';
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error checking task status:', error);
+                                            aiImageCell.innerHTML = 'Error checking task status';
+                                            clearInterval(interval);  // Stop polling on error
+                                        });
+                                    }, 2000);  // Poll every 2 seconds
+                                };
+                                // Trigger image generation
+                                triggerGenerateImage(itemName, itemDescription, aiImageCell);
+                        });
+                    };
 
 
                     document.getElementById('addNewItemBtn').addEventListener('click', function() {
@@ -414,6 +645,9 @@
                     
                     // Clear the form after adding the item
                     document.getElementById('newItemForm').reset();
+
+                    appendGenerateImageButton();
+
                     });
 
                     function attachDeleteListeners() {
@@ -464,8 +698,17 @@
                         rows.forEach(function(row) {
                             let item = {};
                             row.querySelectorAll('td').forEach(function(cell) {
-                                if (cell.getAttribute('data-column') !== "Image"){
-                                    item[cell.getAttribute('data-column')] = cell.innerText;
+                                // For all columns except the image columns, store the cell's innerText
+                                let dataColumn = cell.getAttribute('data-column');
+                                if (dataColumn !== "Image" && dataColumn !== "AI-Image" && dataColumn !== null) {
+                                    item[dataColumn] = cell.innerText;
+                                } 
+                                // Access the img src for the AI image column
+                                else if(dataColumn === "AI-Image") {
+                                    let imgElement = cell.querySelector('img');  // Find the img element inside the td
+                                    if (imgElement) {
+                                        item[dataColumn] = imgElement.src;  // Store the img src in the item object
+                                    }
                                 }
                             });
                             updatedItems.push(item);

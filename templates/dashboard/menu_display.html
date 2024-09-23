@@ -43,6 +43,7 @@
                             <th>Item Price ({{ res_currency }})</th>
                             <th>Link to Image</th>
                             <th>Image</th>
+                            <th>AI-Image</th> <!-- New Column -->
                           </tr>
                         </thead>
                         <tbody>
@@ -53,8 +54,13 @@
                               <td contenteditable="false" data-column="Item Price (EUR)">{{ item["Item Price (EUR)"] }}</td>
                               <td contenteditable="false" data-column="Link to Image">{{ item["Link to Image"] }}</td>
                               <td contenteditable="false" data-column="Image"><img src="{{ item['Link to Image'] }}" alt="Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
-                            </tr>
-                            {% endfor %}
+                              {% if 'AI-Image' in item %}
+                              <td contenteditable="false" data-column="AI-Image"><img src="{{ item['AI-Image'] }}" alt="AI-Image of {{ item['Item Name'] }}" width="170" height="auto"></td>
+                              {% else %}
+                              <td contenteditable="false" data-column="AI-Image" style="max-width: 180px;">🎨🍔Have AI-image of {{ item['Item Name'] }} generated for 0.05 EUR in less than a minute - Click 'Edit' on the top</td>
+                              {% endif %}
+                                </tr>
+                                {% endfor %}
                         </tbody>
                       </table>
                 </div>

@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import statistics
 from flask_migrate import Migrate
 import os
+from urllib.parse import urlparse
 # from google.cloud import speech
 import qrcode
 from geopy.distance import geodesic
@@ -30,7 +31,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import s3, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -876,10 +877,16 @@ def all_posts():
         post_data.append({
             'title': post.title,
             'excerpt': excerpt,
-            'link': url_for('post', url_slug=post.url_slug),
+            'link': None,  # Initialize with None
             'created_at': post.created_at.strftime('%d.%m.%Y %H:%M'),  # Format the created_at field
             'image_url': post.image_url
         })
+
+        # Attempt to set the 'link', fallback to default if url_for fails
+        try:
+            post_data[-1]['link'] = url_for('post', url_slug=post.url_slug)
+        except Exception:
+            post_data[-1]['link'] = '#'  # Assign a default link in case of failure
     
     next_url = url_for('all_posts', page=posts_pagination.next_num) if posts_pagination.has_next else None
     prev_url = url_for('all_posts', page=posts_pagination.prev_num) if posts_pagination.has_prev else None
@@ -2181,6 +2188,122 @@ def update_menu(initial_setup=False):
         return redirect(url_for("set_working_hours", start_setup=True))
     else:
         return redirect(url_for("update_menu_gui"))
+    
+
+@app.route('/trigger_generate_menu_item_image', methods=['POST'])
+def trigger_generate_menu_item_image():
+    data = request.get_json()
+    item_name = data.get('item_name')
+    item_description = data.get('item_description')
+    unique_azz_id = session.get('unique_azz_id')
+
+    # Here, call your AI-image generation logic based on item_name and item_description
+    # Assume we have a function that returns a link to the generated image
+    start_time = time.time()
+
+    generated_link_task = generate_ai_menu_item_image_celery.apply_async(
+        args=[
+            item_name, item_description, unique_azz_id
+            ])
+
+    # print(f"It took {time.time()-start_time} seconds to generate the image")
+
+    if generated_link_task:
+        return jsonify({"task_id": generated_link_task.id}), 202
+    else:
+        return jsonify({'error': 'Image generation failed'}), 500
+    
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['MAX_CONTENT_LENGTH'] = 10 * 1024 * 1024  # 16MB max upload size
+
+# The endpoint to handle the form submission and file uploads
+@app.route('/upload_full_menu_picture', methods=['POST', 'GET'])
+def upload_full_menu_picture():
+    last_part = "/update_menu_gui"
+
+    print(f"Redirect URL: {last_part}")
+    print(f"Request Files: {request.files}")
+
+    if 'menu_images' not in request.files:
+        flash('No files part')
+        return redirect(last_part)
+    
+    files = request.files.getlist('menu_images')
+
+    print("Files: ", files)
+
+    # Limit the number of files to 4
+    if len(files) > 4:
+        flash('You can upload a maximum of 4 files.')
+        return redirect(last_part)
+    
+    bucket_name = "mom-ai-restaurant-images"
+    unique_azz_id = session.get("unique_azz_id")
+
+    for index, file in enumerate(files):
+        if file and allowed_file(file.filename):
+            file_name = secure_filename(file.filename)
+            file.save(file_name)
+            
+            unique_azz_id = session.get("unique_azz_id")
+            
+            # Upload the file to S3
+            folder_name = unique_azz_id+"_menu_picture"
+            object_name = unique_azz_id+"_menu_picture_"+str(index)+"_"+file_name
+            
+            try:
+                s3.upload_file(file_name, bucket_name, f"{folder_name}/{object_name}")
+                
+                os.remove(file_name)
+                
+                # flash(f'File {file_name} successfully uploaded to S3!')
+                aws_menu_image_link = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{folder_name}/{object_name}"
+                collection.update_one({"unique_azz_id": unique_azz_id}, {"$push": {"menu_images": aws_menu_image_link}})
+            except Exception as e:
+                print(f'Error uploading {file_name} to S3: {str(e)}')
+                flash(f'Error uploading {file_name} to S3: {str(e)}')
+                return redirect(last_part)
+        else:
+            flash(f'File {file.filename} is not allowed.')
+            return redirect(last_part)
+    flash('All files successfully uploaded!')
+    return redirect(last_part)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
+
+@app.route('/generate_menu_item_image_status/<task_id>', methods=['GET'])
+def generate_menu_image_task_status(task_id):
+    task = celery.AsyncResult(task_id)
+
+    print("Task state: ", task.state)
+
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
+        }
+    elif task.state == 'SUCCESS':
+        aws_image_link = task.result
+        
+        response = {
+            'state': task.state,
+            'image_link': aws_image_link,  # Task result when completed
+            'status': 'Task completed!'
+        }
+    elif task.state == 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': str(task.info)  # Exception message if failed
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': task.state  # Other states like 'RETRY'
+        }
+
+    return jsonify(response)
+
 
 
 @app.route('/update_menu_manual', methods=['POST'])
@@ -2200,7 +2323,10 @@ def update_menu_manual():
         menu_text += f"Item Name: {item.get('Item Name')}, "
         menu_text += f"Item Description: {item.get('Item Description')}, "
         menu_text += f"Item Price (EUR): {item.get('Item Price (EUR)')}, "
-        menu_text += f'Item\'s Image: <img src="{item.get("Link to Image")}" alt="{item.get("Item Name")}" width="170" height="auto">'
+        if item.get("Link to Image"):    
+            menu_text += f'Item\'s Image: <img src="{item.get("Link to Image")}" alt="Image of {item.get("Item Name")}" width="170" height="auto">'
+        if item.get("ai_image_url"):
+            menu_text += f'AI-generated Item Image: <img src="{item.get("ai_image_url")}" alt="AI-generated image of {item.get("Item Name")}" width="170" height="auto">'
         menu_text += "\n"  # Add a newline for better readability
 
     # Save the text to a .txt file
@@ -2307,6 +2433,9 @@ def update_menu_gui(initial_setup=None):
     currency = restaurant.get("res_currency")
 
     menu_vector_id = restaurant.get("menu_vector_id")
+
+    menu_images = restaurant.get("menu_images", [])
+    print("Menu image we pass: ", menu_images)
     
     if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
         default_menu = True
@@ -2319,10 +2448,33 @@ def update_menu_gui(initial_setup=None):
                            unique_azz_id=unique_azz_id,
                            title="Edit Menu",
                            initial_setup=initial_setup,
-                           currency=currency)
+                           currency=currency,
+                           menu_images=menu_images)
 
 
+@app.route('/delete_menu_image', methods=['POST'])
+def delete_menu_image():
+    data = request.get_json()
+    image_url = data.get('image_url')
+    
+    unique_azz_id = session.get("unique_azz_id")
 
+    object_key = '/'.join(image_url.split('/')[-2:])
+
+    try:
+        s3.delete_object(Bucket="mom-ai-restaurant-images", Key=object_key)
+        # Remove the image from the database (assuming S3 image URLs are stored in the "menu_images" field)
+        collection.update_one(
+            {"unique_azz_id": unique_azz_id},
+            {"$pull": {"menu_images": image_url}}
+        )
+
+        # Optionally, delete the image from S3 (if stored on S3)
+        # s3.delete_object(Bucket=bucket_name, Key=image_url.split('/')[-1])  # Example of deleting from S3
+
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 # Mint MOM token
 @app.route('/mint-send-tokens', methods=['POST'])
@@ -3137,7 +3289,27 @@ def trigger_generate_response(unique_azz_id):
     menu_file_id = restaurant_instance.get("menu_file_id")
     res_currency = restaurant_instance.get("res_currency")
     html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    
+    # Default image URL if no link is available
+    default_image_url = "https://png.pngtree.com/png-vector/20221125/ourmid/pngtree-no-image-available-icon-flatvector-illustration-pic-design-profile-vector-png-image_40966566.jpg"
+
+    # Iterate over each item in the 'html_menu_tuples' list
+    for item in html_menu_tuples:
+        # Step 1: Check if "Link to Image" is empty
+        if not item.get('Link to Image'):
+            # Step 2: If "Link to Image" is empty, check if "AI-Image" exists
+            if item.get('AI-Image'):
+                # Assign the AI image URL to "Link to Image"
+                item['Link to Image'] = item['AI-Image']
+                # Remove the 'AI-Image' field after assigning its value
+                del item['AI-Image']
+            else:
+                # Step 3: If "AI-Image" does not exist, assign the default image URL
+                item['Link to Image'] = default_image_url
+    
     list_of_image_links = None  # Set or retrieve if necessary
+
+    print("\n\n\n", html_menu_tuples, "\n\n\n")
 
     # Trigger the asynchronous task
     task = get_assistants_response_celery.apply_async(
@@ -3963,6 +4135,10 @@ def show_restaurant_profile_public(unique_azz_id):
 
     html_menu_tuples = restaurant.get("html_menu_tuples")
 
+    menu_images = restaurant.get("menu_images", [])
+
+    print(menu_images)
+
     print("Menu tuples we passed: ", html_menu_tuples)
 
     there_are_reviews = True if len(reviews)>=1 else False
@@ -4008,7 +4184,8 @@ def show_restaurant_profile_public(unique_azz_id):
                            html_menu=html_menu,
                            reviews=reviews,
                            there_are_reviews=there_are_reviews,
-                           html_menu_tuples=html_menu_tuples)
+                           html_menu_tuples=html_menu_tuples,
+                           menu_images=menu_images)
 
 
 @app.route('/google-callback', methods=['POST'])
