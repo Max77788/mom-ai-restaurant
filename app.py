@@ -588,14 +588,14 @@ def register():
             flash('It seems that your email and password are already registered. Please log in.')
             return redirect(url_for('login'))
 
-        restaurant_name = form.restaurant_name.data
-        print(f"Restaurant name: {restaurant_name}")
+        # restaurant_name = form.restaurant_name.data
+        # print(f"Restaurant name: {restaurant_name}")
 
-        if form.restaurant_url.data:
-            restaurant_url = form.restaurant_url.data
-            print(f"Restaurant website URL: {restaurant_url}")
-        else:
-            restaurant_url = "No URL provided"
+        # if form.restaurant_url.data:
+            # restaurant_url = form.restaurant_url.data
+            # print(f"Restaurant website URL: {restaurant_url}")
+        # else:
+            # restaurant_url = "No URL provided"
 
         #other_instructions = form.other_instructions.data
         #print(f"Other instructions: {other_instructions}")
@@ -603,14 +603,14 @@ def register():
         password = form.password.data
         #print(f"Restaurant password: {password}")
 
-        location_coord = request.form['location']
-        print(f"Location: {location_coord}")
+        # location_coord = request.form['location']
+        # print(f"Location: {location_coord}")
         
-        location_name = request.form['locationName']
-        print(f"Location Name: {location_name}")
+        # location_name = request.form['locationName']
+        # print(f"Location Name: {location_name}")
 
-        session["location_coord"] = location_coord
-        session["location_name"] = location_name
+        # session["location_coord"] = location_coord
+        # session["location_name"] = location_name
 
         #currency = form.currency.data
         #print(f"Currency of the restaurant: {currency}")
@@ -620,19 +620,19 @@ def register():
         session["currency"] = "EUR"
 
         # Save the image to GridFS
-        image = form.image.data
+        # image = form.image.data
         #print(f'Image Received:{image}')
-        if image:
-            filename = secure_filename(image.filename)
-            file_id = fs.put(image, filename=filename)
-            print(f'Raw file id {file_id} and string file id {str(file_id)}')
-            session["logo_id"] = str(file_id)
+        # if image:
+            # filename = secure_filename(image.filename)
+            # file_id = fs.put(image, filename=filename)
+            # print(f'Raw file id {file_id} and string file id {str(file_id)}')
+            # session["logo_id"] = str(file_id)
         
-        if form.referral_id.data:
-            session["id_of_who_referred"] = form.referral_id.data
+        # if form.referral_id.data:
+            # session["id_of_who_referred"] = form.referral_id.data
         
-        session["custom_menu_provided"] = False
-        
+        # session["custom_menu_provided"] = False
+        """
         if request.files.get('menu'):
             menu = request.files['menu']
             #script = request.files['script']
@@ -692,12 +692,11 @@ def register():
             unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
 
             
-            """
             session['assistant_id'] = assistant.id
             session['menu_file_id'] = menu_file_id
             session['menu_vector_id'] = menu_vector_id
             session['unique_azz_id'] = unique_azz_id
-            """
+        
             
             messages = [{'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s Assistant! Talk to me!'}]
             session['messages'] = messages
@@ -722,13 +721,13 @@ def register():
             # Save other form data as needed, then redirect to enter the code
             return redirect(url_for('enter_code'))
 
-
+        """
         
         session["password"] = password
 
 
-        session["restaurant_name"] = restaurant_name
-        session["res_website_url"] = restaurant_url        
+        # session["restaurant_name"] = restaurant_name
+        # session["res_website_url"] = restaurant_url        
 
         
         session["password"] = password
@@ -744,7 +743,7 @@ def register():
         # session['menu_file_id'] = menu_file_id
 
         # unique_azz_id = restaurant_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
-        session["unique_azz_id"] = unique_azz_id
+        # session["unique_azz_id"] = unique_azz_id
         
         print("We are right before qr code generation")
 
@@ -1195,12 +1194,12 @@ def confirm_email(res_email):
 
     session["hashed_res_passord"] = hashed_res_password
 
-    location_coord = session["location_coord"]
-    location_name = session["location_name"]
+    # location_coord = session["location_coord"]
+    # location_name = session["location_name"]
 
-    unique_azz_id = session.get("unique_azz_id")
-    print("Unique azz id we insert, ", unique_azz_id)
-    id_of_who_referred = session.get("id_of_who_referred")
+    # unique_azz_id = session.get("unique_azz_id")
+    # print("Unique azz id we insert, ", unique_azz_id)
+    # id_of_who_referred = session.get("id_of_who_referred")
 
     # Add referee to the referees' list of the referral
     # if id_of_who_referred:
@@ -1208,7 +1207,7 @@ def confirm_email(res_email):
         # collection.update_one({"referral_code": id_of_who_referred}, {"$push":{"referees": unique_azz_id}})
     
     # insert_restaurant(collection, res_name, unique_azz_id, res_email, hashed_res_password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code=qr_code_id, wallet_public_key_address="None", wallet_private_key="None", location_coord=location_coord, location_name=location_name, id_of_who_referred=id_of_who_referred, logo_id=file_id)
-    send_confirmation_email_registered(mail, res_email, restaurant_name, FROM_EMAIL)
+    # send_confirmation_email_registered(mail, res_email, restaurant_name, FROM_EMAIL)
     print("Confirmation of registarion Email has been sent and the account created.\n\n")
     print(f"Setup hashed res password in session:{hashed_res_password}")
     
@@ -1308,7 +1307,7 @@ def assistant_demo_chat():
     restaurant_name = session.get('restaurant_name')
     
     if user_message:
-        messages.append({'sender': 'assistant', 'content': f'Hello! I am {restaurant_name}\'s AI-Assistant! Talk to me!'})
+        messages.append({'sender': 'assistant', 'content': f'Hello! I am your restaurant\'s AI-Assistant! Talk to me!'})
         messages.append({'sender': 'user', 'content': user_message})
         # Simulate the assistant's response
         messages.append({'sender': 'assistant', 'content': "I do not know what to say as I am not an AI yet. But in 7 seconds you will be redirected and magic will happen.", 'present':True})
@@ -1782,6 +1781,7 @@ def setup_public_profile():
         video_url = create_and_get_talk_video(f"Hi, welcome to {res_name}! How can I help you?")
         intro_file_name = f"intro_{unique_azz_id}.mp4"
         full_intro_in_momai_aws(video_url, intro_file_name)
+        print("Uploaded AI-Intro")
 
         session["unique_azz_id"] = unique_azz_id
         session["assistant_id"] = assistant.id
