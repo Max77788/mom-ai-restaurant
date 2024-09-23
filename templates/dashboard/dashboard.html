@@ -284,9 +284,11 @@ function downloadImage() {
         </div>
         <div class="restaurant-name">
             <span><strong>Your Email: </strong>{{ restaurant_email }}</span>
+            {% if not is_google_acc %}
             <div>
             <a href="/set_session_and_redirect"><u>Change Email or Password</u></a>
             </div>
+            {% endif %}
             <hr>
             <div class="logout-section">
                 <form action="/logout" method="post">

@@ -1419,6 +1419,8 @@ def dashboard_display(show_popup=False):
     res_email = session.get("res_email")
     res_password = session.get("password")
 
+    
+
     # Find the instance in MongoDB
     restaurant_instance = collection.find_one({"email": res_email}) 
 
@@ -1428,6 +1430,10 @@ def dashboard_display(show_popup=False):
         restaurant_name = restaurant_instance.get("name")
         restaurant_website_url = restaurant_instance.get("website_url")
         restaurant_email = restaurant_instance.get("email")
+        
+        res_acc_password = restaurant_instance.get("password")
+        is_google_acc = res_acc_password == "google_acc"
+        
         assistant_id = restaurant_instance.get("assistant_id")
         web3_wallet_address = restaurant_instance.get("web3_wallet_address")
         current_balance = restaurant_instance.get("balance")
@@ -1513,7 +1519,8 @@ def dashboard_display(show_popup=False):
                            discovery_mode=discovery_mode,
                            delivery_offered=delivery_offered,
                            delivery_radius=delivery_radius,
-                           current_balanceHigherThanTwentyCents=current_balanceHigherThanTwentyCents)
+                           current_balanceHigherThanTwentyCents=current_balanceHigherThanTwentyCents,
+                           is_google_acc=is_google_acc)
 
 ###################################### Dashboard Buttons ######################################
 
