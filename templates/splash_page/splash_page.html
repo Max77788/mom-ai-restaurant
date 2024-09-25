@@ -81,7 +81,7 @@
         <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" class="logo">
 
         <!-- Play button overlay with clickable redirect -->
-        <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id) }}">
+        <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id, from_splash_page=True) }}">
             <div class="play-button">
                 <img src="/static/images/PlayButton-removebg.png" alt="Play Video">
             </div>
@@ -90,6 +90,7 @@
         <!-- MenuVenu text -->
         <div class="menu-venu">
             <img src="/static/logos/MenuVenuLogo-removebg.png" alt="MenuVenu Logo">
+            <img src="/static/logos/LogoInvertedColors_noSlogan.png" width="50" height="auto">
         </div>
     </div>
 </body>

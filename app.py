@@ -3081,7 +3081,7 @@ def start_conversation(assistant_id):
     print("Returned id ", assistant_id) # Debugging line
     print("Starting a new conversation...")  # Debugging line
     thread = CLIENT_OPENAI.beta.threads.create(
-    tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
+    # tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
     )                                               
                                                                
     
@@ -3094,11 +3094,12 @@ def start_conversation(assistant_id):
     return jsonify({"thread_id": thread.id, "assistant_id": assistant_id})
 
 @app.route('/assistant_order_chat/<unique_azz_id>')
-def assistant_order_chat(unique_azz_id):
+def assistant_order_chat(unique_azz_id, from_splash_page=False):
     # Retrieve the full assistant_id from the session
     lang = request.args.get('lang', 'en')
 
     iframe = True if request.args.get("iframe") else False
+    from_splash_page = True if request.args.get("from_splash_page") else False
 
     res_instance = collection.find_one({"unique_azz_id":unique_azz_id})
 
@@ -3166,7 +3167,8 @@ def assistant_order_chat(unique_azz_id):
                            isWorkingHours=isWorkingHours,
                            default_menu=default_menu,
                            discovery_mode=discovery_mode,
-                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents)
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
+                           from_splash_page=from_splash_page)
 
 
 
