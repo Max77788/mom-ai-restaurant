@@ -193,11 +193,16 @@
     </div>
 
     <script>
+        
+        
+
+
         function showLoadingGif() {
             document.getElementById('loadingGif').style.display = 'block';
         }
         
         document.getElementById('addItemBtn').addEventListener('click', function() {
+            
             // Get the values from the form inputs
             let itemName = document.getElementsByName('item_name')[0].value.trim();
             let itemDescription = document.getElementsByName('item_description')[0].value.trim();
@@ -235,6 +240,7 @@
                 <td><button class="delete-add-oneByOne-row-btn">Delete</button></td>    
             `;
 
+
             // Clear the form inputs
             document.getElementById('menuForm').reset();
 
@@ -243,6 +249,8 @@
 
         // Add event listener to all delete buttons
         document.addEventListener('DOMContentLoaded', function() {
+            
+            
             document.querySelectorAll('.delete-add-row-btn').forEach(function(button) {
                 button.addEventListener('click', function() {
                     // Find the row that the button is in and remove it
@@ -250,6 +258,7 @@
                     row.parentNode.removeChild(row);
                 });
             });
+
         });
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -275,7 +284,7 @@
             });
         });
 
-
+        
 
 
         document.getElementById('submitMenuBtn').addEventListener('click', function() {
@@ -324,21 +333,84 @@
         });
     </script>
     {% endif %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            
+            
+            
+            
+            // Warn the user when trying to close the tab with unsaved changes
+        window.addEventListener('beforeunload', function(event) {
+            event.preventDefault();
+            event.returnValue = '';
+        });
+
+        });
+
+    </script>
+
     <hr>
     <div class="container mt-5">
         <!-- New Item Form -->
         {% if not default_menu and not initial_setup %}
         <div style="display:flex; flex-direction: column; align-items: center; border: 2px solid #000; border-radius: 10px; padding: 10px;">
-        <h3 style="text-align: center;">Add a New Menu Item Manually</h3>
-        <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
-          <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-          <input type="text" id="newItemDescription" placeholder="Item Description" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-          <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price ({{ currency }})" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-          <input type="url" id="newItemImageLink" placeholder="Link to Image" style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
-          <button id="addNewItemBtn">Add Item</button>
-        </div>
-        
-        <p style="font-size: 10px;">Press this button when you have added new positions and removed irrelevant items</p>
+            <h3 style="text-align: center;">Add a New Menu Item Manually</h3>
+            <div id="newItemForm" style="display: flex; flex-direction: column; align-items: center; padding: 20px;">
+              <input type="text" id="newItemName" placeholder="Item Name" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+              
+              <div style="display: flex; align-items: center; width: 100%; justify-content: space-between; margin-bottom: 10px;">
+                <input type="text" id="newItemDescription" placeholder="Item Description" required style="width: 300px; padding: 10px; border-radius: 5px;">
+                <button id="generateAI" disabled style="margin-left: 10px;">Generate with AI</button>
+              </div>
+          
+              <input type="number" step="0.01" id="newItemPrice" placeholder="Item Price ({{ currency }})" required style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+              <input type="url" id="newItemImageLink" placeholder="Link to Image" style="width: 300px; margin-bottom: 10px; padding: 10px; border-radius: 5px;">
+              <button id="addNewItemBtn">Add Item</button>
+            </div>
+          </div>
+          
+          <script>
+            const newItemNameInput = document.getElementById('newItemName');
+            const newItemDescriptionInput = document.getElementById('newItemDescription');
+            const generateAIButton = document.getElementById('generateAI');
+            
+            // Enable the "Generate with AI" button when the "Item Name" field has a value
+            newItemNameInput.addEventListener('input', () => {
+              generateAIButton.disabled = !newItemNameInput.value.trim();
+            });
+          
+            // Handle the click event of the "Generate with AI" button
+            generateAIButton.addEventListener('click', async () => {
+              if (newItemNameInput.value.trim()) {
+                // Block the inputs
+                newItemNameInput.disabled = true;
+                newItemDescriptionInput.disabled = true;
+                generateAIButton.disabled = true;
+          
+                try {
+                  const response = await fetch('/generate_item_description', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_name: newItemNameInput.value.trim() })
+                  });
+          
+                  const data = await response.json();
+                  
+                  // Set the generated description
+                  newItemDescriptionInput.value = data.item_description;
+          
+                } catch (error) {
+                  console.error('Error generating description:', error);
+                } finally {
+                  // Unblock the inputs
+                  newItemNameInput.disabled = false;
+                  newItemDescriptionInput.disabled = false;
+                  generateAIButton.disabled = false;
+                }
+              }
+            });
+          </script>
         </div>
 
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -348,8 +420,9 @@
         {% endif %}
 
         <div style="display: flex; align-items: center; justify-content: center;">
-            <button id="saveChangesBtn" style="margin-top: 20px; flex-direction: column; align-items: center;">Save Changes</button>
+            <button id="saveChangesBtn" style="margin-top: 20px; flex-direction: column; align-items: center; padding: 15px 30px; font-size: 18px; border-radius: 10px; width: 200px; height: 60px;">Save Changes</button>
         </div>
+        <p style="font-size: 10px; text-align: center; margin-bottom: 10px;">Press this button when you have added new positions and removed irrelevant items</p>
 
         {% if default_menu %}
         <h1 class="mb-4" style="text-align: center;">That's the example of the menu you should provide</h1>
@@ -643,8 +716,12 @@
                     // Reattach delete event listeners to all delete buttons
                     attachDeleteListeners();
                     
-                    // Clear the form after adding the item
-                    document.getElementById('newItemForm').reset();
+                    
+                    // Clear all input fields in the form by looping through them
+                    const inputs = document.querySelectorAll('#newItemForm input');
+                    inputs.forEach(input => input.value = '');
+
+
 
                     appendGenerateImageButton();
 

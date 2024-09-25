@@ -324,6 +324,24 @@ def upload_to_s3(file_name, bucket="mom-ai-restaurant-images", folder_name="rest
 
 ###################################################
 
+def generate_ai_item_description(item_name):
+    prompt = f"""
+    Generate the short 15-words description for the dish with the name: {item_name}.
+    Output solely the description. 
+    """
+
+    completion = CLIENT_OPENAI.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    description = completion.choices[0].message.content
+    tokens_used = completion.usage.total_tokens
+
+    return description, tokens_used
+
 ############################################
 
 def mint_and_send_tokens(user_address, amount):
