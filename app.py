@@ -31,7 +31,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -2539,6 +2539,66 @@ def mint_tokens():
         'transaction_hash': tx_hash,
         "hide_wallet_button": hide_wallet_button
     })
+
+
+########## Menu Extraction from the Menu ##############
+
+@app.route('/trigger_extract_menu_from_image', methods=['POST'])
+def trigger_extract_menu_from_image():
+    image_paths = ["image1", "image2"]
+
+    generated_link_task = fully_extract_menu_from_image_celery.apply_async(
+        args=[
+            image_paths
+            ])
+
+    # print(f"It took {time.time()-start_time} seconds to generate the image")
+
+    if generated_link_task:
+        return jsonify({"task_id": generated_link_task.id}), 202
+    else:
+        return jsonify({'error': 'Image generation failed'}), 500
+    
+
+@app.route('/extract_menu_from_image_status/<task_id>', methods=['GET'])
+def generate_extract_menu_from_image_status(task_id):
+    task = celery.AsyncResult(task_id)
+
+    unique_azz_id = session.get("unique_azz_id")
+
+    print("Task state: ", task.state)
+
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
+        }
+    elif task.state == 'SUCCESS':
+        menu_list = task.result[0]
+        amount_to_charge = task.result[1]
+        
+        collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -amount_to_charge, "assistant_fund": amount_to_charge}})
+        
+        
+        response = {
+            'state': task.state,
+            'menu_list': menu_list,  # Task result when completed
+            'status': 'Task completed!'
+        }
+    elif task.state == 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': str(task.info)  # Exception message if failed
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': task.state  # Other states like 'RETRY'
+        }
+
+    return jsonify(response)
+
+#######################################################
 
 
 """

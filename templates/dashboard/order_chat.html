@@ -61,7 +61,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/web3@1.3.5/dist/web3.min.js"></script>
 
-<div style="width: 100%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
+<div style="width: 100%; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
     
     <div id="overlay" style="position: fixed; width: 100%; height: 100%; top: 0; left: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;">
         <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 300px; width: 90%;">
@@ -167,10 +167,10 @@
     </div>
     -->
 
-    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;" id="orderHeader">
+    <header style="background-color: #000000; color: white; padding: 10px; text-align: center; width: 100%" id="orderHeader">
         Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </header>
-    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
+    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
             {% if restaurant.res_logo %}
             <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
@@ -204,7 +204,7 @@
         <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
         <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
     </div>
-    <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
+    <div id="spinner" style="display: none; position: absolute; top: 10px; right: 25px;">
         <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
     </div>
     <!-- <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
@@ -467,6 +467,9 @@
 
     };
 
+    console.log("Selected language: ", userLanguage);
+
+    
     // Get the translated phrases based on selected language
     const starterPhrases = starterPhrasesTranslations[userLanguage] || starterPhrasesTranslations['en-US'];
 
@@ -862,6 +865,13 @@ function generateVoiceOutput(llmResponse) {
             "O amor é a IA servindo você 💓",
             "Prepare-se para a jornada saborosa 😋",
             "Não se preocupe, apenas coma! 🍽️"
+        ],
+        'th-TH': [
+            "คำสั่งของคุณคือคำสั่งของเรา! ✨",
+            "ความงามอยู่ที่ความเรียบง่าย 😮‍💨",
+            "ความรักคือ AI ที่ให้บริการคุณ 💓",
+            "เตรียมพร้อมสำหรับการเดินทางที่อร่อย 😋",
+            "ไม่ต้องกังวล แค่กินมัน! 🍽️"
         ]
 };
 

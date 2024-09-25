@@ -4,6 +4,7 @@ from flask import Flask, jsonify, session, request, url_for, flash, redirect
 from celery_folder.celery_config import make_celery
 from flask_mail import Mail, Message
 from flask_caching import Cache
+import itertools
 import pandas as pd
 import openpyxl
 import gridfs
@@ -2455,7 +2456,74 @@ def upload_image_to_imgbb(image_path, expiration=600):
 
     return url
 
-### Payments Section ###
+from pydantic import BaseModel
+
+class Dish(BaseModel):
+    item_name: str
+    item_description: str
+    item_price: float
+
+class Menu(BaseModel):
+    menu: list[Dish]
+
+def extract_items_from_text(raw_text):
+    prompt = f"""
+            Convert the given text in the list of JSON objects.
+            Item Name is for the name of the item.
+            Item Description is for the either description or ingredients of the item.
+            Item Price is for the price of the item:
+            {raw_text}
+            """
+    
+    completion = client.beta.chat.completions.parse(
+        model="gpt-4o-2024-08-06",
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        response_format=Menu
+    )
+    tokens_used = completion.usage.total_tokens
+    
+    html_menu = completion.choices[0].message.parsed
+
+    menu_items_list = list(html_menu)
+
+    dish_list = menu_items_list[0][1]
+    menu_list = [
+    {
+        "item_name": dish.item_name,
+        "item_description": dish.item_description,
+        "item_price": dish.item_price
+    }
+    for dish in dish_list
+    ]
+
+    return menu_list, tokens_used
+
+
+def extract_text_from_image(image_path):
+    # Initialize the Textract client
+    textract = boto3.client('textract',
+                            aws_access_key_id=AWS_ACCESS_KEY,
+                            aws_secret_access_key=AWS_SECRET_KEY,
+                            region_name='us-east-1')
+
+    # Open the image in binary mode
+    with open(image_path, 'rb') as document:
+        # Call Amazon Textract
+        response = textract.detect_document_text(
+            Document={'Bytes': document.read()}
+        )
+
+    # Extract and return detected text
+    extracted_text = ""
+    for item in response['Blocks']:
+        if item['BlockType'] == 'LINE':
+            extracted_text += item['Text'] + "\n"
+
+    return extracted_text
+
+
 
 
 # Just stuff for MOM token manipulations
@@ -2991,3 +3059,23 @@ def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_i
         print(f"No document found with unique_azz_id '{unique_azz_id}' and item '{item_name}'.")
 
     return aws_ai_image_link
+
+@celery.task
+def fully_extract_menu_from_image_celery(image_paths:list):
+    PRICE_PER_ONE_TOKEN = 0.000004 #openai api - 0.0000025
+
+    menu_lists = []
+    charge_for_tokens = 0
+    
+    for image_path in image_paths:
+        extracted_text, tokens_used = extract_text_from_image(image_path)
+        menu_list = extract_items_from_text(extracted_text)
+
+        charge_per_run = PRICE_PER_ONE_TOKEN*tokens_used
+        
+        charge_for_tokens += charge_per_run
+        menu_lists.append(menu_list)
+
+    final_list = list(itertools.chain(*menu_lists))
+
+    return final_list, charge_for_tokens
