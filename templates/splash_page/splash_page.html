@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant Splash Page</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url('/static/images/Splash_page.jpeg'); /* Add your background image */
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            height: 100%;
+            padding-top: 25px; /* Adjust padding if necessary */
+        }
+        .logo {
+            width: 250px; /* Increased size */
+            height: auto;
+            margin-bottom: 30px; /* More space between logo and play button */
+        }
+        .play-button {
+            position: relative;
+            width: 150px; /* Increased size */
+            height: 150px; /* Increased size */
+            margin-top: 20px; /* Add space from logo */
+        }
+        /* Red circle background */
+        .play-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px; /* Increased size */
+            height: 150px; /* Increased size */
+            background-color: rgba(255, 0, 0, 0.7);
+            border-radius: 50%;
+            z-index: 1;
+        }
+        /* Play icon image */
+        .play-button img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 60px; /* Increased size */
+            height: 60px; /* Increased size */
+        }
+        .menu-venu {
+            margin-top: 30px; /* More space between play button and MenuVenu */
+            font-size: 30px; /* Increased text size */
+            font-family: 'Arial', sans-serif;
+            color: #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .menu-venu img {
+            width: 200px; /* Increased width of MenuVenu logo */
+            height: auto;
+            margin: 0; /* Removes margin between the images */
+            display: block; /* Ensures images are block elements */
+            vertical-align: middle; /* Aligns the images properly to avoid gaps */
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Display the logo -->
+        <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" class="logo">
+
+        <!-- Play button overlay with clickable redirect -->
+        <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id, from_splash_page=True) }}">
+            <div class="play-button">
+                <img src="/static/images/PlayButton-removebg.png" alt="Play Video">
+            </div>
+        </a>
+
+        <!-- MenuVenu text -->
+        <div class="menu-venu">
+            <img src="/static/logos/MenuVenuLogo-removebg.png" alt="MenuVenu Logo"><img src="/static/logos/LogoInvertedColors_noSlogan.png" width="50" height="auto">
+        </div>
+    </div>
+</body>
+</html>

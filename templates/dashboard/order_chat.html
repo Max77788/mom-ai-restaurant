@@ -1,7 +1,18 @@
-{% if iframe %}
-{% extends 'layout_iframe.html' %}
+{% if not from_splash_page %}
+    {% if iframe %}
+    {% extends 'layout_iframe.html' %}
+    {% else %}
+    {% extends 'layout_order_chat.html' %}
+    {% endif %}
 {% else %}
-{% extends 'layout_order_chat.html' %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - MOM AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 {% endif %}
 
 <head>
@@ -41,6 +52,10 @@
         border: 3px solid gray;
         background-color: gray;
         cursor: not-allowed;
+    };
+    body {
+        min-height: 100vh; /* Ensure it takes full viewport height */
+        min-width: 100vw; /* Ensure it takes full viewport width */
     }
 </style>
 
@@ -61,6 +76,7 @@
                 <option value="ar-SA">Arabic 🇸🇦</option>
                 <option value="fr-FR">French 🇫🇷</option>
                 <option value="ru-RU">Russian 🇷🇺</option>
+                <option value="th-TH">Thai 🇹🇭</option>
                 <option value="ja-JP">Japanese 🇯🇵</option>
                 <option value="de-DE">German 🇩🇪</option>
                 <option value="pt-BR">Portuguese 🇧🇷</option>
@@ -182,7 +198,7 @@
         </div>
     </div>
 
-<footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: relative; display: flex; flex-direction: column; align-items: center;">
+    <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: fixed; bottom: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;">
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px;" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px;">
         <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
@@ -199,6 +215,7 @@
         <option value="pl-PL">Polish🇵🇱</option>
     </select> -->
 </footer>
+
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -313,6 +330,14 @@
         typeMessage: "Digite sua mensagem aqui✍️",
         send: "Enviar",
         offMessage: "Estamos atualmente fechados. Você poderá fazer o pedido mais tarde."
+    },
+    'th-TH': {
+        initialMessage: "สวัสดี ยินดีต้อนรับ",
+        phrase: "ฉันจะช่วยคุณได้อย่างไร?",
+        makeOrder: `สนทนากับผู้ช่วย AI ของ {{ restaurant_name }}`,
+        typeMessage: "พิมพ์ข้อความของคุณที่นี่✍️",
+        send: "ส่ง",
+        offMessage: "ตอนนี้เราปิดอยู่ คุณสามารถสั่งซื้อได้ในภายหลัง"
     }
 };
 
@@ -432,7 +457,14 @@
             "Me ajude com recomendações com base nas minhas preferências.",
             "Gostaria de saber mais sobre o cardápio.",
             "Você pode me ajudar com as ofertas de hoje?"
+        ],
+        'th-TH': [
+            "คุณมีเมนูพิเศษอะไรบ้าง?",
+            "ช่วยแนะนำเมนูตามความชอบของฉันได้ไหม?",
+            "ฉันอยากทราบข้อมูลเพิ่มเติมเกี่ยวกับเมนู",
+            "คุณช่วยบอกโปรโมชั่นของวันนี้ได้ไหม?"
         ]
+
     };
 
     // Get the translated phrases based on selected language
