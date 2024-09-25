@@ -1522,6 +1522,13 @@ def dashboard_display(show_popup=False):
                            current_balanceHigherThanTwentyCents=current_balanceHigherThanTwentyCents,
                            is_google_acc=is_google_acc)
 
+
+@app.route('/splash-page/<unique_azz_id>', methods=['POST', 'GET'])
+def splash_page_display(unique_azz_id):
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+    return render_template("splash_page/splash_page.html", restaurant=restaurant, unique_azz_id=unique_azz_id)
+
+
 ###################################### Dashboard Buttons ######################################
 
 @app.route('/payments', methods=['POST', 'GET'])
