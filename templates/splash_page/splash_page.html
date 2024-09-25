@@ -11,7 +11,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
             background-image: url('/static/images/Splash_page.jpeg'); /* Add your background image */
             background-size: cover;
             background-position: center;
@@ -23,44 +22,55 @@
             justify-content: center;
             align-items: center;
             text-align: center;
+            height: 100%;
+            padding-top: 50px; /* Adjust padding if necessary */
         }
         .logo {
-            width: 150px;
+            width: 250px; /* Increased size */
             height: auto;
+            margin-bottom: 30px; /* More space between logo and play button */
         }
         .play-button {
             position: relative;
-            width: 200px;
-            height: 200px;
+            width: 150px; /* Increased size */
+            height: 150px; /* Increased size */
+            margin-top: 20px; /* Add space from logo */
         }
-        .play-button img {
-            width: 100%;
-            height: 100%;
-        }
+        /* Red circle background */
         .play-button::before {
             content: '';
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 100px;
-            height: 100px;
+            width: 150px; /* Increased size */
+            height: 150px; /* Increased size */
             background-color: rgba(255, 0, 0, 0.7);
             border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            z-index: 1;
         }
-        .play-button::before::after {
-            content: '▶';
-            color: white;
-            font-size: 60px;
+        /* Play icon image */
+        .play-button img {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            width: 60px; /* Increased size */
+            height: 60px; /* Increased size */
         }
         .menu-venu {
-            margin-top: 20px;
-            font-size: 24px;
+            margin-top: 30px; /* More space between play button and MenuVenu */
+            font-size: 30px; /* Increased text size */
             font-family: 'Arial', sans-serif;
             color: #444;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .menu-venu img {
+            width: 200px; /* Increased width of MenuVenu logo */
+            height: auto;
         }
     </style>
 </head>
@@ -72,14 +82,13 @@
         <!-- Play button overlay with clickable redirect -->
         <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id) }}" target="_blank">
             <div class="play-button">
-                <img src="/static/images/PlayButton.jpeg" alt="Play Video">
+                <img src="/static/images/PlayButton-removebg.png" alt="Play Video">
             </div>
         </a>
 
         <!-- MenuVenu text -->
         <div class="menu-venu">
-            <img src="/static/images/MenuVenuLogo.jpeg" alt="MenuVenu Logo">
-            MenuVenu
+            <img src="/static/logos/MenuVenuLogo-removebg.png" alt="MenuVenu Logo">
         </div>
     </div>
 </body>
