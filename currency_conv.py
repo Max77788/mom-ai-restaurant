@@ -4,7 +4,7 @@ from currency_converter import CurrencyConverter
 c = CurrencyConverter()
 
 # Convert from USD to EUR
-rate = c.convert(1, 'USD', 'EUR')
+rate = c.convert(1, 'THB', 'EUR')
 
-print(f"1 USD is {rate} EUR")
+print(f"1 THB is {rate} EUR")
 

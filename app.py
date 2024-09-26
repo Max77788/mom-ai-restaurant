@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import statistics
 from flask_migrate import Migrate
 import os
+import glob
 from urllib.parse import urlparse
 # from google.cloud import speech
 import qrcode
@@ -188,6 +189,8 @@ def handle_redirect():
         abort(403)  # Forbidden
 """
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
 
 clients = {}
 
@@ -2285,8 +2288,7 @@ def upload_full_menu_picture():
     flash('All files successfully uploaded!')
     return redirect(last_part)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg'}
+
 
 @app.route('/generate_menu_item_image_status/<task_id>', methods=['GET'])
 def generate_menu_image_task_status(task_id):
@@ -2545,7 +2547,25 @@ def mint_tokens():
 
 @app.route('/trigger_extract_menu_from_image', methods=['POST'])
 def trigger_extract_menu_from_image():
-    image_paths = ["image1", "image2"]
+    request_url = "/update_menu_gui"
+    
+    if 'menu_images_extract_menu' not in request.files:
+        flash('No files part')
+        return redirect("")
+    
+    files = request.files.getlist('menu_images_extract_menu')
+
+    print("Files: ", files)
+    
+    image_paths = []
+    for index, file in enumerate(files):
+        if file and allowed_file(file.filename):
+            file_name = secure_filename(file.filename)
+            file_path = "temp_files/"+file_name
+            file.save(file_path)
+            image_paths.append(file_path)
+
+    print("Image Paths we pass: ", image_paths)
 
     generated_link_task = fully_extract_menu_from_image_celery.apply_async(
         args=[
@@ -2562,6 +2582,7 @@ def trigger_extract_menu_from_image():
 
 @app.route('/extract_menu_from_image_status/<task_id>', methods=['GET'])
 def generate_extract_menu_from_image_status(task_id):
+    
     task = celery.AsyncResult(task_id)
 
     unique_azz_id = session.get("unique_azz_id")
@@ -2579,6 +2600,7 @@ def generate_extract_menu_from_image_status(task_id):
         
         collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -amount_to_charge, "assistant_fund": amount_to_charge}})
         
+        clean_the_temp_folder()
         
         response = {
             'state': task.state,
@@ -2586,17 +2608,36 @@ def generate_extract_menu_from_image_status(task_id):
             'status': 'Task completed!'
         }
     elif task.state == 'FAILURE':
+        clean_the_temp_folder()
         response = {
             'state': task.state,
             'status': str(task.info)  # Exception message if failed
         }
     else:
+        clean_the_temp_folder()
         response = {
             'state': task.state,
             'status': task.state  # Other states like 'RETRY'
         }
 
     return jsonify(response)
+
+
+def clean_the_temp_folder():
+
+        # Define the folder path
+        folder_path = 'temp_files'
+
+        # Use glob to get all files in the folder (with pattern '*')
+        files = glob.glob(os.path.join(folder_path, '*'))
+
+        # Iterate over the files and remove them
+        for file in files:
+            try:
+                os.remove(file)  # Remove the file
+                print(f'Removed: {file}')
+            except Exception as e:
+                print(f'Error deleting {file}: {e}')
 
 #######################################################
 
