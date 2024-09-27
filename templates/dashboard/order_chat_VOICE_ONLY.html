@@ -1,10 +1,4 @@
-{% if not from_splash_page %}
-    {% if iframe %}
-    {% extends 'layout_iframe.html' %}
-    {% else %}
-    {% extends 'layout_order_chat.html' %}
-    {% endif %}
-{% else %}
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - MOM AI</title>
@@ -13,7 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-{% endif %}
 
 <head>
     <meta name="description" content="Discover the best AI-powered restaurants in Keflavik, Iceland with MOM AI's search tool. Find locations, menus, and order food easily.">
@@ -54,6 +47,7 @@
         cursor: not-allowed;
     };
     body {
+        font-family: 'Poppins', sans-serif;
         min-height: 100vh; /* Ensure it takes full viewport height */
         min-width: 100vw; /* Ensure it takes full viewport width */
     }
@@ -167,27 +161,25 @@
     </div>
     -->
 
-    <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;" id="orderHeader">
+    <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: none; flex-direction: column; align-items: center;" id="orderHeader">
         Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </div>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
-            <!--
             {% if restaurant.res_logo %}
-            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px; display: none" id="restaurantLogo">
                 <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
             </div>
             {% else %}
-            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
+            <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px; display: none" id="restaurantLogo">
                 <img src="/static/images/Black Bold Initial AI Business Logo.png" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
             </div>  
             {% endif %}
             {% if restaurant_website_url != "No URL provided" %}
-                <p id="welcomeMessage" style="margin-bottom: 7px;">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a> <br>Click below to start ordering.</p>
+                <p id="welcomeMessage" style="margin-bottom: 7px; display: none">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a><!-- <br>Click below to start ordering. --></p>
             {% else %}
-                <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<!-- <br>Click below to start chatting. </p>
+                <p id="welcomeMessage" style="display: none">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<!-- <br>Click below to start chatting. </p> -->
             {% endif %}
-            -->
             
             {% if default_menu %}
                 <p id="offMessage">{{ restaurant_name }} hasn't uploaded the menu yet. Come back later😉</p>
@@ -200,22 +192,25 @@
         </div>
     </div>
 
-    <!-- style="background-color: #000000; color: white; padding: 10px 15px;  border-radius: 30px; width: auto; display: flex; flex-direction: column; align-items: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);" -->
-    <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px; position: fixed; bottom: 5px; left: 50%; transform: translateX(-50%);">
-        <button id="micButton" style="background: red; border: none; color: white; font-size: 16px; align-items: center; width: 60px; height: 60px; border-radius: 50%; position: relative;" class="button" disabled>
-            <div style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"></div>
+<footer id="chatInputFooter" style="background-color: #ffffff; color: white; padding: 10px; position: fixed; bottom: 30; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;">
+    <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px; display: none" disabled>
+    <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px; margin-bottom: 15px;">
+        <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center; display: none;" class="button" disabled>Send✈️</button>
+        <button id="micButton" style="background-color: red; border: none; color: white; font-size: 16px; width: 60px; height: 60px; border-radius: 50%; position: relative; display: none; justify-content: center; align-items: center;">
+            <div id="triangle" style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent;"></div>
         </button>
     </div>
-    
-    
-        <!-- <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
-        <select id="languageSelect" style="margin-top: 10px; padding: 5px;" value="en-US">
-            <option value="en-US">English (US)🇺🇸</option>
-            <option value="es-ES">Spanish🇪🇸</option>
-            <option value="uk-UA">Ukrainian🇺🇦</option>
-            <option value="pl-PL">Polish🇵🇱</option>
-        </select> -->
-    
+    <div id="spinner" style="display: none; position: absolute; top: 10px; right: 25px;">
+        <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
+    </div>
+    <!-- <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
+    <select id="languageSelect" style="margin-top: 10px; padding: 5px;" value="en-US">
+        <option value="en-US">English (US)🇺🇸</option>
+        <option value="es-ES">Spanish🇪🇸</option>
+        <option value="uk-UA">Ukrainian🇺🇦</option>
+        <option value="pl-PL">Polish🇵🇱</option>
+    </select> -->
+</footer>
 
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -368,6 +363,8 @@
             document.getElementById('tokenBalance').innerText = 'Connect wallet to see MOM token balance';
         }
         */    
+
+        document.getElementById("micButton").style.display = "flex"; 
     };
 
     window.startChat = startChat;
@@ -519,6 +516,8 @@
 }
 
     function startConversation() {
+        const userLanguage = sessionStorage.getItem('userLanguage') || 'en-US';
+
         const assistantId = "{{ assistant_id }}";
         fetch(`/assistant_start/${assistantId}`, {
             method: 'POST',
@@ -535,19 +534,107 @@
             // console.log("Received Thread ID: ", data.thread_id);
             // console.log("Current Assistant ID: ", data.assistant_id);
             
-            // document.getElementById('restaurantLogo').style.display = 'none';
-            // document.getElementById('welcomeMessage').style.display = 'none';
+            document.getElementById('restaurantLogo').style.display = 'none';
+            document.getElementById('welcomeMessage').style.display = 'none';
 
             const translation = translations[userLanguage];
             const initialMessage = `${translation.initialMessage} {{ restaurant_name.replace('_', ' ') }}.<br>${translation.phrase}`;
             
+            const translationsMessages = {
+                'en-US': {
+                    message1: "Hi there!",
+                    message2: "Thank you for visiting us today.",
+                    message3: "My name is Jessai and I'll help you with your order.",
+                    message4: "Have you made your choice or do you have any questions?"
+                },
+                'es-ES': {
+                    message1: "¡Hola!",
+                    message2: "Gracias por visitarnos hoy.",
+                    message3: "Mi nombre es Jessai y te ayudaré con tu pedido.",
+                    message4: "¿Has tomado una decisión o tienes alguna pregunta?"
+                },
+                'uk-UA': {
+                    message1: "Привіт!",
+                    message2: "Дякуємо, що завітали до нас сьогодні.",
+                    message3: "Мене звати Джессай, і я допоможу вам зробити замовлення.",
+                    message4: "Ви вже зробили свій вибір або у вас є питання?"
+                },
+                'is-IS': {
+                    message1: "Halló!",
+                    message2: "Þakka þér fyrir að heimsækja okkur í dag.",
+                    message3: "Ég heiti Jessai og mun hjálpa þér með pöntunina þína.",
+                    message4: "Ertu búinn að velja, eða ertu með einhverjar spurningar?"
+                },
+                'zh-CN': {
+                    message1: "你好！",
+                    message2: "感谢您今天光临我们。",
+                    message3: "我叫Jessai，我将帮助您下订单。",
+                    message4: "您已经做出了选择，还是有任何问题？"
+                },
+                'hi-IN': {
+                    message1: "नमस्ते!",
+                    message2: "आज हमारे पास आने के लिए धन्यवाद।",
+                    message3: "मेरा नाम Jessai है और मैं आपकी ऑर्डर में मदद करूंगा।",
+                    message4: "क्या आपने अपनी पसंद कर ली है या कोई प्रश्न है?"
+                },
+                'ar-SA': {
+                    message1: "مرحبًا!",
+                    message2: "شكرًا لزيارتك لنا اليوم.",
+                    message3: "اسمي جيساي وسأساعدك في طلبك.",
+                    message4: "هل اتخذت قرارك أم لديك أي أسئلة؟"
+                },
+                'fr-FR': {
+                    message1: "Bonjour !",
+                    message2: "Merci de nous avoir rendu visite aujourd'hui.",
+                    message3: "Je m'appelle Jessai et je vous aiderai à passer votre commande.",
+                    message4: "Avez-vous fait votre choix ou avez-vous des questions?"
+                },
+                'ru-RU': {
+                    message1: "Здравствуйте!",
+                    message2: "Спасибо, что посетили нас сегодня.",
+                    message3: "Меня зовут Джессай, и я помогу вам с вашим заказом.",
+                    message4: "Вы уже сделали свой выбор, или у вас есть вопросы?"
+                },
+                'th-TH': {
+                    message1: "สวัสดีค่ะ!",
+                    message2: "ขอบคุณที่มาเยี่ยมเราในวันนี้ค่ะ",
+                    message3: "ฉันชื่อ Jessai และฉันจะช่วยคุณในการสั่งซื้อค่ะ",
+                    message4: "คุณตัดสินใจได้แล้วหรือยัง หรือมีคำถามใดไหมคะ?"
+                },
+                'ja-JP': {
+                    message1: "こんにちは！",
+                    message2: "今日はお越しいただきありがとうございます。",
+                    message3: "私の名前はJessaiです。ご注文のお手伝いをいたします。",
+                    message4: "お決まりですか、それともご質問がありますか？"
+                },
+                'de-DE': {
+                    message1: "Hallo!",
+                    message2: "Vielen Dank für Ihren Besuch heute.",
+                    message3: "Mein Name ist Jessai und ich helfe Ihnen bei Ihrer Bestellung.",
+                    message4: "Haben Sie Ihre Wahl getroffen oder haben Sie Fragen?"
+                },
+                'pt-BR': {
+                    message1: "Olá!",
+                    message2: "Obrigado por nos visitar hoje.",
+                    message3: "Meu nome é Jessai e eu vou te ajudar com o seu pedido.",
+                    message4: "Você já fez sua escolha ou tem alguma pergunta?"
+                }
+            };
+
+            const messages = translationsMessages[userLanguage];
+
+            
             {% if assistant_turned_on and isWorkingHours %}
-            appendMessage(initialMessage, 'assistant');
+            appendMessage(messages.message1, 'assistant');
+            appendMessage(messages.message2, 'assistant');
+            appendMessage(messages.message3, 'assistant');
+            appendMessage(messages.message4, 'assistant');
+
             const unique_azz_id = "{{ unique_azz_id }}"
             const intro_url = `https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
             // console.log(intro_url)
-            appendMessage(intro_url, 'assistant', true);
-            appendStarterPhrases();  // Append starter phrases here
+            // appendMessage(intro_url, 'assistant', true);
+            // appendStarterPhrases();  // Append starter phrases here
             {% endif %}
 
             enableInput();
@@ -562,7 +649,7 @@
         
         if (spinner) {
         spinner.style.display = 'none';
-        showWittyPhrase(false);
+        // showWittyPhrase(false);
         };
         
         console.log("Enabling input fields and buttons");
@@ -577,7 +664,7 @@
         
         if (spinner) {
         spinner.style.display = 'block';
-        showWittyPhrase(true);
+        // showWittyPhrase(true);
         };
         
         console.log("Disabling input fields and buttons");
@@ -607,7 +694,7 @@
     console.log("User message: ", userMessage);
     if (userMessage.trim() === '') {
         console.log("Empty message, not sending.");
-        enableInput();
+        // enableInput();
         return;
     };
 
@@ -631,7 +718,7 @@
     console.log("Form Data we send")
     console.log(formData)
 
-    fetch(`/trigger_generate_response/${unique_azz_id}`, {
+    fetch(`/trigger_generate_response_VOICE_ONLY/${unique_azz_id}`, {
         method: 'POST',
         body: formData
     })
@@ -658,7 +745,7 @@ function pollTaskStatus(taskId) {
     // pollingInProgress = true;
 
     const interval = setInterval(() => {
-        fetch(`/generate_response_task_status/${taskId}`, {
+        fetch(`/generate_response_VOICE_ONLY_task_status/${taskId}`, {
             method: 'GET'
         })
         .then(response => response.json())
@@ -669,6 +756,7 @@ function pollTaskStatus(taskId) {
             if (data.state === 'SUCCESS') {
                 clearInterval(interval);  // Stop polling
 
+ 
                 const llmResponse = data.result;  // Get the assistant's response
 
                 if (llmResponse.includes("/payment_buffer")) {
@@ -683,21 +771,8 @@ function pollTaskStatus(taskId) {
                     window.location.href = `/takeaway_delivery/${unique_azz_id}`;
                     return;
                 }
-
-                if (!messageAppended) {
-                    appendMessage(llmResponse, 'assistant');  // Display the assistant's message only once
-                    messageAppended = true;  // Set flag to true after appending the message
-                }
-                
-                // Generate voice output for the response
-                if (!audioPlayed) {
-                    generateVoiceOutput(llmResponse);  // Ensure this is only called once
-                    audioPlayed = true;  // Set flag to true after playing the audio
-                }
-
-                // console.log("\n\nLLM Response\n\n")
-                
-                // console.log(llmResponse)
+             
+                generateVoiceOutput(llmResponse)
                 
                 const phraseDisplay = document.getElementById('wittyPhrase');
                 phraseDisplay.style.display = 'none';
@@ -712,7 +787,7 @@ function pollTaskStatus(taskId) {
                 clearInterval(interval);  // Stop polling
                 console.error("Task failed: ", data.status);
                 appendMessage('An error occurred. Please try again.', 'system');
-                showWittyPhrase(false);
+                // showWittyPhrase(false);
 
 
                 enableInput();
@@ -740,10 +815,10 @@ function generateVoiceOutput(llmResponse) {
     const userLanguage = sessionStorage.getItem('userLanguage');
 
     const voiceFormData = new FormData();
-    voiceFormData.append('full_gpts_response', llmResponse);
+    voiceFormData.append('response_text', llmResponse);
     voiceFormData.append('language', userLanguage);
 
-    fetch(`/generate_voice_output/${unique_azz_id}`, {
+    fetch(`/generate_ONLY_VOICE_output/${unique_azz_id}`, {
         method: 'POST',
         body: voiceFormData
     })
@@ -751,8 +826,7 @@ function generateVoiceOutput(llmResponse) {
     .then(data => {
         console.log("Received response with video and audio links");
 
-        // Play the audio
-        const audioUrl = data.audio_file_url;
+        const audioUrl = "/download_audio";
         fetch(audioUrl)
             .then(response => response.blob())
             .then(audioBlob => {
@@ -780,7 +854,7 @@ function generateVoiceOutput(llmResponse) {
 
 
 
-    /*
+
     window.showWittyPhrase = function showWittyPhrase(visible, voice_input=false) {
         const phrases = {
  'en-US': [
@@ -908,7 +982,6 @@ function generateVoiceOutput(llmResponse) {
     wittyPhraseDiv.style.fontSize = '16px';
     wittyPhraseDiv.style.display = 'none';
     footer.insertBefore(wittyPhraseDiv, footer.firstChild);
-    */
 
     function appendMessage(message, sender, isVideo = false) {
     let isRichContent = false;
@@ -917,9 +990,9 @@ function generateVoiceOutput(llmResponse) {
     const messageDiv = document.createElement('div');
     messageDiv.style.cssText = `
         margin-top: 10px;
-        margin-right: 10px;
-        margin-left: 10px;
-        margin-bottom: 40px;
+        margin-right: 30px;
+        margin-left: 1px;
+        margin-bottom: 15px;
         padding: 15px;
         border-radius: 15px;
         font-family: 'Arial', sans-serif;
@@ -1019,40 +1092,24 @@ function generateVoiceOutput(llmResponse) {
         userIcon.style.objectFit = 'cover';
         iconDiv.appendChild(userIcon);
 
-        // Style for the message container
-        messageContainer.style.cssText = `
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            margin-bottom: 120px; /* Add margin instead of position */
-        `;
-
-        // Assuming 'chat-footer' has relative positioning
-        const chatFooter = document.getElementById('chatInputFooter');
-        const chatFooterRect = chatFooter.getBoundingClientRect();
-        messageContainer.style.left = `${chatFooterRect.left}px`; // Align message with chat-footer if needed
-
+        messageContainer.style.cssText = 'display: flex; flex-direction: row; align-items: flex-start;';
         messageContainer.appendChild(iconDiv);
         messageContainer.appendChild(messageDiv);
+
     } else if (sender === 'assistant') {
         messageDiv.style.backgroundColor = '#333';
         messageDiv.style.color = '#ffffff';
         messageDiv.style.textAlign = 'right';
 
         const assistantIcon = document.createElement('img');
-        assistantIcon.src = '/static/images/girlude_Jessai.jpeg';
+        // assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
+        assistantIcon.src = '/static/images/JessechkaAI.jpeg'
         assistantIcon.style.width = '40px';
         assistantIcon.style.height = '40px';
         assistantIcon.style.objectFit = 'cover';
         iconDiv.appendChild(assistantIcon);
 
-        // Style for the message container
-        messageContainer.style.cssText = `
-            display: flex;
-            flex-direction: row-reverse;
-            align-items: flex-start;
-            margin-bottom: 120px; /* Add margin instead of position */
-        `;
+        messageContainer.style.cssText = 'display: flex; flex-direction: row; align-items: flex-start;';
         if (!isVideo) {
         messageContainer.appendChild(iconDiv);
         messageContainer.appendChild(messageDiv);
@@ -1090,7 +1147,7 @@ function generateVoiceOutput(llmResponse) {
 
     // If not rich content and sender is assistant, apply word-by-word effect
     if (!isRichContent) {
-        displayWord(messageDiv, message);
+        // displayWord(messageDiv, message);
     }
 }
 
@@ -1116,12 +1173,12 @@ const micButton = document.getElementById('micButton');
     micButton.addEventListener('click', () => {
         if (isRecording && !blockMicButton) {
             mediaRecorder.stop();
-            micButton.textContent = '🎤';
+            micButton.innerHTML = '<div id="triangle" style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent;"></div>';
             const spinner = document.getElementById('spinner');
             spinner.style.display = 'none';
         } else if (!isRecording && blockMicButton) {
             mediaRecorder.stop();
-            micButton.textContent = '🎤';
+            micButton.innerHTML = '<div id="triangle" style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent;"></div>';
             const spinner = document.getElementById('spinner');
             spinner.style.display = 'none';
         } else {
@@ -1186,7 +1243,7 @@ const micButton = document.getElementById('micButton');
             
             if (transcribeData.status === 'success') {
                 const transcription = transcribeData.transcription;
-                appendMessage(transcription, "user");
+                // appendMessage(transcription, "user");
 
                 disableInput();
 
@@ -1200,7 +1257,7 @@ const micButton = document.getElementById('micButton');
                 const unique_azz_id = "{{ unique_azz_id }}";
 
                 // Trigger the Celery task for response generation
-                const triggerResponse = await fetch(`/trigger_generate_response/${unique_azz_id}`, {
+                const triggerResponse = await fetch(`/trigger_generate_response_VOICE_ONLY/${unique_azz_id}`, {
                     method: 'POST',
                     body: responseFormData
                 });
@@ -1209,7 +1266,7 @@ const micButton = document.getElementById('micButton');
                 const taskId = triggerData.task_id;  // Get the task ID
 
                 // Poll the task status
-                pollTaskStatus(taskId);
+                await pollTaskStatus(taskId);
 
                 // showWittyPhrase(false);
 
@@ -1221,7 +1278,7 @@ const micButton = document.getElementById('micButton');
             appendMessage('An error occurred. Please try again.', 'system');
             enableInput();
         } finally {
-            enableInput();
+            // enableInput();
             audioChunks = [];
         }
 
@@ -1234,18 +1291,10 @@ const micButton = document.getElementById('micButton');
 
     window.appendMessage = appendMessage;
 
-    /*
     function scrollToBottom(element) {
         const chatBox = document.getElementById('chatBox');
         chatBox.scrollTop = element.offsetTop + element.offsetHeight;
     }
-    */
-
-    function scrollToBottom(container) {
-        const chatBox = document.getElementById('chatBox');
-        chatBox.scrollTop = chatBox.scrollHeight;  // Scroll to the bottom
-    }
-
 
     window.scrollToBottom = scrollToBottom;
 

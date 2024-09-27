@@ -32,7 +32,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import get_assistants_response_celery_VOICE_ONLY, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -3367,9 +3367,41 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
 
 
 
+@app.route('/transcribe_voice', methods=['POST'])
+def transcribe_voice():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
 
-@app.route('/assistant_order_chat_ONLY_VOICE/<unique_azz_id>')
-def assistant_order_chat_voice(unique_azz_id, from_splash_page=False):
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+
+    try:
+        # Process audio file
+        data = request.form
+        language = data.get("language", "en-US")
+        print("Language captured: ", language)
+        audio_content = file.read()
+        print(f"Audio content (length {len(audio_content)} bytes): {audio_content[:100]}...")
+
+         # Call the separate function to convert and transcribe
+        # result = convert_and_transcribe_audio_openai(audio_content)
+        result = convert_and_transcribe_audio_azure(audio_content, language)
+        
+        print(f"The phrase we transcribed: {result["transcription"]}")
+        
+        return jsonify(result)
+    except Exception as e:
+        print(f"Error during transcription: {e}")
+        return jsonify({"error": str(e), "status": "fail"})
+
+
+
+
+
+
+@app.route('/assistant_order_chat_VOICE_ONLY/<unique_azz_id>')
+def assistant_order_chat_VOICE_ONLY(unique_azz_id, from_splash_page=False):
     # Retrieve the full assistant_id from the session
     lang = request.args.get('lang', 'en')
 
@@ -3430,7 +3462,7 @@ def assistant_order_chat_voice(unique_azz_id, from_splash_page=False):
 
     print("Discovery mode we passed: ", discovery_mode)
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/voice-order-chat_GPT.html', restaurant_name=restaurant_name, 
+    return render_template('dashboard/order_chat_VOICE_ONLY.html', restaurant_name=restaurant_name, 
                            lang=lang, 
                            assistant_id=full_assistant_id, 
                            unique_azz_id=unique_azz_id, 
@@ -3444,33 +3476,6 @@ def assistant_order_chat_voice(unique_azz_id, from_splash_page=False):
                            discovery_mode=discovery_mode,
                            current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
                            from_splash_page=from_splash_page)
-
-
-
-@app.route('/transcribe_voice', methods=['POST'])
-def transcribe_voice():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part in the request"}), 400
-
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-
-    try:
-        # Process audio file
-        data = request.form
-        language = data.get("language", "en-US")
-        print("Language captured: ", language)
-        audio_content = file.read()
-        print(f"Audio content (length {len(audio_content)} bytes): {audio_content[:100]}...")
-
-         # Call the separate function to convert and transcribe
-        # result = convert_and_transcribe_audio_openai(audio_content)
-        result = convert_and_transcribe_audio_azure(audio_content, language)
-        return jsonify(result)
-    except Exception as e:
-        print(f"Error during transcription: {e}")
-        return jsonify({"error": str(e), "status": "fail"})
 
 
 
@@ -3553,6 +3558,23 @@ def generate_voice_output(unique_azz_id):
 
 
 
+@app.route('/generate_ONLY_VOICE_output/<unique_azz_id>', methods=["POST", "GET"])
+def generate_voice_output_ONLY_VOICE(unique_azz_id):
+    client = CLIENT_OPENAI
+    
+    data = request.form
+    full_gpts_response = data.get("response_text")
+    language_to_translate_into = data.get("language")
+
+    generate_short_voice_output_VOICE_ONLY(unique_azz_id, full_gpts_response, language_to_translate_into)
+
+    # Return JSON with video URL and path for audio file
+    return jsonify({
+        "audio_file_url": "/download_audio"
+    })
+
+
+
 @app.route('/generate_voice_output_VOICE_ONLY/<unique_azz_id>', methods=["POST", "GET"])
 def generate_voice_output_VOICE_ONLY(unique_azz_id):
     client = CLIENT_OPENAI
@@ -3567,6 +3589,8 @@ def generate_voice_output_VOICE_ONLY(unique_azz_id):
     _, tokens_used, video_url = generate_short_voice_output_VOICE_ONLY(full_gpts_response, language_to_translate_into, html_menu_tuples)
     
     speech_file_path = Path(__file__).parent / "speech.mp3"
+
+    
 
     charge_for_message = PRICE_PER_1_TOKEN * tokens_used
     print(f"Charge for message: {charge_for_message} USD")
@@ -3646,53 +3670,6 @@ def trigger_generate_response(unique_azz_id):
     return jsonify({"task_id": task.id}), 202  # Return task ID to the client
 
 
-@app.route('/trigger_generate_response_VOICE_ONLY/<unique_azz_id>', methods=['POST'])
-def trigger_generate_response(unique_azz_id):
-    data = request.form
-    print(data)
-    user_message = data.get('message', '')
-    thread_id = data.get('thread_id')
-    assistant_id = data.get('assistant_id')
-    language = data.get("language", "en-US")[:2]
-
-    # Retrieve other parameters
-    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
-    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
-    discovery_mode = restaurant_instance.get('discovery_mode')
-    menu_file_id = restaurant_instance.get("menu_file_id")
-    res_currency = restaurant_instance.get("res_currency")
-    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
-    
-    # Default image URL if no link is available
-    default_image_url = "https://png.pngtree.com/png-vector/20221125/ourmid/pngtree-no-image-available-icon-flatvector-illustration-pic-design-profile-vector-png-image_40966566.jpg"
-
-    # Iterate over each item in the 'html_menu_tuples' list
-    for item in html_menu_tuples:
-        # Step 1: Check if "Link to Image" is empty
-        if not item.get('Link to Image'):
-            # Step 2: If "Link to Image" is empty, check if "AI-Image" exists
-            if item.get('AI-Image'):
-                # Assign the AI image URL to "Link to Image"
-                item['Link to Image'] = item['AI-Image']
-                # Remove the 'AI-Image' field after assigning its value
-                del item['AI-Image']
-            else:
-                # Step 3: If "AI-Image" does not exist, assign the default image URL
-                item['Link to Image'] = default_image_url
-    
-    list_of_image_links = None  # Set or retrieve if necessary
-
-    print("\n\n\n", html_menu_tuples, "\n\n\n")
-
-    # Trigger the asynchronous task
-    task = get_assistants_response_celery_ONLY_VOICE.apply_async(
-        args=[
-            user_message, language, thread_id, assistant_id, menu_file_id, 
-            payment_on, html_menu_tuples, list_of_image_links, unique_azz_id, res_currency, discovery_mode
-        ]
-    )
-
-    return jsonify({"task_id": task.id}), 202  # Return task ID to the client
 
 
 
@@ -3749,6 +3726,117 @@ def replace_markdown_images(text):
 
 
 ### Celery part END ### 
+
+
+
+@app.route('/trigger_generate_response_VOICE_ONLY/<unique_azz_id>', methods=['POST'])
+def trigger_generate_response_VOICE_ONLY(unique_azz_id):
+    data = request.form
+    print(data)
+    user_message = data.get('message', '')
+    thread_id = data.get('thread_id')
+    assistant_id = data.get('assistant_id')
+    language = data.get("language", "en-US")[:2]
+
+    # Retrieve other parameters
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    discovery_mode = restaurant_instance.get('discovery_mode')
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    res_currency = restaurant_instance.get("res_currency")
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    
+    # Default image URL if no link is available
+    default_image_url = "https://png.pngtree.com/png-vector/20221125/ourmid/pngtree-no-image-available-icon-flatvector-illustration-pic-design-profile-vector-png-image_40966566.jpg"
+
+    # Iterate over each item in the 'html_menu_tuples' list
+    for item in html_menu_tuples:
+        # Step 1: Check if "Link to Image" is empty
+        if not item.get('Link to Image'):
+            # Step 2: If "Link to Image" is empty, check if "AI-Image" exists
+            if item.get('AI-Image'):
+                # Assign the AI image URL to "Link to Image"
+                item['Link to Image'] = item['AI-Image']
+                # Remove the 'AI-Image' field after assigning its value
+                del item['AI-Image']
+            else:
+                # Step 3: If "AI-Image" does not exist, assign the default image URL
+                item['Link to Image'] = default_image_url
+    
+    list_of_image_links = None  # Set or retrieve if necessary
+
+    print("\n\n\n", html_menu_tuples, "\n\n\n")
+
+    # Trigger the asynchronous task
+    task = get_assistants_response_celery_VOICE_ONLY.apply_async(
+        args=[
+            user_message, language, thread_id, assistant_id, menu_file_id, 
+            payment_on, html_menu_tuples, list_of_image_links, unique_azz_id, res_currency, discovery_mode
+        ]
+    )
+
+    return jsonify({"task_id": task.id}), 202  # Return task ID to the client
+
+
+
+@app.route('/generate_response_VOICE_ONLY_task_status/<task_id>', methods=['GET'])
+def task_status_VOICE_ONLY(task_id):
+    task = celery.AsyncResult(task_id)
+
+    print("Task state: ", task.state)
+
+    if task.state == 'PENDING':
+        response = {
+            'state': task.state,
+            'status': 'Pending...'
+        }
+    elif task.state == 'SUCCESS':
+        tokens_used = task.result[1]
+
+        charge_for_message = PRICE_PER_1_TOKEN * tokens_used
+        print(f"Charge for message: {charge_for_message} USD")
+
+        unique_azz_id = session.get("unique_azz_id")
+
+        result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
+        response = {
+            'state': task.state,
+            'result': replace_markdown_images(task.result[0]),  # Task result when completed
+            'status': 'Task completed!'
+        }
+    elif task.state == 'FAILURE':
+        response = {
+            'state': task.state,
+            'status': str(task.info)  # Exception message if failed
+        }
+    else:
+        response = {
+            'state': task.state,
+            'status': task.state  # Other states like 'RETRY'
+        }
+
+    return jsonify(response)
+
+def replace_markdown_images(text):
+    # Regular expression pattern to find ![text](url)
+    pattern = r'!\[(.*?)\]\((.*?)\)'
+    
+    # Function to replace the matched pattern with the desired <img> tag
+    def replace_match(match):
+        alt_text = match.group(1)
+        src_url = match.group(2)
+        return f'<img src="{src_url}" alt="Image of {alt_text}" width="170" height="auto">'
+    
+    # Use re.sub to replace all occurrences of the pattern
+    return re.sub(pattern, replace_match, text)
+
+
+
+
+
+
+
+
 
 
 @app.route('/generate_response/<unique_azz_id>', methods=['POST', 'GET'])
@@ -4409,7 +4497,8 @@ def view_orders_ajax():
             'timestamp': order['timestamp'],
             'published': order['published'],
             'orderID':order.get('orderID', 'no ID provided'),
-            'paid':order.get('paid')
+            'paid':order.get('paid'),
+            'order_type': order.get('order_type')
 
         }
         orders_list.append(order_info)

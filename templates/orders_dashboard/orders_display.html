@@ -117,6 +117,7 @@
                                     Made at: ${order.timestamp} UTC<br><br>
                                     Order ID: <span style="font-size: 25px"><b>${order.orderID}</b></span><br><br>
                                     Status: ${order.paid}<br><br>
+                                    Order Type : ${order.order_type}<br><br>
                                     <ul>`;
 
                                 
@@ -131,9 +132,17 @@
                         });
                         colorOldOrders();
                     }
+
+                    // Scroll to bottom after loading orders
+                    scrollToBottom();
                 })
                 .catch(error => console.error('Error fetching orders:', error));
         }
+
+        function scrollToBottom() {
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+
 
         function colorOldOrders() {
             var now = new Date().getTime();
@@ -159,6 +168,8 @@
         // Initial fetch of orders
         document.addEventListener('DOMContentLoaded', function() {
             fetchOrders();
+            // Scroll to bottom after loading orders
+            scrollToBottom();
         });
     </script>
 </body>
