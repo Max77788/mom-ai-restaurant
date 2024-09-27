@@ -3388,7 +3388,7 @@ def transcribe_voice():
         # result = convert_and_transcribe_audio_openai(audio_content)
         result = convert_and_transcribe_audio_azure(audio_content, language)
         
-        print(f"The phrase we transcribed: {result["transcription"]}")
+        # print(f"The phrase we transcribed: {result["transcription"]}")
         
         return jsonify(result)
     except Exception as e:
