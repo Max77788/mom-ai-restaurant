@@ -3302,6 +3302,85 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
 
 
 
+@app.route('/assistant_order_chat_ONLY_VOICE/<unique_azz_id>')
+def assistant_order_chat_ONLY_VOICE(unique_azz_id, from_splash_page=False):
+    # Retrieve the full assistant_id from the session
+    lang = request.args.get('lang', 'en')
+
+    iframe = True if request.args.get("iframe") else False
+    from_splash_page = True if request.args.get("from_splash_page") else False
+
+    res_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    full_assistant_id = res_instance.get("assistant_id")
+    restaurant_name = res_instance.get("name")
+    restaurant_website_url = res_instance.get("website_url")
+    menu_file_id = res_instance.get("menu_file_id")
+    menu_vector_id = res_instance.get("menu_vector_id")
+    res_currency = res_instance.get("res_currency")
+    current_balanceHigherThanTwentyCents = round(res_instance.get("balance"), 2) >= 0.2
+    default_menu = False
+    discovery_mode = res_instance.get("discovery_mode")
+    menu_vector_id = res_instance.get("menu_vector_id")
+    if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
+        default_menu = True
+    assistant_turned_on = res_instance.get("assistant_turned_on")
+    print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
+
+    # id_of_intro = res_instance.get("intro_video_id", "default_later_here")
+    # intro_video_link = get_talk_video(id_of_intro)['result_url']
+
+    # print("Intro video link we send", intro_video_link)
+    
+    start_work = res_instance.get("start_work")
+    end_work = res_instance.get("end_work")
+    timezone = res_instance.get("timezone")
+    if timezone.startswith("Etc/GMT-"):
+        timezoneG = timezone.replace("-", "+", 1)
+        print("Minus changed")
+    elif timezone.startswith("Etc/GMT+"):
+        timezoneG = timezone.replace("+", "-", 1)
+        print("Plus changed")
+
+    # Get the current date and time in UTC
+    now_tz = datetime.now(pytz.timezone(timezoneG))
+    current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+    current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+
+    # Adjust current_day to match our list index where Sunday is 0
+    # current_day = (current_day + 1) % 7
+
+    # Check if the current time falls within the working hours
+    isWorkingHours = res_instance.get("isOpen")
+    # print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work.get(current_day)} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
+
+
+    session["unique_azz_id"] = unique_azz_id
+    session["full_assistant_id"] = full_assistant_id
+    session["menu_file_id"] = menu_file_id
+    session["menu_vector_id"] = menu_vector_id
+    session["res_currency"] = res_currency
+    session["restaurant_name"] = restaurant_name
+
+    print("Discovery mode we passed: ", discovery_mode)
+    # Use the restaurant_name from the URL and the full assistant_id from the session
+    return render_template('dashboard/order_chat_VOICE_ONLY.html', restaurant_name=restaurant_name, 
+                           lang=lang, 
+                           assistant_id=full_assistant_id, 
+                           unique_azz_id=unique_azz_id, 
+                           restaurant_website_url=restaurant_website_url, 
+                           title=f"{restaurant_name}'s Assistant", 
+                           assistant_turned_on=assistant_turned_on, 
+                           restaurant=res_instance, 
+                           iframe=iframe, 
+                           isWorkingHours=isWorkingHours,
+                           default_menu=default_menu,
+                           discovery_mode=discovery_mode,
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
+                           from_splash_page=from_splash_page)
+
+
+
 @app.route('/transcribe_voice', methods=['POST'])
 def transcribe_voice():
     if 'file' not in request.files:

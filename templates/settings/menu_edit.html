@@ -115,7 +115,7 @@
 
 
 
-    <form action="/trigger_extract_menu_from_image" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()" style="text-align: center;">
+    <form id="generate_menu_from_images_form" action="/trigger_extract_menu_from_image" method="post" enctype="multipart/form-data" style="text-align: center;">
         <div style="margin-top: 7px;">
             <label id="menu_images_extract_menu_label" for="menu_images_extract_menu">Have MOM AI Make Your Menu Just from Images</label>
             <input type="file" id="menu_images_extract_menu" name="menu_images_extract_menu" accept="image/*" multiple>
@@ -176,7 +176,71 @@
                 return false;
             }
             return true;
+        };
+
+        document.getElementById("generate_menu_from_images_form").addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent the default form submission
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('menu_images_extract_menu');
+            const files = fileInput.files;
+
+            // Append the files to the FormData object
+            for (let i = 0; i < files.length; i++) {
+                formData.append('menu_images_extract_menu', files[i]);
+            }
+
+            // Display the loading GIF or message
+            document.getElementById('loadingGif').style.display = 'block';
+
+            // Fetch request to trigger menu extraction
+            fetch('/trigger_extract_menu_from_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.task_id) {
+                    console.log("Task ID: ", data.task_id);
+                    // Polling function to check task status
+                    pollTaskStatus(data.task_id);
+                } else {
+                    console.error("Failed to trigger task");
+                }
+            })
+            .catch(error => {
+                console.error("Error occurred: ", error);
+            });
+        });
+
+        function pollTaskStatus(taskId) {
+            const interval = setInterval(() => {
+                fetch(`/extract_menu_from_image_status/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Task Status: ", data.state);
+                    
+                    if (data.state === 'SUCCESS') {
+                        clearInterval(interval); // Stop polling
+                        console.log("Menu List: ", data.menu_list);
+                        alert('Task completed! Check the console for menu data.');
+                        hideLoadingGif();
+                    } else if (data.state === 'FAILURE') {
+                        clearInterval(interval); // Stop polling
+                        alert('Task failed: ' + data.status);
+                        hideLoadingGif();
+                    } else {
+                        console.log("Status: ", data.status); // Keep polling while pending or retrying
+                    }
+                })
+                .catch(error => {
+                    clearInterval(interval);
+                    console.error("Error checking task status: ", error);
+                });
+            }, 3000); // Poll every 3 seconds
         }
+
+
     </script>
 
     {% if initial_setup or default_menu %}
@@ -221,6 +285,10 @@
 
         function showLoadingGif() {
             document.getElementById('loadingGif').style.display = 'block';
+        }
+
+        function hideLoadingGif() {
+            document.getElementById('loadingGif').style.display = 'none';
         }
         
         document.getElementById('addItemBtn').addEventListener('click', function() {
