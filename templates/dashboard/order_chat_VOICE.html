@@ -170,8 +170,9 @@
     <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;" id="orderHeader">
         Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </div>
-    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%; margin-bottom: 100px;">
+    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
+            <!--
             {% if restaurant.res_logo %}
             <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
                 <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" style="height: auto; width: auto; max-width: 200px; max-height: 200px;">
@@ -182,10 +183,11 @@
             </div>  
             {% endif %}
             {% if restaurant_website_url != "No URL provided" %}
-                <p id="welcomeMessage" style="margin-bottom: 7px;">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a><!-- <br>Click below to start ordering. --></p>
+                <p id="welcomeMessage" style="margin-bottom: 7px;">Welcome at <a href='{{ restaurant_website_url }}' target="_blank"><b><u>{{ restaurant_name.replace("_"," ") }}</u></b></a>.<br>Feel free to check out the menu <a href='{{ url_for("show_restaurant_profile_public", unique_azz_id=unique_azz_id) }}' target="_blank"><b><u>here.</u></b></a> <br>Click below to start ordering.</p>
             {% else %}
-                <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<!-- <br>Click below to start chatting. </p> -->
+                <p id="welcomeMessage">Welcome at <b><u>{{ restaurant_name.replace("_"," ") }}</u></b>. <br>I will guide you through the whole ordering journey.<!-- <br>Click below to start chatting. </p>
             {% endif %}
+            -->
             
             {% if default_menu %}
                 <p id="offMessage">{{ restaurant_name }} hasn't uploaded the menu yet. Come back later😉</p>
@@ -198,18 +200,21 @@
         </div>
     </div>
 
+    <!-- style="background-color: #000000; color: white; padding: 10px 15px;  border-radius: 30px; width: auto; display: flex; flex-direction: column; align-items: center; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);" -->
+    <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px; position: fixed; bottom: 5px; left: 50%; transform: translateX(-50%);">
+        <button id="micButton" style="background: red; border: none; color: white; font-size: 16px; align-items: center; width: 60px; height: 60px; border-radius: 50%; position: relative;" class="button" disabled>
+            <div style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);"></div>
+        </button>
+    </div>
     
-    <footer id="chatInputFooter" style="position: fixed; bottom: 0; width: 100%; padding: 10px 15px; background-color: #000000; z-index: 100; box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.3); border-radius: 30px 30px 0 0; display: flex; flex-direction: column; align-items: center;">
-        <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px; margin-bottom: 10px;" disabled>
-        <div style="display: flex; justify-content: center; gap: 10px; margin-top: 7px;">
-            <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
-            <button id="micButton" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
-        </div>
-        <div id="spinner" style="display: none; position: absolute; top: 10px; right: 25px;">
-            <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
-        </div>
-    </footer>
     
+        <!-- <p style="margin-top: 5px; font-size: 17px">Please, opt the language you speak</p>
+        <select id="languageSelect" style="margin-top: 10px; padding: 5px;" value="en-US">
+            <option value="en-US">English (US)🇺🇸</option>
+            <option value="es-ES">Spanish🇪🇸</option>
+            <option value="uk-UA">Ukrainian🇺🇦</option>
+            <option value="pl-PL">Polish🇵🇱</option>
+        </select> -->
     
 
 
@@ -482,7 +487,7 @@
             background: none;
             border: 2px solid #333;
             border-radius: 20px;
-            padding: 7px 14px;
+            padding: 10px 20px;
             color: #333;
             font-size: 14px;
             cursor: pointer;
@@ -530,8 +535,8 @@
             // console.log("Received Thread ID: ", data.thread_id);
             // console.log("Current Assistant ID: ", data.assistant_id);
             
-            document.getElementById('restaurantLogo').style.display = 'none';
-            document.getElementById('welcomeMessage').style.display = 'none';
+            // document.getElementById('restaurantLogo').style.display = 'none';
+            // document.getElementById('welcomeMessage').style.display = 'none';
 
             const translation = translations[userLanguage];
             const initialMessage = `${translation.initialMessage} {{ restaurant_name.replace('_', ' ') }}.<br>${translation.phrase}`;
@@ -775,7 +780,7 @@ function generateVoiceOutput(llmResponse) {
 
 
 
-
+    /*
     window.showWittyPhrase = function showWittyPhrase(visible, voice_input=false) {
         const phrases = {
  'en-US': [
@@ -903,6 +908,7 @@ function generateVoiceOutput(llmResponse) {
     wittyPhraseDiv.style.fontSize = '16px';
     wittyPhraseDiv.style.display = 'none';
     footer.insertBefore(wittyPhraseDiv, footer.firstChild);
+    */
 
     function appendMessage(message, sender, isVideo = false) {
     let isRichContent = false;
@@ -913,7 +919,7 @@ function generateVoiceOutput(llmResponse) {
         margin-top: 10px;
         margin-right: 10px;
         margin-left: 10px;
-        margin-bottom: 10px; /* Reduce the bottom margin */
+        margin-bottom: 40px;
         padding: 15px;
         border-radius: 15px;
         font-family: 'Arial', sans-serif;
@@ -923,10 +929,9 @@ function generateVoiceOutput(llmResponse) {
         max-width: 80%;
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         display: flex;
-        flex-direction: column; /* Ensures the text and video are stacked */
+        flex-direction: column;  /* This ensures the text and video are stacked */
         align-items: flex-start;
     `;
-
 
     
 
@@ -1019,7 +1024,7 @@ function generateVoiceOutput(llmResponse) {
             display: flex;
             flex-direction: row;
             align-items: flex-start;
-            margin-bottom: 160px; /* Add margin instead of position */
+            margin-bottom: 120px; /* Add margin instead of position */
         `;
 
         // Assuming 'chat-footer' has relative positioning
@@ -1035,7 +1040,7 @@ function generateVoiceOutput(llmResponse) {
         messageDiv.style.textAlign = 'right';
 
         const assistantIcon = document.createElement('img');
-        assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}';
+        assistantIcon.src = '/static/images/girlude_Jessai.jpeg';
         assistantIcon.style.width = '40px';
         assistantIcon.style.height = '40px';
         assistantIcon.style.objectFit = 'cover';
@@ -1238,9 +1243,8 @@ const micButton = document.getElementById('micButton');
 
     function scrollToBottom(container) {
         const chatBox = document.getElementById('chatBox');
-        chatBox.scrollTop = chatBox.scrollHeight;  // Always scroll to the bottom
+        chatBox.scrollTop = chatBox.scrollHeight;  // Scroll to the bottom
     }
-
 
 
     window.scrollToBottom = scrollToBottom;

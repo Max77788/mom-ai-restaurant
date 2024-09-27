@@ -5,7 +5,7 @@ body, h1, h2, h3, p, form {
 }
 
 /* General Body Styles */
-body {
+html, body {
     font-family: 'Arial', sans-serif;
     color: #333;
     background-color: #fff;

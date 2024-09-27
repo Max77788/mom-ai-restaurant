@@ -1343,6 +1343,54 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
 
 
 
+def generate_short_voice_output_VOICE_ONLY(full_gpts_response, language_to_translate_into, list_of_items, client=CLIENT_OPENAI):
+    
+    system_context = f"""
+    Role: You are the best restaurant assistant who serves customers and provides them with the short 3-4 sentences long to the point answers to their inquiries.
+    
+    Context: There is an ongoing order and the customer addressed you with the request.
+
+    there is the menu which you can refer to (format item name, item ingredients, item price):
+    {list_of_items}
+
+    Task: provide short human-like casual response to the user's message
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_context},
+            {"role": "user", "content": full_gpts_response},
+            
+        ]
+        )
+    
+    print(response)
+    
+    response_text = response.choices[0].message.content
+    tokens_used = response.usage.total_tokens
+
+    if language_to_translate_into[:2] != "en":
+        translator = GoogleTranslator(source='auto', target=language_to_translate_into[:2])
+        response_text = translator.translate(response_text)
+    # video_url = create_and_get_talk_video(response_text)
+    speech_file_path = Path(__file__).parent / "speech.mp3"
+    response = client.audio.speech.create(
+    model="tts-1-hd",
+    voice="nova",
+    input=response_text
+    )
+
+    print(response)
+
+    response.stream_to_file(speech_file_path)
+
+    video_url = None
+    
+    return None, tokens_used, video_url
+
+
+
 
 def get_assistants_response(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, res_currency, discovery_mode=False):
     client = client_openai
@@ -2181,8 +2229,16 @@ def generate_ai_menu_item_image(item_name, item_description, unique_azz_id):
 
 
 def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currency):
-    # Load the XLSX file
-    df = pd.read_excel(input_file_path, engine='openpyxl')
+    # Detect file type (either .xlsx or .csv)
+    file_extension = os.path.splitext(input_file_path)[1].lower()
+    
+    # Load the file based on the detected file type
+    if file_extension == ".xlsx":
+        df = pd.read_excel(input_file_path, engine='openpyxl')
+    elif file_extension == ".csv":
+        df = pd.read_csv(input_file_path)
+    else:
+        raise ValueError("Unsupported file format. Please provide an .xlsx or .csv file.")
 
     df = df.fillna('No value provided')
 
@@ -2467,6 +2523,8 @@ class Menu(BaseModel):
     menu: list[Dish]
 
 def extract_items_from_text(raw_text):
+    client = CLIENT_OPENAI
+
     prompt = f"""
             Convert the given text in the list of JSON objects.
             Item Name is for the name of the item.
@@ -3068,8 +3126,8 @@ def fully_extract_menu_from_image_celery(image_paths:list):
     charge_for_tokens = 0
     
     for image_path in image_paths:
-        extracted_text, tokens_used = extract_text_from_image(image_path)
-        menu_list = extract_items_from_text(extracted_text)
+        extracted_text  = extract_text_from_image(image_path)
+        menu_list, tokens_used = extract_items_from_text(extracted_text)
 
         charge_per_run = PRICE_PER_ONE_TOKEN*tokens_used
         

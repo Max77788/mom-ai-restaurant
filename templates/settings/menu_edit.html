@@ -115,7 +115,86 @@
 
 
 
-    <form action="/trigger_extract_menu_from_image" method="post" enctype="multipart/form-data" onsubmit="showLoadingGif()" style="text-align: center;">
+
+    <!-- Modal for displaying extracted menu -->
+    <div id="menuModal" class="modal">
+        <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 style="text-align: center;">Extracted Menu Items</h2>
+
+
+        <!-- Add new row form -->
+        <div>
+            <input type="text" id="newItemName" placeholder="Item Name">
+            <input type="text" id="newItemDescription" placeholder="Item Description">
+            <input type="number" id="newItemPrice" placeholder="Item Price">
+            <button id="addRowBtn" style="margin-top: 5px; margin-bottom: 5px;">Add Row</button>
+        </div>
+
+
+        <table id="extractedMenuTable" border="1" class="dataframe table table-striped">
+            <thead>
+            <tr>
+                <th>Item Name</th>
+                <th>Item Description</th>
+                <th>Item Price</th>
+            </tr>
+            </thead>
+            <tbody id="extractedMenuBody">
+            <!-- Dynamically populated rows go here -->
+            </tbody>
+        </table>
+    
+        <!-- Buttons for appending or replacing menu items -->
+        <button id="appendMenuBtn">Append to Existing Menu</button>
+        <button id="replaceMenuBtn">Replace Existing Menu</button>
+        </div>
+    </div>
+  
+  <!-- Modal CSS -->
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgb(0,0,0);
+      background-color: rgba(0,0,0,0.4);
+      padding-top: 60px;
+    }
+  
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+    }
+  
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+  
+    .close:hover,
+    .close:focus {
+      color: black;
+      text-decoration: none;
+      cursor: pointer;
+    }
+  </style>
+  
+
+
+
+
+    <form action="/trigger_extract_menu_from_image" method="post" enctype="multipart/form-data" id="generate_menu_from_images_form" style="text-align: center;">
         <div style="margin-top: 7px;">
             <label id="menu_images_extract_menu_label" for="menu_images_extract_menu">Have MOM AI Make Your Menu Just from Images</label>
             <input type="file" id="menu_images_extract_menu" name="menu_images_extract_menu" accept="image/*" multiple>
@@ -125,7 +204,10 @@
             <button type="submit" class="btn btn-primary">Upload Images</button>
         </div>
     </form>
-
+    
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <img src="/static/assets/loading-gif.gif" width="70" style="display: none;" id="loadingGifExtractMenuItems">
+    </div>
 
 
 
@@ -177,6 +259,249 @@
             }
             return true;
         }
+
+        document.getElementById("generate_menu_from_images_form").addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent the default form submission
+            
+            const formData = new FormData();
+            const fileInput = document.getElementById('menu_images_extract_menu');
+            const files = fileInput.files;
+
+            // Append the files to the FormData object
+            for (let i = 0; i < files.length; i++) {
+                formData.append('menu_images_extract_menu', files[i]);
+            }
+
+            // Display the loading GIF or message
+            document.getElementById("loadingGifExtractMenuItems").style.display = 'block';
+
+            // Fetch request to trigger menu extraction
+            fetch('/trigger_extract_menu_from_image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.task_id) {
+                    console.log("Task ID: ", data.task_id);
+                    // Polling function to check task status
+                    pollTaskStatus(data.task_id);
+                } else {
+                    console.error("Failed to trigger task");
+                }
+            })
+            .catch(error => {
+                console.error("Error occurred: ", error);
+            });
+        });
+
+        function pollTaskStatus(taskId) {
+            const interval = setInterval(() => {
+                fetch(`/extract_menu_from_image_status/${taskId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Task Status: ", data.state);
+                    
+                    if (data.state === 'SUCCESS') {
+                        
+                        clearInterval(interval); // Stop polling
+                        console.log("Menu List: ", data.menu_list);
+                        // alert('Task completed! Check the console for menu data.');
+                        document.getElementById('loadingGifExtractMenuItems').style.display = 'none';
+                        showMenuModal(data.menu_list);
+
+                    } else if (data.state === 'FAILURE') {
+                        clearInterval(interval); // Stop polling
+                        alert('Task failed: ' + data.status);
+                        document.getElementById('loadingGifExtractMenuItems').style.display = 'none';
+                    } else {
+                        console.log("Status: ", data.status); // Keep polling while pending or retrying
+                    }
+                })
+                .catch(error => {
+                    clearInterval(interval);
+                    console.error("Error checking task status: ", error);
+                });
+            }, 3000); // Poll every 3 seconds
+        };
+
+        // Function to show the modal with the extracted menu items
+function showMenuModal(extractedMenu) {
+    const modal = document.getElementById("menuModal");
+    const closeBtn = document.getElementsByClassName("close")[0];
+    const extractedMenuBody = document.getElementById("extractedMenuBody");
+
+    // Clear any previous entries in the table
+    extractedMenuBody.innerHTML = "";
+
+    // Populate table with extracted items
+    extractedMenu.forEach(item => {
+        const row = document.createElement("tr");
+
+        const nameCell = document.createElement("td");
+        nameCell.contentEditable = "true";  // Make the cells editable
+        nameCell.innerText = item.item_name;
+        row.appendChild(nameCell);
+
+        const descCell = document.createElement("td");
+        descCell.contentEditable = "true";
+        descCell.innerText = item.item_description;
+        row.appendChild(descCell);
+
+        const priceCell = document.createElement("td");
+        priceCell.contentEditable = "true";
+        priceCell.innerText = item.item_price;
+        row.appendChild(priceCell);
+
+        // Add delete button for each row
+        const actionCell = document.createElement("td");
+        const deleteBtn = document.createElement("button");
+        deleteBtn.innerText = "Delete";
+        deleteBtn.onclick = function () {
+            row.remove();  // Remove the row when clicked
+        };
+        actionCell.appendChild(deleteBtn);
+        row.appendChild(actionCell);
+
+        extractedMenuBody.appendChild(row);
+    });
+
+    // Show the modal
+    modal.style.display = "block";
+
+    // Close the modal when the 'x' is clicked
+    closeBtn.onclick = function () {
+        modal.style.display = "none";
+    };
+}
+
+// Function to compile the table data into an array of objects
+function compileTableData() {
+    const tableRows = document.querySelectorAll("#extractedMenuTable tbody tr");
+    const menuItems = [];
+
+    tableRows.forEach(row => {
+        const itemName = row.cells[0].innerText.trim();
+        const itemDescription = row.cells[1].innerText.trim();
+        const itemPrice = row.cells[2].innerText.trim();
+
+        // Push each menu item as an object
+        menuItems.push({
+            'Item Name': itemName,
+            'Item Description': itemDescription,
+            'Item Price (EUR)': parseFloat(itemPrice)  // Ensure price is a float
+        });
+    });
+
+    return menuItems;  // Return the compiled menu items
+}
+
+// Add event listener to the "Add Row" button
+document.getElementById("addRowBtn").addEventListener("click", function () {
+    const newItemName = document.getElementById("newItemName").value.trim();
+    const newItemDescription = document.getElementById("newItemDescription").value.trim();
+    const newItemPrice = document.getElementById("newItemPrice").value.trim();
+
+    // Validate that the inputs are not empty
+    if (!newItemName || !newItemDescription || !newItemPrice || isNaN(newItemPrice)) {
+        alert("Please fill out all fields correctly.");
+        return;
+    }
+
+    // Create a new row
+    const row = document.createElement("tr");
+
+    const nameCell = document.createElement("td");
+    nameCell.contentEditable = "true";  // Make the cells editable
+    nameCell.innerText = newItemName;
+    row.appendChild(nameCell);
+
+    const descCell = document.createElement("td");
+    descCell.contentEditable = "true";
+    descCell.innerText = newItemDescription;
+    row.appendChild(descCell);
+
+    const priceCell = document.createElement("td");
+    priceCell.contentEditable = "true";
+    priceCell.innerText = parseFloat(newItemPrice).toFixed(2);  // Format price
+    row.appendChild(priceCell);
+
+    // Add delete button for the new row
+    const actionCell = document.createElement("td");
+    const deleteBtn = document.createElement("button");
+    deleteBtn.innerText = "Delete";
+    deleteBtn.onclick = function () {
+        row.remove();  // Remove the row when clicked
+    };
+    actionCell.appendChild(deleteBtn);
+    row.appendChild(actionCell);
+
+    // Add the new row to the table
+    document.getElementById("extractedMenuBody").appendChild(row);
+
+    // Clear the input fields
+    document.getElementById("newItemName").value = '';
+    document.getElementById("newItemDescription").value = '';
+    document.getElementById("newItemPrice").value = '';
+});
+
+
+
+        // Append button click handler
+        document.getElementById('appendMenuBtn').addEventListener('click', function() {
+        const menuItems = compileTableData();
+
+        fetch('/handle_ai_generated_menu?append=True', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ menu_items: menuItems })  // Send the compiled list
+        })
+        .then(response => response.json())  // Parse the JSON response
+        .then(data => {
+            if (data.success) {
+            alert('Menu items appended successfully!');
+            // Optionally close the modal or refresh the page
+            location.reload()
+            } else {
+            alert('Failed to append menu items.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while appending menu items.');
+        });
+        });
+
+        // Replace button click handler
+        document.getElementById('replaceMenuBtn').addEventListener('click', function() {
+        const menuItems = compileTableData();
+
+        fetch('/handle_ai_generated_menu?replace=True', {
+            method: 'POST',
+            headers: {
+            'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ menu_items: menuItems })  // Send the compiled list
+        })
+        .then(response => response.json())  // Parse the JSON response
+        .then(data => {
+            if (data.success) {
+            alert('Menu replaced successfully!');
+            // Optionally close the modal or refresh the page
+            location.reload()
+            } else {
+            alert('Failed to replace menu items.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while replacing menu items.');
+        });
+        });
+
+
     </script>
 
     {% if initial_setup or default_menu %}

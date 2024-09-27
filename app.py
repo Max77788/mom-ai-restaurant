@@ -32,7 +32,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -2473,6 +2473,12 @@ def update_menu_gui(initial_setup=None):
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
 
     html_menu_tuples = restaurant.get("html_menu_tuples")
+
+    if not html_menu_tuples:
+        html_menu_tuples = [{"Item Name": "Test Name", "Item Description": "Test Description", "Item Price (EUR)": 300}]
+
+    print(html_menu_tuples)
+
     # wrapped_html_table = wrap_images_in_html_table(html_menu)
 
     currency = restaurant.get("res_currency")
@@ -2638,6 +2644,65 @@ def clean_the_temp_folder():
                 print(f'Removed: {file}')
             except Exception as e:
                 print(f'Error deleting {file}: {e}')
+
+
+@app.route('/handle_ai_generated_menu', methods=['POST'])
+def handle_ai_generated_menu():
+    print("Entered handle_ai_generated_menu route")
+
+    # Get the menu items from the request body
+    data = request.get_json()
+    print(f"Received request data: {data}")
+
+    new_menu_items = data.get('menu_items', [])
+    print(f"Extracted new menu items: {new_menu_items}")
+
+    # Check if we are appending or replacing
+    append = request.args.get('append', 'False').lower() == 'true'
+    replace = request.args.get('replace', 'False').lower() == 'true'
+    print(f"Append mode: {append}, Replace mode: {replace}")
+
+    # Get the unique_azz_id from session
+    unique_azz_id = session.get("unique_azz_id")
+    print(f"Unique Azz ID: {unique_azz_id}")
+
+    # Initial check for operation type
+    if append:
+        # Fetch the current menu
+        current_menu = collection.find_one({"unique_azz_id": unique_azz_id})["html_menu_tuples"]
+        if current_menu:
+            print(f"Found current menu for unique_azz_id {unique_azz_id}: {current_menu}")
+        else:
+            print(f"No current menu found for unique_azz_id {unique_azz_id}")
+            current_menu = []
+
+        # Append new items to the existing menu
+        current_menu.extend(new_menu_items)
+        new_menu = current_menu
+        print(f"New appended menu: {new_menu}")
+
+    elif replace:
+        # Replace the entire menu with new items
+        new_menu = new_menu_items
+        print(f"New menu replacing the existing menu: {new_menu}")
+    else:
+        print(f"Invalid operation. Neither append nor replace selected.")
+        return jsonify({'success': False, 'message': 'Invalid operation'}), 400
+
+    # Attempt to update the menu in the database
+    print(f"Updating the menu for unique_azz_id {unique_azz_id} with new menu: {new_menu}")
+    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set": {"html_menu_tuples": new_menu}})
+    print(f"Update result: {result.raw_result}")  # Print raw MongoDB result for detailed debug
+
+    # Check if the update was successful
+    if result.matched_count > 0:
+        print(f"Menu updated successfully for unique_azz_id {unique_azz_id}")
+        return jsonify({'success': True, 'message': 'Menu updated successfully!'})
+    else:
+        print(f"Failed to update menu for unique_azz_id {unique_azz_id}")
+        return jsonify({'success': False, 'message': 'Failed to update menu'}), 500
+
+
 
 #######################################################
 
@@ -3302,6 +3367,86 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
 
 
 
+
+@app.route('/assistant_order_chat_ONLY_VOICE/<unique_azz_id>')
+def assistant_order_chat_voice(unique_azz_id, from_splash_page=False):
+    # Retrieve the full assistant_id from the session
+    lang = request.args.get('lang', 'en')
+
+    iframe = True if request.args.get("iframe") else False
+    from_splash_page = True if request.args.get("from_splash_page") else False
+
+    res_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    full_assistant_id = res_instance.get("assistant_id")
+    restaurant_name = res_instance.get("name")
+    restaurant_website_url = res_instance.get("website_url")
+    menu_file_id = res_instance.get("menu_file_id")
+    menu_vector_id = res_instance.get("menu_vector_id")
+    res_currency = res_instance.get("res_currency")
+    current_balanceHigherThanTwentyCents = round(res_instance.get("balance"), 2) >= 0.2
+    default_menu = False
+    discovery_mode = res_instance.get("discovery_mode")
+    menu_vector_id = res_instance.get("menu_vector_id")
+    if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
+        default_menu = True
+    assistant_turned_on = res_instance.get("assistant_turned_on")
+    print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
+
+    # id_of_intro = res_instance.get("intro_video_id", "default_later_here")
+    # intro_video_link = get_talk_video(id_of_intro)['result_url']
+
+    # print("Intro video link we send", intro_video_link)
+    
+    start_work = res_instance.get("start_work")
+    end_work = res_instance.get("end_work")
+    timezone = res_instance.get("timezone")
+    if timezone.startswith("Etc/GMT-"):
+        timezoneG = timezone.replace("-", "+", 1)
+        print("Minus changed")
+    elif timezone.startswith("Etc/GMT+"):
+        timezoneG = timezone.replace("+", "-", 1)
+        print("Plus changed")
+
+    # Get the current date and time in UTC
+    now_tz = datetime.now(pytz.timezone(timezoneG))
+    current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+    current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+
+    # Adjust current_day to match our list index where Sunday is 0
+    # current_day = (current_day + 1) % 7
+
+    # Check if the current time falls within the working hours
+    isWorkingHours = res_instance.get("isOpen")
+    # print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work.get(current_day)} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
+
+
+    session["unique_azz_id"] = unique_azz_id
+    session["full_assistant_id"] = full_assistant_id
+    session["menu_file_id"] = menu_file_id
+    session["menu_vector_id"] = menu_vector_id
+    session["res_currency"] = res_currency
+    session["restaurant_name"] = restaurant_name
+
+    print("Discovery mode we passed: ", discovery_mode)
+    # Use the restaurant_name from the URL and the full assistant_id from the session
+    return render_template('dashboard/voice-order-chat_GPT.html', restaurant_name=restaurant_name, 
+                           lang=lang, 
+                           assistant_id=full_assistant_id, 
+                           unique_azz_id=unique_azz_id, 
+                           restaurant_website_url=restaurant_website_url, 
+                           title=f"{restaurant_name}'s Assistant", 
+                           assistant_turned_on=assistant_turned_on, 
+                           restaurant=res_instance, 
+                           iframe=iframe, 
+                           isWorkingHours=isWorkingHours,
+                           default_menu=default_menu,
+                           discovery_mode=discovery_mode,
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
+                           from_splash_page=from_splash_page)
+
+
+
 @app.route('/transcribe_voice', methods=['POST'])
 def transcribe_voice():
     if 'file' not in request.files:
@@ -3406,6 +3551,40 @@ def generate_voice_output(unique_azz_id):
         "audio_file_url": "/download_audio"
     })
 
+
+
+@app.route('/generate_voice_output_VOICE_ONLY/<unique_azz_id>', methods=["POST", "GET"])
+def generate_voice_output_VOICE_ONLY(unique_azz_id):
+    client = CLIENT_OPENAI
+    
+    data = request.form
+    full_gpts_response = data.get("full_gpts_response")
+    language_to_translate_into = data.get("language")
+
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+
+    _, tokens_used, video_url = generate_short_voice_output_VOICE_ONLY(full_gpts_response, language_to_translate_into, html_menu_tuples)
+    
+    speech_file_path = Path(__file__).parent / "speech.mp3"
+
+    charge_for_message = PRICE_PER_1_TOKEN * tokens_used
+    print(f"Charge for message: {charge_for_message} USD")
+
+    result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
+    if result_charge_for_message.matched_count > 0:
+        print("Balances were successfully updated.")
+    else:
+        print("No matching document found.")
+
+    print(f"\n\n\nVideo URL: {video_url}\n\n\n")
+
+    # Return JSON with video URL and path for audio file
+    return jsonify({
+        "video_url": video_url,
+        "audio_file_url": "/download_audio"
+    })
+
 @app.route('/download_audio')
 def download_audio():
     speech_file_path = Path(__file__).parent / "speech.mp3"
@@ -3465,6 +3644,57 @@ def trigger_generate_response(unique_azz_id):
     )
 
     return jsonify({"task_id": task.id}), 202  # Return task ID to the client
+
+
+@app.route('/trigger_generate_response_VOICE_ONLY/<unique_azz_id>', methods=['POST'])
+def trigger_generate_response(unique_azz_id):
+    data = request.form
+    print(data)
+    user_message = data.get('message', '')
+    thread_id = data.get('thread_id')
+    assistant_id = data.get('assistant_id')
+    language = data.get("language", "en-US")[:2]
+
+    # Retrieve other parameters
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    discovery_mode = restaurant_instance.get('discovery_mode')
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    res_currency = restaurant_instance.get("res_currency")
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    
+    # Default image URL if no link is available
+    default_image_url = "https://png.pngtree.com/png-vector/20221125/ourmid/pngtree-no-image-available-icon-flatvector-illustration-pic-design-profile-vector-png-image_40966566.jpg"
+
+    # Iterate over each item in the 'html_menu_tuples' list
+    for item in html_menu_tuples:
+        # Step 1: Check if "Link to Image" is empty
+        if not item.get('Link to Image'):
+            # Step 2: If "Link to Image" is empty, check if "AI-Image" exists
+            if item.get('AI-Image'):
+                # Assign the AI image URL to "Link to Image"
+                item['Link to Image'] = item['AI-Image']
+                # Remove the 'AI-Image' field after assigning its value
+                del item['AI-Image']
+            else:
+                # Step 3: If "AI-Image" does not exist, assign the default image URL
+                item['Link to Image'] = default_image_url
+    
+    list_of_image_links = None  # Set or retrieve if necessary
+
+    print("\n\n\n", html_menu_tuples, "\n\n\n")
+
+    # Trigger the asynchronous task
+    task = get_assistants_response_celery_ONLY_VOICE.apply_async(
+        args=[
+            user_message, language, thread_id, assistant_id, menu_file_id, 
+            payment_on, html_menu_tuples, list_of_image_links, unique_azz_id, res_currency, discovery_mode
+        ]
+    )
+
+    return jsonify({"task_id": task.id}), 202  # Return task ID to the client
+
+
 
 @app.route('/generate_response_task_status/<task_id>', methods=['GET'])
 def task_status(task_id):
