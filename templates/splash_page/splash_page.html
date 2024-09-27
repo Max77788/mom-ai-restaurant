@@ -87,7 +87,7 @@
         <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" class="logo">
 
         <!-- Play button overlay with clickable redirect -->
-        <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id, from_splash_page=True) }}">
+        <a href="/assistant_order_chat_VOICE_ONLY/{{ unique_azz_id }}">
             <div class="play-button">
                 <img src="/static/images/PlayButton-removebg.png" alt="Play Video">
             </div>
