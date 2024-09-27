@@ -3,6 +3,8 @@
 
 <h2 style="text-align: center; font-family: Arial, sans-serif; color: #000; margin-bottom: 10px;">Restaurant Profile</h2>
 <h3><a href="{{ url_for('show_restaurant_profile_public', unique_azz_id=unique_azz_id) }}" target="_blank"><u>See {{ restaurant.name.replace("_", " ") }} public profile on MOM AI</u></a></h3><br>
+<h3><a href="/splash-page/{{ unique_azz_id }}" target="_blank"><u>See {{ restaurant.name.replace("_", " ") }} splash page on MOM AI</u></a></h3><br>
+
 <table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif;">
     <tr style="background-color: #f2f2f2; border: 1px solid #ddd;">
         <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Attribute</th>

@@ -196,8 +196,8 @@
     <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; font-size: 16px; display: none" disabled>
     <div style="display: flex; flex-direction: row; gap: 10px; margin-top: 7px; margin-bottom: 15px;">
         <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center; display: none;" class="button" disabled>Send✈️</button>
-        <button id="micButton" style="background-color: red; border: none; color: white; font-size: 16px; width: 60px; height: 60px; border-radius: 50%; position: relative; display: none; justify-content: center; align-items: center;">
-            <div id="triangle" style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent;"></div>
+        <button id="micButton" style="background-color: red; border: none; color: white; font-size: 16px; width: 110px; height: 110px; border-radius: 50%; position: relative; display: none; justify-content: center; align-items: center;">
+            <div id="triangle" style="width: 0; height: 0; border-left: 30px solid white; border-top: 20px solid transparent; border-bottom: 20px solid transparent;"></div>
         </button>
     </div>
     <div id="spinner" style="display: none; position: absolute; top: 10px; right: 25px;">
@@ -1173,17 +1173,24 @@ const micButton = document.getElementById('micButton');
     micButton.addEventListener('click', () => {
         if (isRecording && !blockMicButton) {
             mediaRecorder.stop();
-            micButton.innerHTML = '<div id="triangle" style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent;"></div>';
+            micButton.innerHTML = '<div id="triangle" style="width: 0; height: 0; border-left: 30px solid white; border-top: 20px solid transparent; border-bottom: 20px solid transparent;"></div>';
             const spinner = document.getElementById('spinner');
             spinner.style.display = 'none';
         } else if (!isRecording && blockMicButton) {
             mediaRecorder.stop();
-            micButton.innerHTML = '<div id="triangle" style="width: 0; height: 0; border-left: 15px solid white; border-top: 10px solid transparent; border-bottom: 10px solid transparent;"></div>';
+            micButton.innerHTML = '<div id="triangle" style="width: 0; height: 0; border-left: 30px solid white; border-top: 20px solid transparent; border-bottom: 20px solid transparent;"></div>';
             const spinner = document.getElementById('spinner');
             spinner.style.display = 'none';
         } else {
             startRecording();
             micButton.textContent = '⏹️';
+
+            // Adjust font size and button size here
+            micButton.style.fontSize = '40px'; // Makes the stop icon larger
+            // micButton.style.padding = '20px'; // Adds padding to the button
+            // micButton.style.width = '80px';   // Adjust width
+            // micButton.style.height = '80px';  // Adjust height
+
             const spinner = document.getElementById('spinner');
             spinner.style.display = 'block';
         }
