@@ -834,6 +834,10 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
         flash(new_menu_txt_path)
         return redirect(url_for("dashboard_display"))
     
+    dict_response = update_menu_vector_openai(new_menu_txt_path, restaurant_name, assistant_id, unique_azz_id, new_html)
+
+    return dict_response
+    
 def update_menu_vector_openai(new_menu_txt_path, restaurant_name, assistant_id, unique_azz_id, new_html):
     client = CLIENT_OPENAI
     
@@ -867,6 +871,34 @@ def update_menu_vector_openai(new_menu_txt_path, restaurant_name, assistant_id, 
         return {"success":True}
 
 
+def update_menu_on_openai(new_menu_txt_path, assistant_id, restaurant_name):
+    client = CLIENT_OPENAI
+    
+    with open(str(new_menu_txt_path), "rb") as menu:
+        menu_file = client.files.create(file=menu,
+                purpose='assistants')
+        menu_file_id = menu_file.id   
+        
+        # Create a vector store called "Financial Statements"
+        vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
+        
+        # Ready the files for upload to OpenAI
+        file_paths = [new_menu_txt_path]
+        file_streams = [open(path, "rb") for path in file_paths]
+        
+        # Use the upload and poll SDK helper to upload the files, add them to the vector store,
+        # and poll the status of the file batch for completion.
+        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
+        vector_store_id=vector_store.id, files=file_streams
+        )
+
+        assistant = client.beta.assistants.update(
+        assistant_id=assistant_id,
+        tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+        )
+    collection.update_one({"assistant_id": assistant_id}, {"$set":{"menu_file_id": menu_file_id, "menu_vector_id": vector_store.id}})
+
+    return {"success":True}
 
 # Alternative assistant creation
 '''
@@ -1050,7 +1082,7 @@ def generate_qr_code_and_upload(text, unique_azz_id):
     # Open the base image (the one with placeholders)
     base_image = Image.open('static/images/QR-Code-Template.jpg')
 
-    qr_code_size = (500, 500)  # Adjust the size according to the placeholder
+    qr_code_size = (550, 550)  # Adjust the size according to the placeholder
     qr_code_img = Image.open(img_byte_arr)
     qr_code_img = qr_code_img.resize(qr_code_size)
 

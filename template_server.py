@@ -3,7 +3,7 @@ import qrcode
 
 
 # Function to add a logo and QR code to the base image
-def serve_qrcode_template(base_image_path, output_image_path, qr_image_path, qr_position):
+def serve_qrcode_template(base_image_path, output_image_path, qr_image_path):
     # Open the base image (the one with placeholders)
     base_image = Image.open(base_image_path)
 

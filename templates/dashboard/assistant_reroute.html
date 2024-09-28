@@ -31,14 +31,16 @@
     }
 
     .image-container {
-        width: 37%; /* The width of the parent container */
-        margin: auto; /* Center the container */
-        margin-top: 10px;
+        display: flex; /* Aligns children (images) horizontally */
+        justify-content: space-between; /* Adds space between the images */
+        gap: 20px; /* Adds space between images (optional) */
     }
+
     .image-container img {
-        width: 100%; /* The image will take 100% of the container's width */
-        height: auto; /* Maintain the aspect ratio */
+        max-width: 48%; /* Ensures images don't exceed container width */
+        height: auto; /* Maintains image aspect ratio */
     }
+
 </style>
 <script>
     function openTab(tabName) {
@@ -104,6 +106,7 @@
         {% endif %}
         <div class="image-container">
             <img src="/static/images/tablet_at_the_counter.jpg" alt="AI-Assistant tablet at restaurant counter">
+            <img src="/static/images/BiryaniQRCodeExample.jpg" alt="Another image of restaurant AI-Assistant">
         </div>
     </div>
 

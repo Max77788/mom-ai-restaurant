@@ -798,8 +798,10 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
                             <th>Item Price ({{ currency }})</th>
                             <th>Link to Image</th>
                             <th>Image</th>
+                            {% if not default_menu %}
                             <th>AI-Image</th> <!-- New Column -->
                             <th>Remove Item</th>
+                            {% endif %}
                             
                         </tr>
                     </thead>
