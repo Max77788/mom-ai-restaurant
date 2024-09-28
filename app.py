@@ -2638,20 +2638,19 @@ def generate_extract_menu_from_image_status(task_id):
 
 
 def clean_the_temp_folder():
+    # Define the folder path
+    folder_path = Path('temp_files')
 
-        # Define the folder path
-        folder_path = 'temp_files'
+    # Use glob to get all files in the folder (with pattern '*')
+    files = [str(file).replace("\\", "/") for file in folder_path.glob('*')]
 
-        # Use glob to get all files in the folder (with pattern '*')
-        files = glob.glob(os.path.join(folder_path, '*'))
-
-        # Iterate over the files and remove them
-        for file in files:
-            try:
-                os.remove(file)  # Remove the file
-                print(f'Removed: {file}')
-            except Exception as e:
-                print(f'Error deleting {file}: {e}')
+    # Iterate over the files and remove them
+    for file in files:
+        try:
+            os.remove(file)  # Remove the file
+            print(f'Removed: {file}')
+        except Exception as e:
+            print(f'Error deleting {file}: {e}')
 
 
 @app.route('/handle_ai_generated_menu', methods=['POST'])
