@@ -2700,28 +2700,36 @@ def extract_text_from_image(s3_image_url):
                             aws_secret_access_key=AWS_SECRET_KEY,
                             region_name='us-east-1')
     
-    # Download the image from the S3 URL
-    response = requests.get(s3_image_url)
+    try:
+        # Download the image from the S3 URL
+        response = requests.get(s3_image_url)
 
-    # Check if the request was successful
-    if response.status_code != 200:
-        raise Exception(f"Failed to download image from {s3_image_url}")
+        # Check if the request was successful
+        if response.status_code != 200:
+            raise Exception(f"Failed to download image from {s3_image_url}, status code: {response.status_code}")
 
-    # Read the image in binary mode (in memory)
-    image_bytes = BytesIO(response.content)
+        # Read the image in binary mode (in memory)
+        image_bytes = BytesIO(response.content)
 
-    # Call Amazon Textract with the downloaded image
-    textract_response = textract.detect_document_text(
-        Document={'Bytes': image_bytes.read()}
-    )
+        # Call Amazon Textract with the downloaded image
+        textract_response = textract.detect_document_text(
+            Document={'Bytes': image_bytes.read()}
+        )
 
-    # Extract and return detected text
-    extracted_text = ""
-    for item in textract_response['Blocks']:
-        if item['BlockType'] == 'LINE':
-            extracted_text += item['Text'] + "\n"
+        # Extract and return detected text
+        extracted_text = ""
+        for item in textract_response['Blocks']:
+            if item['BlockType'] == 'LINE':
+                extracted_text += item['Text'] + "\n"
 
-    return extracted_text
+        return extracted_text
+
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Request failed: {str(e)}")
+    except FileNotFoundError as e:
+        raise Exception(f"File not found: {str(e)}")
+    except Exception as e:
+        raise Exception(f"An error occurred: {str(e)}")
 
 
 
