@@ -6,6 +6,7 @@ from flask_mail import Mail, Message
 from flask_caching import Cache
 import itertools
 import pandas as pd
+from PIL import Image
 import openpyxl
 import gridfs
 from pathlib import Path
@@ -331,7 +332,7 @@ def upload_to_s3(file_name, bucket="mom-ai-restaurant-images", folder_name="rest
 from werkzeug.utils import secure_filename
 
 
-def upload_file_to_s3(file, bucket_name="mom-ai-restaurant-images", acl="public-read"):
+def upload_file_to_s3(file, bucket_name="mom-ai-restaurant-images", acl="public-read", s3_key=None):
     """
     Uploads a file to S3 bucket.
 
@@ -341,11 +342,14 @@ def upload_file_to_s3(file, bucket_name="mom-ai-restaurant-images", acl="public-
     :return: The URL of the uploaded file
     """
     try:
-        # Secure the filename
-        file_name = secure_filename(file.filename)
+        # Handle files that have a filename (e.g., uploaded files)
+        if hasattr(file, 'filename'):
+            file_name = secure_filename(file.filename)
+        else:
+            file_name = "image.jpeg"
 
         # Define the full S3 key (path in bucket) where the file will be stored
-        s3_key = f"temp_files/{file_name}"
+        s3_key = f"temp_files/{file_name}" if not s3_key else s3_key
 
         # Upload the file to S3
         s3.upload_fileobj(
@@ -353,8 +357,7 @@ def upload_file_to_s3(file, bucket_name="mom-ai-restaurant-images", acl="public-
             bucket_name,
             s3_key,
             ExtraArgs={
-                "ACL": acl,
-                "ContentType": file.content_type
+                "ACL": acl
             }
         )
 
@@ -830,7 +833,10 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
     if not new_html:
         flash(new_menu_txt_path)
         return redirect(url_for("dashboard_display"))
-
+    
+def update_menu_vector_openai(new_menu_txt_path, restaurant_name, assistant_id, unique_azz_id, new_html):
+    client = CLIENT_OPENAI
+    
     with open(str(new_menu_txt_path), "rb") as menu:    
         menu_file = client.files.create(file=menu,
                 purpose='assistants')
@@ -856,7 +862,7 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
 
         average_menu_price = statistics.mean([float(item["Item Price (EUR)"])for item in new_html])
 
-        mongo_restaurants.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html, "average_menu_price": average_menu_price}})
+        collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html, "average_menu_price": average_menu_price}})
         
         return {"success":True}
 
@@ -1003,7 +1009,7 @@ def convert_webm_to_wav(input_path, output_path):
 
 
 
-def generate_qr_code_and_upload(text):
+def generate_qr_code_and_upload(text, unique_azz_id):
     """
     Generates a QR code for the given text and uploads it to GridFS.
     
@@ -1040,6 +1046,28 @@ def generate_qr_code_and_upload(text):
     # Upload the image to GridFS
     file_id = fs.put(img_byte_arr, filename=f"{text}.png")
     print(f"Image uploaded to GridFS with file_id: {file_id}")
+
+    # Open the base image (the one with placeholders)
+    base_image = Image.open('static/images/QR-Code-Template.jpg')
+
+    qr_code_size = (500, 500)  # Adjust the size according to the placeholder
+    qr_code_img = Image.open(img_byte_arr)
+    qr_code_img = qr_code_img.resize(qr_code_size)
+
+    # Paste the QR code at the desired position (coordinates need adjustment based on your image)
+    base_image.paste(qr_code_img, (450, 310))
+
+    # Convert the base_image (with QR code) to a BytesIO object
+    img_byte_arr = BytesIO()
+    base_image.save(img_byte_arr, format='JPEG')  # Save as JPEG (or PNG)
+    img_byte_arr.seek(0)  # Move the pointer to the start of the stream
+
+    # Set the S3 key (location in S3)
+    s3_key = f"final_images/{unique_azz_id}_qr_code_template.jpg"
+    
+    template_url = upload_file_to_s3(img_byte_arr, s3_key=s3_key)
+
+    print(f"Successfully uploaded qr-code template on link: {template_url}")
 
     return file_id
 

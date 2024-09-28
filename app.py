@@ -1785,7 +1785,7 @@ def setup_public_profile():
         assistant, menu_vector_id, menu_file_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
         unique_azz_id = res_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
 
-        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/assistant_order_chat/"+unique_azz_id) #assistant_code
+        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/assistant_order_chat/"+unique_azz_id, unique_azz_id) #assistant_code
 
         print(f"Type of qr code id: {type(qr_code_id)}")
         print("We are past qr code function")
