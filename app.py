@@ -2568,14 +2568,14 @@ def trigger_extract_menu_from_image():
         if file and allowed_file(file.filename):
             file_name = secure_filename(file.filename)
             
-            folder_path = 'tmp'
+            folder_path = '/tmp'  # Update this to the writable '/tmp' directory
 
-            # Check if the folder exists, if not, create it
+            # Check if the folder exists, if not, create it (although '/tmp' generally exists)
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)  # Create the folder
 
             # Define the file path
-            file_path = folder_path+"/"+file_name
+            file_path = os.path.join(folder_path, file_name)
             file.save(file_path)
             image_paths.append(file_path)
 
@@ -2639,7 +2639,7 @@ def generate_extract_menu_from_image_status(task_id):
 
 def clean_the_temp_folder():
     # Define the folder path
-    folder_path = 'tmp'
+    folder_path = '/tmp'
 
     # Use glob to get all files in the folder (with pattern '*')
     files = [file.replace("\\", "/") for file in glob.glob(os.path.join(folder_path, '*'))]
