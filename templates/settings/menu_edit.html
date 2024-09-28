@@ -273,69 +273,6 @@
             }
 
             // Display the loading GIF or message
-            document.getElementById('loadingGif').style.display = 'block';
-
-            // Fetch request to trigger menu extraction
-            fetch('/trigger_extract_menu_from_image', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.task_id) {
-                    console.log("Task ID: ", data.task_id);
-                    // Polling function to check task status
-                    pollTaskStatus(data.task_id);
-                } else {
-                    console.error("Failed to trigger task");
-                }
-            })
-            .catch(error => {
-                console.error("Error occurred: ", error);
-            });
-        });
-
-        function pollTaskStatus(taskId) {
-            const interval = setInterval(() => {
-                fetch(`/extract_menu_from_image_status/${taskId}`)
-                .then(response => response.json())
-                .then(data => {
-                    console.log("Task Status: ", data.state);
-                    
-                    if (data.state === 'SUCCESS') {
-                        clearInterval(interval); // Stop polling
-                        console.log("Menu List: ", data.menu_list);
-                        alert('Task completed! Check the console for menu data.');
-                        hideLoadingGif();
-                    } else if (data.state === 'FAILURE') {
-                        clearInterval(interval); // Stop polling
-                        alert('Task failed: ' + data.status);
-                        hideLoadingGif();
-                    } else {
-                        console.log("Status: ", data.status); // Keep polling while pending or retrying
-                    }
-                })
-                .catch(error => {
-                    clearInterval(interval);
-                    console.error("Error checking task status: ", error);
-                });
-            }, 3000); // Poll every 3 seconds
-        }
-
-<<<<<<< HEAD
-        document.getElementById("generate_menu_from_images_form").addEventListener('submit', function(e) {
-            e.preventDefault(); // Prevent the default form submission
-            
-            const formData = new FormData();
-            const fileInput = document.getElementById('menu_images_extract_menu');
-            const files = fileInput.files;
-
-            // Append the files to the FormData object
-            for (let i = 0; i < files.length; i++) {
-                formData.append('menu_images_extract_menu', files[i]);
-            }
-
-            // Display the loading GIF or message
             document.getElementById("loadingGifExtractMenuItems").style.display = 'block';
 
             // Fetch request to trigger menu extraction
@@ -564,8 +501,6 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
         });
         });
 
-=======
->>>>>>> b24cd5528901288c98bdb352f0e2b1c59f44e21e
 
     </script>
 

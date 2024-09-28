@@ -2567,7 +2567,15 @@ def trigger_extract_menu_from_image():
     for index, file in enumerate(files):
         if file and allowed_file(file.filename):
             file_name = secure_filename(file.filename)
-            file_path = "temp_files/"+file_name
+            
+            folder_name = "temp_files"
+
+            # Check if the folder exists, if not, create it
+            if not os.path.exists(folder_name):
+                os.makedirs(folder_name)  # Create the folder
+
+            # Define the file path
+            file_path = folder_name+"/"+file_name
             file.save(file_path)
             image_paths.append(file_path)
 
