@@ -75,6 +75,8 @@ s3 = boto3.client('s3',
                     region_name='eu-north-1'  # e.g., 'us-west-2'
                   )
 
+S3_BUCKET = "mom-ai-restaurant-images"
+
 
 PRICE_PER_1_TOKEN = 0.0000005
 
@@ -324,6 +326,70 @@ def upload_to_s3(file_name, bucket="mom-ai-restaurant-images", folder_name="rest
     except NoCredentialsError:
         print("Credentials not available")
         return False
+    
+
+from werkzeug.utils import secure_filename
+
+
+def upload_file_to_s3(file, bucket_name="mom-ai-restaurant-images", acl="public-read"):
+    """
+    Uploads a file to S3 bucket.
+
+    :param file: file object to be uploaded
+    :param bucket_name: S3 bucket where the file will be uploaded
+    :param acl: access control list, default is 'public-read'
+    :return: The URL of the uploaded file
+    """
+    try:
+        # Secure the filename
+        file_name = secure_filename(file.filename)
+
+        # Define the full S3 key (path in bucket) where the file will be stored
+        s3_key = f"temp_files/{file_name}"
+
+        # Upload the file to S3
+        s3.upload_fileobj(
+            file,
+            bucket_name,
+            s3_key,
+            ExtraArgs={
+                "ACL": acl,
+                "ContentType": file.content_type
+            }
+        )
+
+        # Construct the full S3 URL
+        file_url = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{s3_key}"
+
+        return file_url
+
+    except Exception as e:
+        print(f"Error uploading file to S3: {e}")
+        return None
+
+from urllib.parse import urlparse
+
+def delete_file_from_s3(file_url):
+    """
+    Deletes the file from S3 using its URL.
+
+    :param file_url: Full URL of the file in the S3 bucket
+    :return: None
+    """
+    try:
+        # Parse the URL to get the bucket name and the file path (key)
+        parsed_url = urlparse(file_url)
+        
+        # Extract the object key from the URL path (remove the leading '/')
+        object_key = parsed_url.path.lstrip('/')
+
+        # Delete the file from S3
+        s3.delete_object(Bucket=S3_BUCKET, Key=object_key)
+        
+        print(f"Successfully deleted {file_url} from S3")
+
+    except Exception as e:
+        print(f"Error deleting file from S3: {e}")
 
 ###################################################
 
@@ -2567,23 +2633,31 @@ def extract_items_from_text(raw_text):
     return menu_list, tokens_used
 
 
-def extract_text_from_image(image_path):
+def extract_text_from_image(s3_image_url):
     # Initialize the Textract client
     textract = boto3.client('textract',
                             aws_access_key_id=AWS_ACCESS_KEY,
                             aws_secret_access_key=AWS_SECRET_KEY,
                             region_name='us-east-1')
+    
+    # Download the image from the S3 URL
+    response = requests.get(s3_image_url)
 
-    # Open the image in binary mode
-    with open(image_path, 'rb') as document:
-        # Call Amazon Textract
-        response = textract.detect_document_text(
-            Document={'Bytes': document.read()}
-        )
+    # Check if the request was successful
+    if response.status_code != 200:
+        raise Exception(f"Failed to download image from {s3_image_url}")
+
+    # Read the image in binary mode (in memory)
+    image_bytes = BytesIO(response.content)
+
+    # Call Amazon Textract with the downloaded image
+    textract_response = textract.detect_document_text(
+        Document={'Bytes': image_bytes.read()}
+    )
 
     # Extract and return detected text
     extracted_text = ""
-    for item in response['Blocks']:
+    for item in textract_response['Blocks']:
         if item['BlockType'] == 'LINE':
             extracted_text += item['Text'] + "\n"
 
