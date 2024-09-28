@@ -2575,7 +2575,7 @@ def trigger_extract_menu_from_image():
                 os.makedirs(folder_path)  # Create the folder
 
             # Define the file path
-            file_path = os.path.join(folder_path, file_name)
+            file_path = folder_path+"/"+file_name
             file.save(file_path)
             image_paths.append(file_path)
 
