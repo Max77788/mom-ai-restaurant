@@ -2568,7 +2568,7 @@ def trigger_extract_menu_from_image():
         if file and allowed_file(file.filename):
             file_name = secure_filename(file.filename)
             
-            folder_name = "tmp"
+            folder_name = "/tmp"
 
             # Check if the folder exists, if not, create it
             if not os.path.exists(folder_name):
@@ -2639,7 +2639,7 @@ def generate_extract_menu_from_image_status(task_id):
 
 def clean_the_temp_folder():
     # Define the folder path
-    folder_path = Path('tmp')
+    folder_path = Path('/tmp')
 
     # Use glob to get all files in the folder (with pattern '*')
     files = [str(file).replace("\\", "/") for file in folder_path.glob('*')]
