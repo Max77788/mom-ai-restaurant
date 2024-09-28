@@ -2614,7 +2614,7 @@ def generate_extract_menu_from_image_status(task_id):
         
         collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -amount_to_charge, "assistant_fund": amount_to_charge}})
         
-        clean_the_temp_folder()
+        # clean_the_temp_folder()
         
         response = {
             'state': task.state,
@@ -2622,13 +2622,13 @@ def generate_extract_menu_from_image_status(task_id):
             'status': 'Task completed!'
         }
     elif task.state == 'FAILURE':
-        clean_the_temp_folder()
+        # clean_the_temp_folder()
         response = {
             'state': task.state,
             'status': str(task.info)  # Exception message if failed
         }
     else:
-        clean_the_temp_folder()
+        # clean_the_temp_folder()
         response = {
             'state': task.state,
             'status': task.state  # Other states like 'RETRY'
