@@ -2967,9 +2967,9 @@ def assistant_dashboard_route():
     sub_activated = session.get("subscription_activated")
     unique_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
-    restaurant_name = session.get("restaurant_name")
+    restaurant_name = restaurant.get("name")
     qr_code_id = restaurant.get("qr_code")
-    ai_phone_number = session.get("ai_phone_number")
+    ai_phone_number = restaurant.get("ai_phone_number")
     default_menu = session.get("default_menu")
 
     return render_template("dashboard/assistant_reroute.html", unique_azz_id=unique_azz_id, restaurant_name=restaurant_name, 
