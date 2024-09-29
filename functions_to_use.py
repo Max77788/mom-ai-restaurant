@@ -1967,6 +1967,107 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
 
 
 
+
+
+def get_assistants_response_streaming(user_message, language, thread_id, assistant_id, menu_file_id, client_openai, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, res_currency, discovery_mode=False):
+    client = client_openai
+    print("Entered assistants response function")
+
+    # Initialize the GoogleTranslator
+    translator = GoogleTranslator(source='auto', target='en')
+    
+    if language != "en":
+        # Translate the user input to English
+        translated_user_message = translator.translate(user_message)
+        print("Translated user message in English: ", translated_user_message)  # Should output the translated text in English
+        print("--------------------------------------------------------")
+    else:
+        translated_user_message = user_message
+
+    
+    messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
+    
+    
+    if discovery_mode:
+       message_to_compare_menu_items = f"""
+        Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
+        from this list and use the images from this list:
+        {list_of_all_items} 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the images as much as possible.
+        Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+        Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
+        The prices of the items are in this currency: {res_currency}
+        """
+    else:
+        message_to_compare_menu_items = f"""
+        Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
+        from this list and use the images from this list:
+        {list_of_all_items} 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the images as much as possible.
+        The prices of the items are in this currency: {res_currency}
+        """
+ 
+    # print("Message to compare menu items: ", message_to_compare_menu_items)
+
+    response = client.beta.threads.messages.create(thread_id=thread_id,
+                                                   role="user",
+                                                   content=translated_user_message,
+                                                   attachments=[{
+                                                       "file_id":menu_file_id,
+                                                       "tools":[{"type":"file_search"}]
+                                                   }])
+    
+    if discovery_mode:
+        if len(list(messages_gpt)) < 2:
+            print("Nif-nif1")
+            user_message = f"""
+            Context:  You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+            Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
+            The prices of the items are in this currency: {res_currency}
+
+            Customer\'s message: {translated_user_message}    
+            """
+        else:
+            print("Naf-naf1")
+            user_message = f"""
+            Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+            The prices of the items are in this currency: {res_currency}
+            
+            Customer\'s message: {translated_user_message}    
+            """
+        
+        response = client.beta.threads.messages.create(thread_id=thread_id,
+                                                   role="user",
+                                                   content=user_message,
+                                                   attachments=[{
+                                                       "file_id":menu_file_id,
+                                                       "tools":[{"type":"file_search"}]
+                                                   }])
+    
+    stream = client.beta.threads.runs.create(thread_id=thread_id,
+                                          assistant_id=assistant_id,
+                                          additional_instructions=message_to_compare_menu_items,
+                                          temperature=1,
+                                          stream=True)
+ 
+    print(type(stream))
+    print(stream)
+    
+    return stream
+
+
+
+
+
+
+
+
+
+
+
+
 def get_assistants_response_azure(user_message, thread_id, assistant_id, menu_file_id, client_openai):
 # Add the user's message to the thread
 
@@ -2925,19 +3026,11 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
         """
  
     print("Message to compare menu items: ", message_to_compare_menu_items)
-
-    response = client.beta.threads.messages.create(thread_id=thread_id,
-                                                   role="user",
-                                                   content=translated_user_message,
-                                                   attachments=[{
-                                                       "file_id":menu_file_id,
-                                                       "tools":[{"type":"file_search"}]
-                                                   }])
     
     if discovery_mode:
         if len(list(messages_gpt)) < 2:
             print("Nif-nif1")
-            user_message = f"""
+            translated_user_message = f"""
             Context:  You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
             The prices of the items are in this currency: {res_currency}
@@ -2948,7 +3041,7 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
             """
         else:
             print("Naf-naf1")
-            user_message = f"""
+            translated_user_message = f"""
             Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             The prices of the items are in this currency: {res_currency}
             
@@ -2957,13 +3050,14 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
             Customer\'s message: {translated_user_message}    
             """
         
-        response = client.beta.threads.messages.create(thread_id=thread_id,
+    response = client.beta.threads.messages.create(thread_id=thread_id,
                                                    role="user",
-                                                   content=user_message,
+                                                   content=translated_user_message,
                                                    attachments=[{
                                                        "file_id":menu_file_id,
                                                        "tools":[{"type":"file_search"}]
                                                    }])
+
     
     run = client.beta.threads.runs.create(thread_id=thread_id,
                                           assistant_id=assistant_id,
@@ -3378,22 +3472,12 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
         {list_of_all_items} 
         The prices of the items are in this currency: {res_currency}
         """
- 
-    print("Message to compare menu items: ", message_to_compare_menu_items)
 
-    response = client.beta.threads.messages.create(thread_id=thread_id,
-                                                   role="user",
-                                                   content=translated_user_message,
-                                                   attachments=[{
-                                                       "file_id":menu_file_id,
-                                                       "tools":[{"type":"file_search"}]
-                                                   }])
     
     if discovery_mode:
         if len(list(messages_gpt)) < 2:
             print("Nif-nif1")
-            user_message = f"""
-            Your single goal is to provide short concise clear response to the message of the user. Make the response casual and up to 4-5 sentences long.
+            translated_user_message = f"""
             Context:  You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
             The prices of the items are in this currency: {res_currency}
@@ -3404,8 +3488,7 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
             """
         else:
             print("Naf-naf1")
-            user_message = f"""
-            Your single goal is to provide short concise clear response to the message of the user. Make the response casual and up to 4-5 sentences long.
+            translated_user_message = f"""
             Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             The prices of the items are in this currency: {res_currency}
             
@@ -3414,9 +3497,9 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
             Customer\'s message: {translated_user_message}    
             """
         
-        response = client.beta.threads.messages.create(thread_id=thread_id,
+    response = client.beta.threads.messages.create(thread_id=thread_id,
                                                    role="user",
-                                                   content=user_message,
+                                                   content=translated_user_message,
                                                    attachments=[{
                                                        "file_id":menu_file_id,
                                                        "tools":[{"type":"file_search"}]

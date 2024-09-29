@@ -3399,6 +3399,209 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
 
 
 
+
+
+@app.route('/assistant_order_chat_streaming/<unique_azz_id>')
+def assistant_order_chat_streaming(unique_azz_id, from_splash_page=False):
+    # Retrieve the full assistant_id from the session
+    lang = request.args.get('lang', 'en')
+
+    iframe = True if request.args.get("iframe") else False
+    from_splash_page = True if request.args.get("from_splash_page") else False
+
+    res_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    full_assistant_id = res_instance.get("assistant_id")
+    restaurant_name = res_instance.get("name")
+    restaurant_website_url = res_instance.get("website_url")
+    menu_file_id = res_instance.get("menu_file_id")
+    menu_vector_id = res_instance.get("menu_vector_id")
+    res_currency = res_instance.get("res_currency")
+    current_balanceHigherThanTwentyCents = round(res_instance.get("balance"), 2) >= 0.2
+    default_menu = False
+    discovery_mode = res_instance.get("discovery_mode")
+    menu_vector_id = res_instance.get("menu_vector_id")
+    if menu_vector_id == MOM_AI_EXEMPLARY_MENU_VECTOR_ID:
+        default_menu = True
+    assistant_turned_on = res_instance.get("assistant_turned_on")
+    print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
+
+    # id_of_intro = res_instance.get("intro_video_id", "default_later_here")
+    # intro_video_link = get_talk_video(id_of_intro)['result_url']
+
+    # print("Intro video link we send", intro_video_link)
+    
+    start_work = res_instance.get("start_work")
+    end_work = res_instance.get("end_work")
+    timezone = res_instance.get("timezone")
+    if timezone.startswith("Etc/GMT-"):
+        timezoneG = timezone.replace("-", "+", 1)
+        print("Minus changed")
+    elif timezone.startswith("Etc/GMT+"):
+        timezoneG = timezone.replace("+", "-", 1)
+        print("Plus changed")
+
+    # Get the current date and time in UTC
+    now_tz = datetime.now(pytz.timezone(timezoneG))
+    current_day = now_tz.weekday()  # Monday is 0 and Sunday is 6
+    current_hour = now_tz.hour + now_tz.minute / 60  # Fractional hour
+
+    # Adjust current_day to match our list index where Sunday is 0
+    # current_day = (current_day + 1) % 7
+
+    # Check if the current time falls within the working hours
+    isWorkingHours = res_instance.get("isOpen")
+    # print(f"Current time in {timezone}: {now_tz}, Working hours for today: {start_work.get(current_day)} to {end_work[current_day]}, isWorkingHours: {isWorkingHours}")
+
+
+    session["unique_azz_id"] = unique_azz_id
+    session["full_assistant_id"] = full_assistant_id
+    session["menu_file_id"] = menu_file_id
+    session["menu_vector_id"] = menu_vector_id
+    session["res_currency"] = res_currency
+    session["restaurant_name"] = restaurant_name
+
+    print("Discovery mode we passed: ", discovery_mode)
+    # Use the restaurant_name from the URL and the full assistant_id from the session
+    return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
+                           lang=lang, 
+                           assistant_id=full_assistant_id, 
+                           unique_azz_id=unique_azz_id, 
+                           restaurant_website_url=restaurant_website_url, 
+                           title=f"{restaurant_name}'s Assistant", 
+                           assistant_turned_on=assistant_turned_on, 
+                           restaurant=res_instance, 
+                           iframe=iframe, 
+                           isWorkingHours=isWorkingHours,
+                           default_menu=default_menu,
+                           discovery_mode=discovery_mode,
+                           current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
+                           from_splash_page=from_splash_page)
+
+from functions_to_use import get_assistants_response_streaming
+
+@app.route('/generate_response_streaming/<unique_azz_id>', methods=['POST', 'GET'])
+def generate_response_streaming(unique_azz_id):
+    # Set the environment variable for Google Cloud credentials
+    # os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = r'C:\Users\mmatr\AppData\Roaming\gcloud\application_default_credentials.json'
+    
+
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    discovery_mode = restaurant_instance.get('discovery_mode')
+    
+    # Process text input
+    if request.form:
+        data = request.form
+    elif request.json:
+        data = request.json  
+    print(f"Data: {data}")  
+    user_input = data.get('message', '')
+    thread_id = data.get('thread_id')
+    assistant_id = data.get('assistant_id')
+    language = data.get("language", "en-US")[:2]
+    
+    print("\n\nlanguage we received on /generate_response: ", language, "\n\n")
+    
+    transcription = " "
+
+
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    res_currency = restaurant_instance.get("res_currency")
+    print(f"Menu file ID on /generate_response: {menu_file_id}")
+
+    print(f"User input: {user_input}")
+    print(f"Thread ID: {thread_id}")
+    print(f"Assistant ID: {assistant_id}")
+
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+    #soup = BeautifulSoup(html_menu, 'html.parser')
+    #rows = soup.find_all('tr')[1:]  # Skip the header row
+
+    """
+    list_of_all_items = []
+    list_of_all_items_names_images = []
+    list_of_image_links = []
+    for row in rows:
+        columns = row.find_all('td')
+        item = columns[0].text
+        ingredients = columns[1].text
+        price = columns[2].text
+        if len(columns) > 3:
+            if columns[3]:
+                image_link = columns[3].text
+                list_of_image_links.append(image_link)
+                items_image = f'<img src="{image_link}" alt="Image of {item}" width="170" height="auto">'
+                tuple_we_deserved = (f"Item Name:{item}", f"Item Ingredients:{ingredients}", f"Items Price: {price} EUR", f"Image for {item}: {items_image}")
+        else:
+            tuple_we_deserved = (f"Item Name:{item}", f"Item Ingredients:{ingredients}", f"Items Price: {price} EUR")
+        #list_of_all_items.append(tuple_we_deserved)
+        list_of_all_items.append(tuple_we_deserved)
+    """
+    # print("List of image links formed: ", list_of_image_links)
+    
+    #print(f"\n\nList of all items formed: {list_of_all_items}\n\n")  # Debugging line
+
+    # print("Thats what we sent to retrieve the gpts response, ", user_input)
+    
+    def generate():
+        stream = get_assistants_response_streaming(user_input, language, thread_id, assistant_id, menu_file_id, CLIENT_OPENAI, payment_on, list_of_all_items=html_menu_tuples, list_of_image_links=None, unique_azz_id=unique_azz_id, res_currency=res_currency, discovery_mode=discovery_mode)
+
+        for chunk in stream:
+            print("\n\n\n\n\n", chunk, "\n\n\n\n\n")
+            if chunk.data.object == "thread.message.delta":
+                yield(chunk.data.delta.content[0].text.value)
+            if "event" in chunk.data:
+                if chunk.data.event == "thread.run.completed":
+                    tokens_used = chunk.data.usage.total_tokens
+                    
+                    charge_for_message = PRICE_PER_1_TOKEN * tokens_used
+                    print(f"Charge for message: {charge_for_message} USD")
+
+                    result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
+                    if result_charge_for_message.matched_count > 0:
+                        print("Balances were successfully updated.")
+                    else:
+                        print("No matching document found.")
+    
+    """
+    response_llm = replace_markdown_images(response_llm)
+    
+    charge_for_message = PRICE_PER_1_TOKEN * tokens_used
+    print(f"Charge for message: {charge_for_message} USD")
+
+    result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
+    if result_charge_for_message.matched_count > 0:
+        print("Balances were successfully updated.")
+    else:
+        print("No matching document found.")
+
+    print(f"LLM response: {response_llm}")
+
+    for_voice = ""
+    '''
+    if isinstance(response_llm, Response):
+        response_llm_data = response_llm.get_data(as_text=True)
+        response_llm_dict = ast.literal_eval(response_llm_data)
+        response_llm = response_llm_dict["response"]
+    else:
+        for_voice = remove_formatted_lines(response_llm)
+    
+    print(f"For voice: {for_voice}")
+    '''
+    
+    #if "Come to the restaurant and pick up" in response_llm
+
+    # Send the multipart response
+    return jsonify({"response_llm":response_llm})
+    """
+    return Response(generate(), content_type='text/plain')
+
+
+
+
+
 @app.route('/transcribe_voice', methods=['POST'])
 def transcribe_voice():
     if 'file' not in request.files:
