@@ -4200,7 +4200,7 @@ def no_payment_order_placed(unique_azz_id):
             if sorted(item_menu["Item Name"].lower().split()) == sorted(item_ordered_name.lower().split()):
                 print(sorted(item_menu["Item Name"].lower().split()))
                 print(sorted(item_ordered_name.lower().split()))
-                image_urls.append(item_menu["Link to Image"])
+                image_urls.append(item_menu.get("Link to Image"))
                 found_match = True
                 break
         if not found_match:
