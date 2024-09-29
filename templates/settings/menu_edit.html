@@ -91,7 +91,7 @@
     <form action="/upload_full_menu_picture" method="post" enctype="multipart/form-data" onsubmit="return checkFiles(); showLoadingGif()">
         <div style="margin-top: 7px;">
             <label id="menu_images_label" for="menu_images">⬇️Upload menu images (max 4 files)</label>
-            <input type="file" id="menu_images" name="menu_images" accept="image/*" multiple>
+            <input type="file" id="menu_images" name="menu_images" accept="image/*" multiple required>
         </div>
     
         <!-- New div to display previously uploaded images with X icon for deletion -->
@@ -106,7 +106,7 @@
         </div>
     
         <div style="margin-top: 7px;">
-            <button type="submit" class="btn btn-primary">Upload Images</button>
+            <button id="upload_menu_pictures_button" type="submit" class="btn btn-primary">Upload Images</button>
         </div>
     </form>
 
@@ -194,16 +194,17 @@
 
 
 
-    <form action="/trigger_extract_menu_from_image" method="post" enctype="multipart/form-data" id="generate_menu_from_images_form" style="text-align: center;">
+  <form action="/trigger_extract_menu_from_image" method="post" enctype="multipart/form-data" id="generate_menu_from_images_form" style="text-align: center;">
         <div style="margin-top: 7px;">
             <label id="menu_images_extract_menu_label" for="menu_images_extract_menu">Have MOM AI Make Your Menu Just from Images</label>
-            <input type="file" id="menu_images_extract_menu" name="menu_images_extract_menu" accept="image/*" multiple>
+            <input type="file" id="menu_images_extract_menu" name="menu_images_extract_menu" accept="image/*" multiple required>
         </div>
-    
+
         <div style="margin-top: 7px;">
-            <button type="submit" class="btn btn-primary">Upload Images</button>
+            <button type="submit" class="btn btn-primary" id="upload_button">Upload Images</button>
         </div>
     </form>
+
     
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <img src="/static/assets/loading-gif.gif" width="70" style="display: none;" id="loadingGifExtractMenuItems">
@@ -252,11 +253,21 @@
         function checkFiles() {
             var input = document.getElementById('menu_images');
             var maxFilesAllowed = maxFiles - existingImageCount; // Dynamically calculate remaining file slots
-    
+            const uploadButton = document.getElementById("upload_menu_pictures_button");
+
             if (input.files.length > maxFilesAllowed) {
                 alert('You can only upload a maximum of ' + maxFilesAllowed + ' more file(s).');
                 return false;
             }
+
+            if (fileInput.files.length > 0) {
+                uploadButton.disabled = false;
+                return true; // Allow form submission
+            } else {
+                uploadButton.disabled = true;
+                return false; // Prevent form submission
+            }
+
             return true;
         };
 
@@ -727,7 +738,8 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
             
             // Enable the "Generate with AI" button when the "Item Name" field has a value
             newItemNameInput.addEventListener('input', () => {
-              generateAIButton.disabled = !newItemNameInput.value.trim();
+               console.log("Triggered input")
+               generateAIButton.disabled = !newItemNameInput.value.trim();
             });
           
             // Handle the click event of the "Generate with AI" button

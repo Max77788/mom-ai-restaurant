@@ -3747,9 +3747,77 @@ def fully_extract_menu_from_image_celery(image_paths:list):
     charge_for_tokens = 0
     
     for image_path in image_paths:
-        extracted_text  = extract_text_from_image(image_path)
-        menu_list, tokens_used = extract_items_from_text(extracted_text)
+        # extracted_text  = extract_text_from_image(image_path)
+        # Initialize the Textract client
+        textract = boto3.client('textract',
+                                aws_access_key_id=AWS_ACCESS_KEY,
+                                aws_secret_access_key=AWS_SECRET_KEY,
+                                region_name='us-east-1')
+        
+        try:
+            # Download the image from the S3 URL
+            response = requests.get(image_path)
 
+            # Check if the request was successful
+            if response.status_code != 200:
+                raise Exception(f"Failed to download image from {image_path}, status code: {response.status_code}")
+
+            # Read the image in binary mode (in memory)
+            image_bytes = BytesIO(response.content)
+
+            # Call Amazon Textract with the downloaded image
+            textract_response = textract.detect_document_text(
+                Document={'Bytes': image_bytes.read()}
+            )
+
+            # Extract and return detected text
+            extracted_text = ""
+            for item in textract_response['Blocks']:
+                if item['BlockType'] == 'LINE':
+                    extracted_text += item['Text'] + "\n"
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Request failed: {str(e)}")
+        except FileNotFoundError as e:
+            raise Exception(f"File not found: {str(e)}")
+        except Exception as e:
+            raise Exception(f"An error occurred: {str(e)}")
+        
+        # menu_list, tokens_used = extract_items_from_text(extracted_text)
+
+        client = CLIENT_OPENAI
+
+        prompt = f"""
+                Convert the given text in the list of JSON objects.
+                Item Name is for the name of the item.
+                Item Description is for the either description or ingredients of the item.
+                Item Price is for the price of the item:
+                {extracted_text}
+                """
+        
+        completion = client.beta.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            response_format=Menu
+        )
+        tokens_used = completion.usage.total_tokens
+        
+        html_menu = completion.choices[0].message.parsed
+
+        menu_items_list = list(html_menu)
+
+        dish_list = menu_items_list[0][1]
+        menu_list = [
+        {
+            "item_name": dish.item_name,
+            "item_description": dish.item_description,
+            "item_price": dish.item_price
+        }
+        for dish in dish_list
+        ]
+        
+        
         charge_per_run = PRICE_PER_ONE_TOKEN*tokens_used
         
         charge_for_tokens += charge_per_run
