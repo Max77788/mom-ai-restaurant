@@ -30,6 +30,16 @@
         display: block;
     }
 
+    .image-container-voice {
+        display: flex; /* Aligns children (images) horizontally */
+        justify-content: center; /* Adds space between the images */
+    }
+
+    .image-container-voice img {
+        max-width: 48%; /* Ensures images don't exceed container width */
+        height: auto; /* Maintains image aspect ratio */
+    }
+
     .image-container {
         display: flex; /* Aligns children (images) horizontally */
         justify-content: space-between; /* Adds space between the images */
@@ -85,7 +95,7 @@
     <div id="open-directly" class="tab-content active">
         <h2><b>Put this qr-code besides your counter and let customers order in their native languages</b></h2>
         <div id="qr-code-container" style="border: 1px solid black; padding: 10px;">
-            <img src="{{ url_for('serve_image', file_id=qr_code_id) }}" alt="{{ restaurant_name }} Assistant QR-code" class="restaurant-logo" />
+            <img src="{{ url_for('serve_image', file_id=qr_code_id) }}" alt="{{ restaurant_name }} Assistant QR-code" style="max-width: 30%; height: auto;" />
             <h4 style="text-align: center; margin-top: -20px; margin-bottom: 7px;">😋Order in your Native Language now with {{ restaurant_name }} AI-agent🥘</h4>
             <!-- Button to trigger the download -->
             <a href="https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/final_images/{{ unique_azz_id }}_qr_code_template.jpg"><button id="download-btn" style="margin-top: 20px;">Download QR Code Template as Image</button></a>
@@ -147,7 +157,7 @@
         </div>
         <p><a href="/voice-setup" target="_blank"><u>Edit your AI-voice agent</u></a></p>
         {% endif %}
-        <div class="image-container">
+        <div class="image-container-voice">
             <img src="/static/images/auto-phone-orders.jpeg" alt="AI-Assistant tablet at restaurant counter">
         </div>
     </div>
