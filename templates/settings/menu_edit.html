@@ -410,9 +410,9 @@ function compileTableData() {
 
 // Add event listener to the "Add Row" button
 document.getElementById("addRowBtn").addEventListener("click", function () {
-    const newItemName = document.getElementById("newItemName").value.trim();
-    const newItemDescription = document.getElementById("newItemDescription").value.trim();
-    const newItemPrice = document.getElementById("newItemPrice").value.trim();
+    const newItemName = document.getElementById("newItemNameExtracted").value.trim();
+    const newItemDescription = document.getElementById("newItemDescriptionExtracted").value.trim();
+    const newItemPrice = document.getElementById("newItemPriceExtracted").value.trim();
 
     // Validate that the inputs are not empty
     if (!newItemName || !newItemDescription || !newItemPrice || isNaN(newItemPrice)) {
