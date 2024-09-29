@@ -3741,51 +3741,64 @@ def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_i
 
 @celery.task
 def fully_extract_menu_from_image_celery(image_paths:list):
-    PRICE_PER_ONE_TOKEN = 0.000004 #openai api - 0.0000025
+    PRICE_PER_ONE_TOKEN = 0.000004  # openai api - 0.0000025
 
     menu_lists = []
     charge_for_tokens = 0
-    
+
     for image_path in image_paths:
-        # extracted_text  = extract_text_from_image(image_path)
+        print(f"Processing image: {image_path}")
+
         # Initialize the Textract client
+        print("Initializing Textract client...")
         textract = boto3.client('textract',
                                 aws_access_key_id=AWS_ACCESS_KEY,
                                 aws_secret_access_key=AWS_SECRET_KEY,
                                 region_name='us-east-1')
-        
+        print("Textract client initialized.")
+
         try:
+            print(f"Attempting to download image from: {image_path}")
             # Download the image from the S3 URL
             response = requests.get(image_path)
 
             # Check if the request was successful
+            print(f"Image download status code: {response.status_code}")
             if response.status_code != 200:
                 raise Exception(f"Failed to download image from {image_path}, status code: {response.status_code}")
 
             # Read the image in binary mode (in memory)
+            print("Reading image content into memory...")
             image_bytes = BytesIO(response.content)
+            print(f"Downloaded image size: {len(response.content)} bytes")
 
             # Call Amazon Textract with the downloaded image
+            print("Sending image to Textract for text detection...")
             textract_response = textract.detect_document_text(
                 Document={'Bytes': image_bytes.read()}
             )
+            print("Textract response received.")
 
             # Extract and return detected text
             extracted_text = ""
+            print("Extracting text from Textract response...")
             for item in textract_response['Blocks']:
                 if item['BlockType'] == 'LINE':
+                    print(f"Detected line of text: {item['Text']}")
                     extracted_text += item['Text'] + "\n"
+
         except requests.exceptions.RequestException as e:
+            print(f"RequestException: {str(e)}")
             raise Exception(f"Request failed: {str(e)}")
         except FileNotFoundError as e:
+            print(f"FileNotFoundError: {str(e)}")
             raise Exception(f"File not found: {str(e)}")
         except Exception as e:
+            print(f"General Exception: {str(e)}")
             raise Exception(f"An error occurred: {str(e)}")
-        
-        # menu_list, tokens_used = extract_items_from_text(extracted_text)
 
-        client = CLIENT_OPENAI
-
+        # Pass the extracted text to OpenAI
+        print("Preparing prompt for OpenAI GPT...")
         prompt = f"""
                 Convert the given text in the list of JSON objects.
                 Item Name is for the name of the item.
@@ -3793,7 +3806,10 @@ def fully_extract_menu_from_image_celery(image_paths:list):
                 Item Price is for the price of the item:
                 {extracted_text}
                 """
-        
+
+        print(f"Sending request to OpenAI GPT with prompt: {prompt}")
+        client = CLIENT_OPENAI
+
         completion = client.beta.chat.completions.parse(
             model="gpt-4o-2024-08-06",
             messages=[
@@ -3801,28 +3817,42 @@ def fully_extract_menu_from_image_celery(image_paths:list):
             ],
             response_format=Menu
         )
+
+        print("Response received from OpenAI GPT.")
         tokens_used = completion.usage.total_tokens
-        
+        print(f"Tokens used: {tokens_used}")
+
         html_menu = completion.choices[0].message.parsed
+        print(f"HTML menu parsed: {html_menu}")
 
         menu_items_list = list(html_menu)
 
+        # Assuming dish_list is correctly retrieved from menu_items_list
         dish_list = menu_items_list[0][1]
+        print(f"Dish list extracted: {dish_list}")
+
         menu_list = [
-        {
-            "item_name": dish.item_name,
-            "item_description": dish.item_description,
-            "item_price": dish.item_price
-        }
-        for dish in dish_list
+            {
+                "item_name": dish.item_name,
+                "item_description": dish.item_description,
+                "item_price": dish.item_price
+            }
+            for dish in dish_list
         ]
-        
-        
-        charge_per_run = PRICE_PER_ONE_TOKEN*tokens_used
-        
+
+        print(f"Menu list generated for image {image_path}: {menu_list}")
+
+        charge_per_run = PRICE_PER_ONE_TOKEN * tokens_used
+        print(f"Charge for this run: {charge_per_run}")
+
         charge_for_tokens += charge_per_run
+        print(f"Total charge so far: {charge_for_tokens}")
+
         menu_lists.append(menu_list)
 
+    print("Combining all menu lists...")
     final_list = list(itertools.chain(*menu_lists))
+    print(f"Final combined menu list: {final_list}")
 
+    print(f"Total charge for all tokens: {charge_for_tokens}")
     return final_list, charge_for_tokens
