@@ -182,8 +182,8 @@ function formatAddressWithCity(place) {
     }
 
     // Ensure that required components are present
-    if (!street || !buildingNumber || !city || !country) {
-        alert("Please select a valid location including street, building number, city, and country.");
+    if (!street || !city || !country) {
+        alert("Please select a valid location including street, city, and country.");
         return '';
     }
 
