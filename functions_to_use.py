@@ -3747,41 +3747,41 @@ def fully_extract_menu_from_image_celery(image_paths:list):
     charge_for_tokens = 0
 
     for image_path in image_paths:
-        print(f"Processing image: {image_path}")
+        # print(f"Processing image: {image_path}")
 
         # Initialize the Textract client
-        print("Initializing Textract client...")
+        # print("Initializing Textract client...")
         textract = boto3.client('textract',
                                 aws_access_key_id=AWS_ACCESS_KEY,
                                 aws_secret_access_key=AWS_SECRET_KEY,
                                 region_name='us-east-1')
-        print("Textract client initialized.")
+        # print("Textract client initialized.")
 
         try:
-            print(f"Attempting to download image from: {image_path}")
+            # print(f"Attempting to download image from: {image_path}")
             # Download the image from the S3 URL
             response = requests.get(image_path)
 
             # Check if the request was successful
-            print(f"Image download status code: {response.status_code}")
+            # print(f"Image download status code: {response.status_code}")
             if response.status_code != 200:
                 raise Exception(f"Failed to download image from {image_path}, status code: {response.status_code}")
 
             # Read the image in binary mode (in memory)
-            print("Reading image content into memory...")
+            # print("Reading image content into memory...")
             image_bytes = BytesIO(response.content)
-            print(f"Downloaded image size: {len(response.content)} bytes")
+            #print(f"Downloaded image size: {len(response.content)} bytes")
 
             # Call Amazon Textract with the downloaded image
-            print("Sending image to Textract for text detection...")
+            # print("Sending image to Textract for text detection...")
             textract_response = textract.detect_document_text(
                 Document={'Bytes': image_bytes.read()}
             )
-            print("Textract response received.")
+            # print("Textract response received.")
 
             # Extract and return detected text
             extracted_text = ""
-            print("Extracting text from Textract response...")
+            # print("Extracting text from Textract response...")
             for item in textract_response['Blocks']:
                 if item['BlockType'] == 'LINE':
                     print(f"Detected line of text: {item['Text']}")
