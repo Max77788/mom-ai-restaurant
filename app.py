@@ -2020,9 +2020,12 @@ def add_number_nots():
 @app.route('/menu', methods=['POST', 'GET'])
 def show_menu():
     form = UpdateMenuForm()
-    html_menu_tuples = session.get("html_menu_tuples")
-    default_menu = session.get("default_menu")
     unique_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    html_menu_tuples = restaurant.get("html_menu_tuples")
+    default_menu = session.get("default_menu")
+    
     res_currency = session.get("res_currency")
     # wrapped_html_table = wrap_images_in_html_table(html_menu)
     print("Default menu we pass: ", default_menu)
@@ -2465,10 +2468,12 @@ def update_menu_manual():
 
 @app.route('/update_menu_gui')
 def update_menu_gui(initial_setup=None):
-    initial_setup = request.args.get("initial_setup")
+    initial_setup = request.args.get("initial_setup") == "True"
     form = UpdateMenuForm()
     default_menu = session.get("default_menu")
     unique_azz_id = session.get("unique_azz_id")
+
+    session["initial_setup"] = True
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
 
@@ -2716,6 +2721,9 @@ def handle_ai_generated_menu():
     update_menu_on_openai("temporary_text.txt", restaurant['assistant_id'], restaurant['name'])        
 
     os.remove("temporary_text.txt")
+
+    if session.get("initial_setup"):
+        return redirect(url_for("set_working_hours", start_setup=True))
     
     # Check if the update was successful
     if result.matched_count > 0:
@@ -2958,8 +2966,9 @@ def assistant_dashboard_route():
     
     sub_activated = session.get("subscription_activated")
     unique_azz_id = session.get("unique_azz_id")
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
     restaurant_name = session.get("restaurant_name")
-    qr_code_id = session.get("qr_code_id")
+    qr_code_id = restaurant.get("qr_code")
     ai_phone_number = session.get("ai_phone_number")
     default_menu = session.get("default_menu")
 

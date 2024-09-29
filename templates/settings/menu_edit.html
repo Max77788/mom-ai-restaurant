@@ -435,7 +435,7 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
 
     const priceCell = document.createElement("td");
     priceCell.contentEditable = "true";
-    priceCell.innerText = parseFloat(newItemPrice).toFixed(2);  // Format price
+    priceCell.innerText = parseFloat(newItemPrice);  // Format price
     row.appendChild(priceCell);
 
     // Add delete button for the new row
