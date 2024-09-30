@@ -1489,7 +1489,7 @@ def generate_short_voice_output_streaming(full_gpts_response, language_to_transl
 
     system_context = f"""
     Your task is to condense the long message you are provided with into the shortened 3-4 sentences long phrase 
-    which clearly communicates the message to the customer ordering food in a restaurant. 
+    which clearly communicates the message to the customer ordering food in a restaurant. Output the phrase in this language: {language_to_translate_into}
     """
 
     stream = client.chat.completions.create(
@@ -2048,6 +2048,14 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
     
     messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
     
+    PROVIDE_RESPONSE_IN_THIS_LANGUAGE = f"""
+    Provide the response in this language: {language}
+    """
+ 
+    user_message = f"""
+    {PROVIDE_RESPONSE_IN_THIS_LANGUAGE}
+    Customer's message: {translated_user_message}
+    """
     
     if discovery_mode:
        message_to_compare_menu_items = f"""
@@ -2071,20 +2079,14 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         """
  
     # print("Message to compare menu items: ", message_to_compare_menu_items)
-
-    response = client.beta.threads.messages.create(thread_id=thread_id,
-                                                   role="user",
-                                                   content=translated_user_message,
-                                                   attachments=[{
-                                                       "file_id":menu_file_id,
-                                                       "tools":[{"type":"file_search"}]
-                                                   }])
     
     if discovery_mode:
         if len(list(messages_gpt)) < 2:
             print("Nif-nif1")
             user_message = f"""
-            Context:  You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
+            Context:  
+            {PROVIDE_RESPONSE_IN_THIS_LANGUAGE}
+            You only provide the oral assistance on restaurant menu to the customer.  Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
             The prices of the items are in this currency: {res_currency}
 
@@ -2093,13 +2095,14 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         else:
             print("Naf-naf1")
             user_message = f"""
+            {PROVIDE_RESPONSE_IN_THIS_LANGUAGE}
             Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             The prices of the items are in this currency: {res_currency}
             
             Customer\'s message: {translated_user_message}    
             """
         
-        response = client.beta.threads.messages.create(thread_id=thread_id,
+    response = client.beta.threads.messages.create(thread_id=thread_id,
                                                    role="user",
                                                    content=user_message,
                                                    attachments=[{

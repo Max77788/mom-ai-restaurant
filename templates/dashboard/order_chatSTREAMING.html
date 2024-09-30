@@ -125,16 +125,47 @@
     
     <footer id="chatInputFooter" style="position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px 15px; background-color: #000000; z-index: 100; box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; align-items: center; margin: 0;">
         <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; border-radius: 30px; font-size: 16px; margin-bottom: 10px;" disabled>
+        
         <div style="display: flex; justify-content: center; gap: 10px; margin-top: 7px;">
             <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
             <button id="micButton" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
+            <!-- Audio button (Play / Mute) -->
+            <button id="audioButton" style="background: none; font-size: 16px; align-items: center;" class="button">🔊</button>
         </div>
+        
         <div id="spinner" style="display: none; position: absolute; top: 10px; right: 35px;">
             <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
         </div>
     </footer>
     
     
+    <script>
+        // Initialize playAudio session variable (you may want to fetch this from a backend session)
+        sessionStorage.setItem('playAudio', 'true');  // Default value: true (audio on)
+
+        // Audio button toggle logic
+        document.getElementById("audioButton").addEventListener("click", function() {
+            // Get the current value of playAudio from sessionStorage
+            let playAudio = sessionStorage.getItem('playAudio') === 'true';
+            
+            // Toggle the playAudio variable
+            playAudio = !playAudio;
+
+            // Update sessionStorage with the new playAudio state
+            sessionStorage.setItem('playAudio', playAudio);
+
+            // Update the button icon based on the new state
+            const audioButton = document.getElementById("audioButton");
+            if (playAudio) {
+                audioButton.textContent = "🔊";  // Play icon
+            } else {
+                audioButton.textContent = "🔇";  // Mute icon
+            }
+            
+            console.log("Audio state changed: ", playAudio);
+        });
+
+    </script>
 
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -566,7 +597,24 @@
     let output = "";
     while (true) {
         const { done, value } = await reader.read();
-        output += new TextDecoder().decode(value);
+        
+        let decoded_value = new TextDecoder().decode(value)
+
+        output += decoded_value;
+
+        if (decoded_value.includes("payment_buffer")) {
+            sessionStorage.setItem("next_link", output)
+            window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
+            return;
+        }
+
+        if (decoded_value.includes("Thank you very much! You ordered")){
+            const unique_azz_id = "{{ unique_azz_id }}";
+            sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
+            window.location.href = `/takeaway_delivery/${unique_azz_id}`;
+            return;
+        }
+
         messageDiv.innerHTML = marked.parse(output);  // Update the messageDiv dynamically with new text
 
         if (done) {
@@ -580,8 +628,18 @@
 
     enableInput();
 
-    await generateVoiceOutputStreaming(output);
+    // await generateVoiceOutputStreaming(output);
 
+    let playAudio = sessionStorage.getItem('playAudio') === "true";
+
+    console.log(`Play audio value ${playAudio}`)
+
+    if (playAudio) {
+        console.log("Play Audio")
+        generateVoiceOutput(output);
+    } else {
+        console.log("Not Play Audio")
+    }
 };
 
 // Generate voice output for the assistant's response
@@ -604,26 +662,50 @@ async function generateVoiceOutputStreaming(llmResponse) {
     });
 
     const reader = response.body.getReader();
-    let output = "";
+    let outputBuffer = [];  // Buffer to store 3 outputs
+
     while (true) {
         const { done, value } = await reader.read();
-        output = new TextDecoder().decode(value);
+        const outputChunk = new TextDecoder().decode(value);
 
-        console.log("Thats what we pass to speakText: ", output)
+        console.log("Chunk received: ", outputChunk);
 
-        // Play the output text continuously after previous response is spoken
-        await speakText(output);  // Wait until the current output is spoken
+        // Add the current chunk to the buffer
+        outputBuffer.push(outputChunk);
 
-        if (done) {
-            console.log("Entered Done in Speaking")
-            return;
+        // If we have 3 chunks in the buffer, concatenate them and pass to speakText
+        if (outputBuffer.length === 40) {
+            const combinedOutput = outputBuffer.join(" ");
+            console.log("Combined output to pass to speakText: ", combinedOutput);
+
+            // Play the combined output
+            await speakText(combinedOutput);
+
+            // Clear the buffer
+            outputBuffer = [];
         }
 
+        if (done) {
+            console.log("No more chunks to read. Finishing up...");
+
+            // If there's remaining output in the buffer, speak it
+            if (outputBuffer.length > 0) {
+                const remainingOutput = outputBuffer.join(" ");
+                console.log("Final output to speak: ", remainingOutput);
+                await speakText(remainingOutput);
+            }
+
+            break;
+        }
     }
 }
 
 function speakText(text) {
     console.log("Started Speaking text: ", text)
+    
+    // Cancel any ongoing utterance
+    speechSynthesis.cancel();
+    
     return new Promise((resolve) => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.onend = resolve;  // When speech ends, resolve the promise
@@ -1146,10 +1228,13 @@ const micButton = document.getElementById('micButton');
             
             if (transcribeData.status === 'success') {
                 const transcription = transcribeData.transcription;
-                appendMessage(transcription, "user");
+                // appendMessage(transcription, "user");
 
                 disableInput();
 
+                await sendMessage(transcription);
+
+                /*
                 // Create a new FormData for the response generation
                 const responseFormData = new FormData();
                 responseFormData.append('message', transcription);
@@ -1172,7 +1257,8 @@ const micButton = document.getElementById('micButton');
                 pollTaskStatus(taskId);
 
                 // showWittyPhrase(false);
-
+ 
+                */ 
             } else {
                 appendMessage('Transcription failed. Please try again.', 'system');
                 enableInput();

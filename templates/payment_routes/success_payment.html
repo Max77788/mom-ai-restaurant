@@ -153,7 +153,10 @@
                 <!-- <b>{{ item['amount'] }} EUR <u>per 1 item</u></b> -->
             </li>
         {% endfor %}
-        <b>Total: {{ total_paid }} EUR</b>
+        <b>Total:<br>
+        {{ total_price_NATIVE }} {{ res_currency }}<br>
+        or<br>
+        {{ total_paid }} EUR</b>
     </ul>
     <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
         Please, remember this number - you will not be able to pick your order without this number.</h3>
