@@ -90,87 +90,11 @@
             -->
         </div>
     </div>
-    
-    <!--
-    <script>
-        async function connectWallet() {
-            let accounts;
-    
-            if (window.ethereum) {
-                try {
-                    // Request account access if needed
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    accounts = await window.ethereum.request({ method: 'eth_accounts' });
-                    
-                    const account = accounts[0];
-    
-                    // Store account in local storage
-                    localStorage.setItem("web3_wallet", account);
-    
-                    // Hide the connect wallet button
-                    document.getElementById('connectWalletButtonOverlay').style.display = 'none';
-    
-                    // Show the success message
-                    document.getElementById('walletSuccessMessage').style.display = 'block';
-                
-                    // Fetch and display MOM token balance
-                    await fetchTokenBalance(account);
-                } catch (error) {
-                    console.error('User rejected the request:', error);
-                    return;
-                }
-            }
-        }
-
-        connectWallet()
-        
-        async function fetchTokenBalance(account) {
-            const tokenAddress = '0xdB1022f9fABB6B6208969ac289fFd69957eE3092'; // Replace with your MOM token contract address
-            const tokenABI = [
-                // Only the 'balanceOf' function is needed here
-                {
-                    "constant": true,
-                    "inputs": [
-                        {
-                            "name": "_owner",
-                            "type": "address"
-                        }
-                    ],
-                    "name": "balanceOf",
-                    "outputs": [
-                        {
-                            "name": "balance",
-                            "type": "uint256"
-                        }
-                    ],
-                    "type": "function"
-                }
-            ];
-
-            const web3 = new Web3(window.ethereum);
-            const tokenContract = new web3.eth.Contract(tokenABI, tokenAddress);
-
-            try {
-                const balance = await tokenContract.methods.balanceOf(account).call();
-                const formattedBalance = web3.utils.fromWei(balance, 'ether'); // Adjust if the token has different decimals
-                localStorage.setItem("momsBalance", formattedBalance)
-                document.getElementById('tokenBalance').innerText = 'MOM Token Balance: ' + formattedBalance;
-            } catch (error) {
-                console.error('Error fetching token balance', error);
-                document.getElementById('tokenBalance').innerText = 'Error fetching token balance';
-            }
-        }
-    </script>
-
-    <div id="tokenBalance" style="text-align: center; margin: 10px 0; font-size: 16px; color: black;">
-        Connect wallet to see MOM token balance
-    </div>
-    -->
 
     <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;" id="orderHeader">
         Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </div>
-    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%; margin-bottom: 100px;">
+    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%; margin-bottom: 100px; margin-top: 55px; height: calc(100vh - 155px);">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
             {% if restaurant.res_logo %}
             <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
@@ -553,13 +477,15 @@
     }
 
     function enableInput() {
+        /*
         const spinner = document.getElementById('spinner');
         
         if (spinner) {
         spinner.style.display = 'none';
         showWittyPhrase(false);
         };
-        
+        */
+
         console.log("Enabling input fields and buttons");
         document.getElementById('userMessage').disabled = false;
         document.querySelector('button[onclick="sendMessage()"]').disabled = false;
@@ -568,13 +494,15 @@
     }
 
     function disableInput() {
+        /*
         const spinner = document.getElementById('spinner');
         
         if (spinner) {
         spinner.style.display = 'block';
         showWittyPhrase(true);
         };
-        
+        */
+
         console.log("Disabling input fields and buttons");
         document.getElementById('userMessage').disabled = true;
         document.getElementById('userMessage').value = '';
@@ -632,7 +560,7 @@
     });
 
     // First, create a message pill and get the messageDiv for updates
-    const messageDiv = appendMessagePill();
+    const messageDiv = appendAssistantMessagePill();
     
     const reader = response.body.getReader();
     let output = "";
@@ -642,95 +570,65 @@
         messageDiv.innerHTML = marked.parse(output);  // Update the messageDiv dynamically with new text
 
         if (done) {
-            return;
+            console.log("Response stream is done!")
+            break;
         }
 
         // Optionally, scroll to the bottom to keep the view updated
         scrollToBottom(messageDiv);
     }
 
+    enableInput();
+
+    await generateVoiceOutputStreaming(output);
+
 };
 
-// let pollingInProgress = false;  // Flag to ensure polling only runs once
+// Generate voice output for the assistant's response
+async function generateVoiceOutputStreaming(llmResponse) {
+    // if (audioPlayed) return;  // Prevent multiple calls to this function
+    // audioPlayed = true;  // Set the flag to true after the first execution
 
-let messageAppended = false;  // Flag to track if the message has been appended
-let audioPlayed = false;  
+    console.log("Entered voice function")
+    
+    const unique_azz_id = "{{ unique_azz_id }}";
+    const userLanguage = sessionStorage.getItem('userLanguage');
 
-function pollTaskStatus(taskId) {
-    // if (pollingInProgress) return;  // Prevent multiple polling intervals
-    // pollingInProgress = true;
+    const voiceFormData = new FormData();
+    voiceFormData.append('full_gpts_response', llmResponse);
+    voiceFormData.append('language', userLanguage);
 
-    const interval = setInterval(() => {
-        fetch(`/generate_response_task_status/${taskId}`, {
-            method: 'GET'
-        })
-        .then(response => response.json())
-        .then(data => {
-            // console.log("Task status: ", data);
+    const response = await fetch(`/generate_voice_output_streaming/${unique_azz_id}`, {
+        method: 'POST',
+        body: voiceFormData
+    });
 
-            // When task is completed, get the response and process it
-            if (data.state === 'SUCCESS') {
-                clearInterval(interval);  // Stop polling
+    const reader = response.body.getReader();
+    let output = "";
+    while (true) {
+        const { done, value } = await reader.read();
+        output = new TextDecoder().decode(value);
 
-                const llmResponse = data.result;  // Get the assistant's response
+        console.log("Thats what we pass to speakText: ", output)
 
-                if (llmResponse.includes("/payment_buffer")) {
-                    sessionStorage.setItem("next_link", llmResponse)
-                    window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
-                    return;
-                }
+        // Play the output text continuously after previous response is spoken
+        await speakText(output);  // Wait until the current output is spoken
 
-                if (llmResponse.includes("Thank you very much! You ordered")) {
-                    const unique_azz_id = "{{ unique_azz_id }}";
-                    sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
-                    window.location.href = `/takeaway_delivery/${unique_azz_id}`;
-                    return;
-                }
+        if (done) {
+            console.log("Entered Done in Speaking")
+            return;
+        }
 
-                if (!messageAppended) {
-                    appendMessage(llmResponse, 'assistant');  // Display the assistant's message only once
-                    messageAppended = true;  // Set flag to true after appending the message
-                }
-                
-                // Generate voice output for the response
-                if (!audioPlayed) {
-                    generateVoiceOutput(llmResponse);  // Ensure this is only called once
-                    audioPlayed = true;  // Set flag to true after playing the audio
-                }
+    }
+}
 
-                // console.log("\n\nLLM Response\n\n")
-                
-                // console.log(llmResponse)
-                
-                const phraseDisplay = document.getElementById('wittyPhrase');
-                phraseDisplay.style.display = 'none';
-
-                enableInput();
-
-                let pollingInProgress = false;
-            }
-
-            // Handle task failure
-            if (data.state === 'FAILURE') {
-                clearInterval(interval);  // Stop polling
-                console.error("Task failed: ", data.status);
-                appendMessage('An error occurred. Please try again.', 'system');
-                showWittyPhrase(false);
-
-
-                enableInput();
-            }
-
-            // If task is still pending, continue polling
-            if (data.state === 'PENDING' || data.state === 'RETRY') {
-                // console.log("Task is still pending or retrying. Waiting...");
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching task status: ", error);
-            clearInterval(interval);  // Stop polling in case of an error
-        });
-    }, 1000);  // Poll every 1 second
+function speakText(text) {
+    console.log("Started Speaking text: ", text)
+    return new Promise((resolve) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.onend = resolve;  // When speech ends, resolve the promise
+        speechSynthesis.speak(utterance);
+    });
 }
 
 
@@ -912,41 +810,59 @@ function generateVoiceOutput(llmResponse) {
     wittyPhraseDiv.style.display = 'none';
     footer.insertBefore(wittyPhraseDiv, footer.firstChild);
 
-    function appendMessagePill() {
-        // Create a message pill div
-        const messageDiv = document.createElement('div');
-        messageDiv.style.cssText = `
-            margin: 10px;
-            padding: 15px;
-            border-radius: 15px;
-            font-family: 'Arial', sans-serif;
-            font-size: 16px;
-            max-width: 80%;
-            background-color: #f1f1f1; /* Light grey background */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        `;
+    function appendAssistantMessagePill() {
+    // Create a message pill div
+    const messageDiv = document.createElement('div');
+    messageDiv.style.cssText = `
+        margin: 10px;
+        padding: 15px;
+        border-radius: 15px;
+        font-family: 'Arial', sans-serif;
+        font-size: 16px;
+        max-width: 80%;
+        background-color: #333; /* Dark background for assistant */
+        color: #ffffff; /* White text for contrast */
+        text-align: right;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        word-wrap: break-word;
+    `;
 
-        // Create the message container
-        const messageContainer = document.createElement('div');
-        messageContainer.style.cssText = `
-            display: flex;
-            flex-direction: row;
-            align-items: flex-start;
-            margin-bottom: 70px;
-        `;
+    // Create the message container
+    const messageContainer = document.createElement('div');
+    messageContainer.style.cssText = `
+        display: flex;
+        flex-direction: row;
+        align-items: flex-start;
+        margin-bottom: 10px; /* Add margin instead of position */
+        justify-content: flex-end; /* Align the message to the right side */
+    `;
 
-        // Append the messageDiv to the messageContainer
-        messageContainer.appendChild(messageDiv);
+    // Create icon container for assistant
+    const iconDiv = document.createElement('div');
+    iconDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin: 10px; flex-shrink: 0;';
 
-        // Append the messageContainer to the chatBox (assuming chatBox is your chat window)
-        document.getElementById('chatBox').appendChild(messageContainer);
+    // Add assistant icon image
+    const assistantIcon = document.createElement('img');
+    assistantIcon.src = '{{ url_for("serve_image", file_id=restaurant.res_logo or "666af654dee400a1d635eb08") }}'; // Assistant icon source
+    assistantIcon.style.width = '40px';
+    assistantIcon.style.height = '40px';
+    assistantIcon.style.objectFit = 'cover';
+    iconDiv.appendChild(assistantIcon);
 
-        // Scroll to the bottom of the chat window
-        scrollToBottom(messageContainer);
+    // Append the message div and icon div to the message container
+    messageContainer.appendChild(messageDiv); // Message pill on the right
+    messageContainer.appendChild(iconDiv);    // Icon next to it
 
-        // Return the messageDiv so it can be updated in the streaming function
-        return messageDiv;
-    }
+    // Append the messageContainer to the chatBox (assuming chatBox is your chat window)
+    document.getElementById('chatBox').appendChild(messageContainer);
+
+    // Scroll to the bottom of the chat window
+    scrollToBottom(messageContainer);
+
+    // Return the messageDiv so it can be updated later if needed
+    return messageDiv;
+}
+
 
 function scrollToBottom(element) {
     element.scrollIntoView({ behavior: 'smooth' });
@@ -1068,7 +984,7 @@ function scrollToBottom(element) {
             display: flex;
             flex-direction: row;
             align-items: flex-start;
-            margin-bottom: 160px; /* Add margin instead of position */
+            margin-bottom: 20px; /* Add margin instead of position */
         `;
 
         // Assuming 'chat-footer' has relative positioning

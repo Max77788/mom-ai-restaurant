@@ -32,7 +32,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -3790,6 +3790,31 @@ def generate_voice_output(unique_azz_id):
         "video_url": video_url,
         "audio_file_url": "/download_audio"
     })
+
+
+
+
+@app.route('/generate_voice_output_streaming/<unique_azz_id>', methods=["POST", "GET"])
+def generate_voice_output_STREAMING(unique_azz_id):
+    client = CLIENT_OPENAI
+    
+    print("\n\n\n\n\n", "Triggered generate_voice_output_STREAMING", "\n\n\n\n\n")
+
+    data = request.form
+    full_gpts_response = data.get("full_gpts_response")
+    language_to_translate_into = data.get("language")
+    
+    def generate():
+        stream = generate_short_voice_output_streaming(full_gpts_response, language_to_translate_into)
+
+        for chunk in stream:
+            print("\n\n\n\n\n", chunk, "\n\n\n\n\n")
+            
+            print(f"\n\n\n\n\nYielded: {chunk.choices[0].delta.content}\n\n\n\n\n")
+            yield chunk.choices[0].delta.content.encode('utf-8')
+    return Response(generate(), content_type='text/plain')
+
+
 
 
 

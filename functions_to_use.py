@@ -1471,6 +1471,67 @@ def generate_short_voice_output(full_gpts_response, language_to_translate_into, 
 
 
 
+
+
+def generate_short_voice_output_streaming(full_gpts_response, language_to_translate_into, client=CLIENT_OPENAI):
+    
+    '''
+    system_context = f"""
+    Role: You are the best restaurant assistant who serves customers and provides them with the short 3-4 sentences long to the point answers to their inquiries.
+    
+    Context: There is an ongoing order and the customer addressed you with the request.
+
+    there is the menu which you can refer to (format item name, item ingredients, item price):
+    {list_of_items}
+
+    Task: provide short human-like casual 3-4 sentences long response to the user's message
+    '''
+
+    system_context = f"""
+    Your task is to condense the long message you are provided with into the shortened 3-4 sentences long phrase 
+    which clearly communicates the message to the customer ordering food in a restaurant. 
+    """
+
+    stream = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_context},
+            {"role": "user", "content": full_gpts_response},            
+        ],
+        stream=True
+        )
+    
+    return stream
+
+    """
+    response_text = response.choices[0].message.content
+    tokens_used = response.usage.total_tokens
+
+    if language_to_translate_into[:2] != "en":
+        translator = GoogleTranslator(source='auto', target=language_to_translate_into[:2])
+        response_text = translator.translate(response_text)
+    # video_url = create_and_get_talk_video(response_text)
+    speech_file_path = Path(__file__).parent / "speech.mp3"
+    response = client.audio.speech.create(
+    model="tts-1-hd",
+    voice="nova",
+    input=response_text
+    )
+
+    print(response)
+
+    response.stream_to_file(speech_file_path)
+
+    video_url = None
+    
+    return None, tokens_used, video_url
+    """
+
+
+
+
+
+
 def generate_short_voice_output_VOICE_ONLY(unique_azz_id, response_text, language_to_translate_into, client=CLIENT_OPENAI):
     
 
