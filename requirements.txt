@@ -52,4 +52,3 @@ google-auth
 boto3
 botocore
 Pillow
-pyaudio

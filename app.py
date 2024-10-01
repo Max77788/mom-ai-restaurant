@@ -3735,13 +3735,14 @@ def generate_response_streaming(unique_azz_id):
 
     return Response(generate(), content_type='text/plain')
 
+"""
 import pyaudio
 p = pyaudio.PyAudio()
 stream = p.open(format=8,
                 channels=1,
                 rate=24_000,
                 output=True)
-
+"""
 @app.route('/generate_voice_output_ONLY_VOICE_streaming/<unique_azz_id>', methods=['POST'])
 def generate_response_VOICE_ONLY_streaming(unique_azz_id):
     restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
