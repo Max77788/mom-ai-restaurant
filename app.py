@@ -4308,10 +4308,14 @@ def generate_voice_output_VOICE_ONLY(unique_azz_id):
 @app.route('/download_audio', methods=["POST", "GET"])
 def download_audio():
     # Get the audio file index from the query parameters (default is '1' if not provided)
-    audio_index = request.args.get('audio_index', '1')
+    audio_index = request.args.get('audio_index')
 
+    if audio_index:
+        filename = f"speech{audio_index}.mp3"
+    else:
+        filename = "speech.mp3"
     # Construct the dynamic file path (e.g., speech1.mp3, speech2.mp3, etc.)
-    speech_file_path = Path(__file__).parent / f"speech{audio_index}.mp3"
+    speech_file_path = Path(__file__).parent / filename
 
     # Debugging: Print the constructed file path and check if it exists
     print(f"Attempting to access file: {speech_file_path}")
