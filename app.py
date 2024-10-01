@@ -3389,7 +3389,7 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
 
     print("Discovery mode we passed: ", discovery_mode)
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, 
+    return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
                            lang=lang, 
                            assistant_id=full_assistant_id, 
                            unique_azz_id=unique_azz_id, 
