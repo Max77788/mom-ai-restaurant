@@ -2785,6 +2785,13 @@ def payment_buffer(unique_azz_id, id):
 
     conversion_rate = cache.get("currency_rate")
 
+    if res_currency != 'EUR':
+        rate = c.convert(1, res_currency, 'EUR')
+    else:
+        rate = 1
+        
+    conversion_rate = rate
+
     #checkout_link = session.get("paypal_link")
     if restaurant['addFees']:
         addFees = True
@@ -3619,10 +3626,6 @@ def generate_response_streaming(unique_azz_id):
                         print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
 
                         # Get the conversion rate from USD to EUR (you can change to any currencies)
-                        if res_currency != 'EUR':
-                            rate = c.convert(1, res_currency, 'EUR')
-                        else:
-                            rate = 1
                         
                         parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
                         items_ordered = parsed_formatted_json_order["items_ordered"]
@@ -4706,7 +4709,7 @@ def success_payment_backend(unique_azz_id):
     print(f"Total paid: {total_paid_EUR} on success payment route")
 
 
-    flash("Your Order was Successfully Placed!")
+    flash("Your Order was Successfully Placed!", "success")
 
     # This route can be used for further processing if needed
     return redirect(url_for('success_payment_display', unique_azz_id=unique_azz_id, id=order_id))
