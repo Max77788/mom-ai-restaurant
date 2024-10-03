@@ -76,7 +76,7 @@ s3 = boto3.client('s3',
                     region_name='eu-north-1'  # e.g., 'us-west-2'
                   )
 
-S3_BUCKET = "mom-ai-restaurant-images"
+S3_BUCKET = "mom-ai-restaurant-pictures"
 
 
 PRICE_PER_1_TOKEN = 0.0000005
@@ -304,7 +304,7 @@ def download_video_from_url(url, local_filename):
     else:
         print(f"Failed to download file: Status code {response.status_code}")
 
-def upload_to_s3(file_name, bucket="mom-ai-restaurant-images", folder_name="restaurant_intros", object_name=None):
+def upload_to_s3(file_name, bucket=S3_BUCKET, folder_name="restaurant_intros", object_name=None):
     """
     Uploads a file to an S3 bucket.
 
@@ -332,7 +332,7 @@ def upload_to_s3(file_name, bucket="mom-ai-restaurant-images", folder_name="rest
 from werkzeug.utils import secure_filename
 
 
-def upload_file_to_s3(file, bucket_name="mom-ai-restaurant-images", acl="public-read", s3_key=None):
+def upload_file_to_s3(file, bucket_name=S3_BUCKET, acl="public-read", s3_key=None):
     """
     Uploads a file to S3 bucket.
 
@@ -2503,7 +2503,7 @@ def generate_ai_menu_item_image(item_name, item_description, unique_azz_id):
 
     upload_to_s3(local_filename, folder_name=folder_name)
 
-    aws_ai_image_link = f"https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
+    aws_ai_image_link = f"https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
 
     # Set the new field and value to add to the array element
     new_field = "AI-Image"
@@ -3863,7 +3863,7 @@ def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_i
 
     upload_to_s3(local_filename, folder_name=folder_name)
 
-    aws_ai_image_link = f"https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
+    aws_ai_image_link = f"https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
 
     # Set the new field and value to add to the array element
     new_field = "AI-Image"

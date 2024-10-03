@@ -2259,7 +2259,7 @@ def upload_full_menu_picture():
         flash('You can upload a maximum of 4 files.')
         return redirect(last_part)
     
-    bucket_name = "mom-ai-restaurant-images"
+    bucket_name = "mom-ai-restaurant-pictures"
     unique_azz_id = session.get("unique_azz_id")
 
     for index, file in enumerate(files):
@@ -2520,7 +2520,7 @@ def delete_menu_image():
     object_key = '/'.join(image_url.split('/')[-2:])
 
     try:
-        s3.delete_object(Bucket="mom-ai-restaurant-images", Key=object_key)
+        s3.delete_object(Bucket="mom-ai-restaurant-pictures", Key=object_key)
         # Remove the image from the database (assuming S3 image URLs are stored in the "menu_images" field)
         collection.update_one(
             {"unique_azz_id": unique_azz_id},
@@ -3389,7 +3389,7 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
 
     print("Discovery mode we passed: ", discovery_mode)
     # Use the restaurant_name from the URL and the full assistant_id from the session
-    return render_template('dashboard/order_chat.html', restaurant_name=restaurant_name, 
+    return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
                            lang=lang, 
                            assistant_id=full_assistant_id, 
                            unique_azz_id=unique_azz_id, 
