@@ -1601,121 +1601,6 @@ def get_assistants_response(user_message, language, thread_id, assistant_id, men
         print("--------------------------------------------------------")
     else:
         translated_user_message = user_message
-
-    """
-    # Define the language of the message
-    thread_id_language = client.beta.threads.create().id
-    
-    prompt_to_translator_define_lang = f'''
-    Define the language of this message:
-    {user_message}
-    '''
-
-    print("\n\nPrompt we send to translator: ", prompt_to_translator_define_lang, "\n\n")
-
-    response = client.beta.threads.messages.create(thread_id=thread_id_language,
-                                                   role="user",
-                                                   content=prompt_to_translator_define_lang)
-
-    run = client.beta.threads.runs.create(thread_id=thread_id_language,
-                                          assistant_id=MOM_AI_LANGUAGE_DETECTOR)
-
-    start_time = time.time()
-    while True:
-        if time.time() - start_time > 25:
-            response = 'O-oh, little issues when forming the response, repeat the message now'
-            return jsonify({"response": response}), 0
-
-        run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_language,
-                                                       run_id=run.id)
-        if run_status.status == "completed":
-            print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
-            messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_language)
-            formatted_language_info = messages_gpt_json.data[0].content[0].text.value
-            print(f"\nFormatted translator output (Output from MOM AI TRANSLATOR): {formatted_language_info}\n")
-
-            parsed_formatted_language_info = ast.literal_eval(formatted_language_info.strip())
-            language_code = parsed_formatted_language_info["language_code"]
-            language_adj = parsed_formatted_language_info["language_adj"]
-            break
-        elif run_status.status == "failed":
-            print("Run status, ", run_status)
-            print("Language detection failed")
-            raise Exception("Language detection failed")
-        sleep(0.5)  # Reduce sleep duration
-
-    
-    # Translating the items
-    thread_id_translator = client.beta.threads.create().id
-    
-    prompt_to_translator_translate_items = f'''
-    Translate this list of items into {language_adj} or leave it unchanged if it is already in {language_adj}:
-    {list_of_all_items}
-    RETURN THE RESPONSE IN THE FORMAT OF LISTS OF LISTS.
-    '''
-
-    print("prompt we sent to translate menu items, ", prompt_to_translator_translate_items)
-
-    response = client.beta.threads.messages.create(thread_id=thread_id_translator,
-                                                   role="user",
-                                                   content=prompt_to_translator_translate_items)
-    run = client.beta.threads.runs.create(thread_id=thread_id_translator,
-                                          assistant_id=MOM_AI_LANGUAGE_DETECTOR)
-
-    start_time = time.time()
-    while True:
-        if time.time() - start_time > 45:
-            response = 'O-oh, little issues when forming the response, repeat the message now'
-            return jsonify({"response": response}), 0
-        run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_translator,
-                                                       run_id=run.id)
-        if run_status.status == "completed":
-            print(f"\n\nTokens used by restaurant assistant: {run_status.usage.total_tokens}\n\n")
-            messages_gpt_translator = client.beta.threads.messages.list(thread_id=thread_id_translator)
-            formatted_translator_info = messages_gpt_translator.data[0].content[0].text.value
-            print(f"\nFormatted translator output (Output from MOM AI TRANSLATOR): {formatted_translator_info}\n")
-
-            parsed_formatted_translator_info = ast.literal_eval(formatted_translator_info.strip())
-            list_of_all_items = parsed_formatted_translator_info["translated_list_of_items"]
-            break
-        elif run_status.status == "failed":
-            print("Run status, ", run_status)
-            print("Language detection failed")
-            raise Exception("Language detection failed")
-        sleep(0.5)  # Reduce sleep duration
-    print("translated with GPT in: ", time.time()-start_time)
-
-    #print("List of items returned by menu items translator: ", list_of_all_items)
-
-    list_of_items_with_links = [t + [l] for t, l in zip(list_of_all_items, list_of_image_links)]
-    #print("\n\nList of items with links: ", list_of_items_with_links, "\n\n")
-    """
-
-    #language_adj = "English"
-    #list_of_items_with_links = [t + (l,) for t, l in zip(list_of_all_items, list_of_image_links)]
-
-    '''
-    user_message_enhanced = f"""
-    Role: You are the best restaurant assistant who serves customers and register orders in the system
-    
-    Context: The customer asks you the question or writes the statement - your goal is to provide the response appropriately in {language_adj} language
-    facilitating order taking. To your knowledge base is attached the vector store provided for you. The currency in which prices of the items are specified is Euro.
-    Recommend, suggest and anyhow use only and only the items specified in this file. Do not mention other dishes whatsoever! Do not include source in the final info.
-    If the user confirms the order set up the status of the message 'requires_action'. Be sure to initiate action regardless of the language in which you communicate.
-    Confirm the order and trigger the action as fast as possible in the context of the particular order. 
-    Make sure that the item you suggest are from this list presented in the format (item name, item ingredients, item price). Also include html img elemets for each dish you present, if the image link is present. 
-    Make the maximal width of image to be 170px and height to be auto. URGENT! PRESENT THE IMAGE ONLY USING HTML IMG ELEMENTS WITH THE MAXIMAL WIDTH OF 170px:
-    {list_of_items_with_links}
-    Do not spit out all these items at once, refer to them only once parsed the attached menu to be sure that you are suggesting the right items.
-    Never trigger the action after the first customer's message. I.e. when there is only one user's message in the thread.
-    Never include more than 7 items in the response.
-
-    Task: Here is the current user's message, respond to it in this language - {language_adj}:
-    {translated_user_message}  
-    ALWAYS PROVIDE THE USER WITH A CLEAR CALL TO ACTION AT THE END OF THE RESPONSE!    
-    (in the context of ongoing order taking process and attached to your knowledge base and to this message menu file)
-    """
-    '''
     
     # print("\n\nUser message enhanced after translator: \n\n", user_message_enhanced, "\n\n")
     messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
@@ -3383,14 +3268,19 @@ def get_assistants_response_celery(user_message, language, thread_id, assistant_
 
 
 
-@celery.task
-def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id, assistant_id, menu_file_id, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, res_currency, discovery_mode=False, client_openai=CLIENT_OPENAI):
+# @celery.task
+def get_assistants_response_celery_VOICE_ONLY_streaming(user_message, language, thread_id, assistant_id, menu_file_id, payment_on, list_of_all_items, list_of_image_links, unique_azz_id, res_currency, discovery_mode=False, client_openai=CLIENT_OPENAI):
     client = client_openai
     print("Entered assistants response function")
 
     # Initialize the GoogleTranslator
-    translator = GoogleTranslator(source='auto', target='en')
+    # translator = GoogleTranslator(source='auto', target='en')
+
+    PROVIDE_RESPONSE_IN_THIS_LANGUAGE = f"""
+    Provide the response in this language: {language}
+    """
     
+    """
     if language != "en":
         # Translate the user input to English
         translated_user_message = translator.translate(user_message)
@@ -3398,7 +3288,16 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
         print("--------------------------------------------------------")
     else:
         translated_user_message = user_message
+    """
+    
+    translated_user_message = user_message
 
+    translated_user_message = f"""
+    {PROVIDE_RESPONSE_IN_THIS_LANGUAGE}
+    GENERATE THE SHORT PLAIN TEXT RESPONSE IN THE WAY WAITER RESPONDS TO THE CUSTOMER.
+    Customer's message: {translated_user_message}
+    """
+    
     """
     # Define the language of the message
     thread_id_language = client.beta.threads.create().id
@@ -3546,7 +3445,9 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
             Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.   
             The prices of the items are in this currency: {res_currency}
 
-            Provide the images as much as possible.
+            {PROVIDE_RESPONSE_IN_THIS_LANGUAGE}
+            
+            GENERATE THE SHORT PLAIN TEXT RESPONSE IN THE WAY WAITER RESPONDS TO THE CUSTOMER.
 
             Customer\'s message: {translated_user_message}    
             """
@@ -3556,8 +3457,10 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
             Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
             The prices of the items are in this currency: {res_currency}
             
-            Provide the images as much as possible.
+            {PROVIDE_RESPONSE_IN_THIS_LANGUAGE}
 
+            GENERATE THE SHORT PLAIN TEXT RESPONSE IN THE WAY WAITER RESPONDS TO THE CUSTOMER.
+            
             Customer\'s message: {translated_user_message}    
             """
         
@@ -3569,11 +3472,15 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
                                                        "tools":[{"type":"file_search"}]
                                                    }])
     
-    run = client.beta.threads.runs.create(thread_id=thread_id,
+    stream = client.beta.threads.runs.create(thread_id=thread_id,
                                           assistant_id=assistant_id,
                                           additional_instructions=message_to_compare_menu_items,
-                                          temperature=1)
+                                          temperature=1,
+                                          stream=True)
     
+    return stream
+    
+    '''
     start_time = time.time()
     while True:
         if time.time() - start_time > 25:
@@ -3814,7 +3721,7 @@ def get_assistants_response_celery_VOICE_ONLY(user_message, language, thread_id,
     
         
     return response_text, total_tokens_used
-
+    '''
 
 
 

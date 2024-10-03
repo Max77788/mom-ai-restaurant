@@ -627,16 +627,23 @@
 
             
             {% if assistant_turned_on and isWorkingHours %}
+            // Call the first function immediately
             appendMessage(messages.message1, 'assistant');
-            appendMessage(messages.message2, 'assistant');
+
+            // Use setTimeout to delay the second function by 1.5 seconds (1500 milliseconds)
+            setTimeout(function() {
+                appendMessage(messages.message2, 'assistant');
+                }, 750);
             // appendMessage(messages.message3, 'assistant');
             // appendMessage(messages.message4, 'assistant');
-            
 
+            setTimeout(function() {
             const unique_azz_id = "{{ unique_azz_id }}"
             const intro_url = `https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
             // console.log(intro_url)
             appendMessage(intro_url, 'assistant', true);
+        }, 1500);
+
             {% endif %}
 
             enableInput();
@@ -661,6 +668,65 @@
         console.log("Input and buttons ENABLED");
     }
 
+    // Generate voice output for the assistant's response
+async function generateVoiceOutputStreaming(llmResponse) {
+    // if (audioPlayed) return;  // Prevent multiple calls to this function
+    // audioPlayed = true;  // Set the flag to true after the first execution
+
+    console.log("Entered voice function")
+    
+    const unique_azz_id = "{{ unique_azz_id }}";
+    const userLanguage = sessionStorage.getItem('userLanguage');
+
+    const voiceFormData = new FormData();
+    voiceFormData.append('full_gpts_response', llmResponse);
+    voiceFormData.append('language', userLanguage);
+
+    const response = await fetch(`/generate_voice_output_streaming/${unique_azz_id}`, {
+        method: 'POST',
+        body: voiceFormData
+    });
+
+    const reader = response.body.getReader();
+    let outputBuffer = [];  // Buffer to store 3 outputs
+
+    while (true) {
+        const { done, value } = await reader.read();
+        const outputChunk = new TextDecoder().decode(value);
+
+        console.log("Chunk received: ", outputChunk);
+
+        // Add the current chunk to the buffer
+        outputBuffer.push(outputChunk);
+
+        // If we have 3 chunks in the buffer, concatenate them and pass to speakText
+        if (outputBuffer.length === 40) {
+            const combinedOutput = outputBuffer.join(" ");
+            console.log("Combined output to pass to speakText: ", combinedOutput);
+
+            // Play the combined output
+            await speakText(combinedOutput);
+
+            // Clear the buffer
+            outputBuffer = [];
+        }
+
+        if (done) {
+            console.log("No more chunks to read. Finishing up...");
+
+            // If there's remaining output in the buffer, speak it
+            if (outputBuffer.length > 0) {
+                const remainingOutput = outputBuffer.join(" ");
+                console.log("Final output to speak: ", remainingOutput);
+                await speakText(remainingOutput);
+            }
+
+            break;
+        }
+    }
+}
+
+
     function disableInput() {
         const spinner = document.getElementById('spinner');
         
@@ -678,184 +744,189 @@
     }
 
 
-    
-    window.sendMessage = function sendMessage(message=null) {
-      console.log(`Message within the sendMessage function (right off the bat) ${message}`)
-      
-      let userMessage;
-     
-      if (!message){
-       userMessage = document.getElementById('userMessage').value;
-    } else {
-        userMessage = message;
-    }
+    window.sendMessage = async function sendMessage(message = null) {
+    console.log(`Message within the sendMessage function: ${message}`);
 
+    // Get the message either from the passed parameter or the input field
+    let userMessage = message || document.getElementById('userMessage').value;
     disableInput();
 
     console.log("Send button clicked");
     console.log("User message: ", userMessage);
+
+    // Prevent sending empty messages
     if (userMessage.trim() === '') {
         console.log("Empty message, not sending.");
-        // enableInput();
-        return;
-    };
-
-    // Reset flags for the new message
-    messageAppended = false;   // Reset message appended flag
-    audioPlayed = false;       // Reset audio played flag
-
-    appendMessage(userMessage, 'user');
-
-    const unique_azz_id = "{{ unique_azz_id }}";
-    let llmResponse;
-
-    const formData = new FormData();
-    let userLanguage = sessionStorage.getItem('userLanguage');
-    
-    formData.append('message', userMessage);
-    formData.append('language', userLanguage);
-    formData.append('thread_id', currentThreadId);
-    formData.append('assistant_id', currentAssistantId);
-
-    console.log("Form Data we send")
-    console.log(formData)
-
-    fetch(`/trigger_generate_response_VOICE_ONLY/${unique_azz_id}`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        const taskId = data.task_id;  // Get the task ID from the response
-        // console.log("Task ID received: ", taskId);
-        pollTaskStatus(taskId);  // Poll the task status periodically
-
-    })
-    .catch(error => {
-        console.error("Error triggering task: ", error);
         enableInput();
-    });
+        return;
+    }
+
+    const uniqueAzzId = "{{ unique_azz_id }}";
+    const userLanguage = sessionStorage.getItem('userLanguage');
+
+    // Call the playStreamedAudio function to send the message and stream audio
+    await playStreamedAudio(uniqueAzzId, userMessage, userLanguage, currentThreadId, currentAssistantId);
+
+    enableInput();  // Enable input after audio finishes
 };
+
+
+async function playStreamedAudio(uniqueAzzId, userMessage, userLanguage, currentThreadId, currentAssistantId) {
+    try {
+        // Prepare the form data for the POST request
+        const formData = new FormData();
+        formData.append('message', userMessage);
+        formData.append('language', userLanguage);
+        formData.append('thread_id', currentThreadId);
+        formData.append('assistant_id', currentAssistantId);
+
+        console.log("Form Data we send", formData);
+
+        // Send the message to the server using a POST request
+        const response = await fetch(`/generate_voice_output_ONLY_VOICE_streaming/${uniqueAzzId}`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch audio stream');
+        }
+
+        // Create an AudioContext for Web Audio API
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Create a buffer to store chunks temporarily
+        let audioQueue = [];
+        let isPlaying = false;
+
+        const reader = response.body.getReader();
+
+        async function processAndPlayAudioChunks() {
+            while (audioQueue.length > 0) {
+                const chunk = audioQueue.shift();  // Get the next chunk from the queue
+
+                // Decode the audio data from the chunk
+                try {
+                    const decodedAudioData = await audioContext.decodeAudioData(chunk.buffer);
+                    
+                    // Create a buffer source and connect to the destination
+                    const source = audioContext.createBufferSource();
+                    source.buffer = decodedAudioData;
+                    source.connect(audioContext.destination);
+
+                    // Start playing
+                    source.start();
+                    
+                    // Wait for the audio to finish playing
+                    await new Promise(resolve => {
+                        source.onended = resolve;
+                    });
+                } catch (error) {
+                    console.error('Error decoding or playing audio:', error);
+                }
+            }
+
+            isPlaying = false;
+        }
+
+        // Read the response stream and play audio in real-time
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;  // Stream finished
+
+            if (value) {
+                audioQueue.push(value);  // Add chunks to the queue
+
+                // Start processing and playing chunks if not already playing
+                if (!isPlaying) {
+                    isPlaying = true;
+                    processAndPlayAudioChunks();
+                }
+            }
+        }
+
+        console.log("Audio streaming completed.");
+    } catch (error) {
+        console.error('Error playing streamed audio:', error);
+    }
+}
+
+
+
+
+// Function to delete all speech files after playback
+async function deleteAllSpeeches() {
+    try {
+        const response = await fetch('/delete_speeches', { method: 'DELETE' });
+        if (!response.ok) {
+            throw new Error('Failed to delete speeches');
+        }
+        console.log('Speeches deleted successfully');
+    } catch (error) {
+        console.error("Error deleting speeches:", error);
+    }
+}
+
+let isAudioPlaying = false;
+let audioCounter = 1
+let totalAudioFiles = 0;
+
+// Function to play audio files sequentially
+async function playAudioFromPath() {
+    if (isAudioPlaying) {
+        // Wait until the previous audio finishes
+        return;
+    }
+
+    console.log(`Playing speech number ${audioCounter}.`);
+
+    try {
+        // Fetch the audio file dynamically based on the audioCounter
+        const response = await fetch(`/download_audio?audio_index=${audioCounter}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'audio/mpeg' },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch speech${audioCounter}.mp3`);
+        }
+
+        // Get the audio blob from the response
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+
+        // Set the flag to true while the audio is playing
+        isAudioPlaying = true;
+
+        audio.play();
+
+        // Handle the end of audio playback
+        audio.onended = async () => {
+            isAudioPlaying = false;
+            URL.revokeObjectURL(audioUrl);  // Clean up the object URL to avoid memory leaks
+
+            // Check if there are more audio files to play
+            if (audioCounter < totalAudioFiles) {
+                audioCounter++;  // Move to the next audio file
+                await playAudioFromPath();  // Play the next audio file
+            } else {
+                // Once all audio files are played, delete the speech files
+                await deleteAllSpeeches();
+            }
+        };
+    } catch (error) {
+        console.error("Error playing audio:", error);
+    }
+}
+
+
+    
 
 // let pollingInProgress = false;  // Flag to ensure polling only runs once
 
 let messageAppended = false;  // Flag to track if the message has been appended
 let audioPlayed = false;  
-
-function pollTaskStatus(taskId) {
-    // if (pollingInProgress) return;  // Prevent multiple polling intervals
-    // pollingInProgress = true;
-
-    const interval = setInterval(() => {
-        fetch(`/generate_response_VOICE_ONLY_task_status/${taskId}`, {
-            method: 'GET'
-        })
-        .then(response => response.json())
-        .then(data => {
-            // console.log("Task status: ", data);
-
-            // When task is completed, get the response and process it
-            if (data.state === 'SUCCESS') {
-                clearInterval(interval);  // Stop polling
-
- 
-                const llmResponse = data.result;  // Get the assistant's response
-
-                if (llmResponse.includes("/payment_buffer")) {
-                    sessionStorage.setItem("next_link", llmResponse)
-                    window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
-                    return;
-                }
-
-                if (llmResponse.includes("Thank you very much! You ordered")) {
-                    const unique_azz_id = "{{ unique_azz_id }}";
-                    sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
-                    window.location.href = `/takeaway_delivery/${unique_azz_id}`;
-                    return;
-                }
-             
-                generateVoiceOutput(llmResponse)
-                
-                const phraseDisplay = document.getElementById('wittyPhrase');
-                phraseDisplay.style.display = 'none';
-
-                enableInput();
-
-                let pollingInProgress = false;
-            }
-
-            // Handle task failure
-            if (data.state === 'FAILURE') {
-                clearInterval(interval);  // Stop polling
-                console.error("Task failed: ", data.status);
-                appendMessage('An error occurred. Please try again.', 'system');
-                // showWittyPhrase(false);
-
-
-                enableInput();
-            }
-
-            // If task is still pending, continue polling
-            if (data.state === 'PENDING' || data.state === 'RETRY') {
-                // console.log("Task is still pending or retrying. Waiting...");
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching task status: ", error);
-            clearInterval(interval);  // Stop polling in case of an error
-        });
-    }, 1000);  // Poll every 1 second
-}
-
-
-// Generate voice output for the assistant's response
-function generateVoiceOutput(llmResponse) {
-    if (audioPlayed) return;  // Prevent multiple calls to this function
-    audioPlayed = true;  // Set the flag to true after the first execution
-
-    const unique_azz_id = "{{ unique_azz_id }}";
-    const userLanguage = sessionStorage.getItem('userLanguage');
-
-    const voiceFormData = new FormData();
-    voiceFormData.append('response_text', llmResponse);
-    voiceFormData.append('language', userLanguage);
-
-    fetch(`/generate_ONLY_VOICE_output/${unique_azz_id}`, {
-        method: 'POST',
-        body: voiceFormData
-    })
-    .then(response => response.json())  // Parse the JSON response
-    .then(data => {
-        console.log("Received response with video and audio links");
-
-        const audioUrl = "/download_audio";
-        fetch(audioUrl)
-            .then(response => response.blob())
-            .then(audioBlob => {
-                const audioObjectUrl = window.URL.createObjectURL(audioBlob);
-                const audio = new Audio(audioObjectUrl);
-                audio.play();  // Play the audio response
-                
-            })
-            .catch(error => console.error("Error playing audio: ", error));
-
-        // Handle the video URL
-        const videoUrl = data.video_url;
-        console.log("Video URL: ", videoUrl);
-        if (videoUrl) {
-            // Append video message to the chat
-            console.log("Start appending video")
-            appendMessage(videoUrl, 'assistant', true);  // The third argument (true) indicates this is a video
-        }
-        // Do something with the video URL (e.g., display or link)
-    })
-    .catch(error => {
-        console.error("Error generating voice output: ", error);
-    });
-}
-
-
-
 
     window.showWittyPhrase = function showWittyPhrase(visible, voice_input=false) {
         const phrases = {
@@ -1265,17 +1336,9 @@ const micButton = document.getElementById('micButton');
 
                 const unique_azz_id = "{{ unique_azz_id }}";
 
-                // Trigger the Celery task for response generation
-                const triggerResponse = await fetch(`/trigger_generate_response_VOICE_ONLY/${unique_azz_id}`, {
-                    method: 'POST',
-                    body: responseFormData
-                });
+                await sendMessage(transcription);
 
-                const triggerData = await triggerResponse.json();
-                const taskId = triggerData.task_id;  // Get the task ID
-
-                // Poll the task status
-                await pollTaskStatus(taskId);
+                enableInput();
 
                 // showWittyPhrase(false);
 
@@ -1285,6 +1348,7 @@ const micButton = document.getElementById('micButton');
             }
         } catch (error) {
             appendMessage('An error occurred. Please try again.', 'system');
+            console.error(error)
             enableInput();
         } finally {
             // enableInput();
