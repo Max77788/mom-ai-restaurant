@@ -3303,6 +3303,11 @@ def trigger_demo_call():
     
 ######################### Chat Flow ############################
 
+@app.route('/chat_start/<unique_azz_id>', methods=['GET', 'POST'])
+def chat_start(unique_azz_id):
+    assistant_id = collection.find_one({"unique_azz_id": unique_azz_id})["assistant_id"]
+    return render_template("dashboard/choose_chat_lang.html", unique_azz_id=unique_azz_id, assistant_id=assistant_id, title="Start Chat")
+
 # Start conversation thread
 @app.route('/assistant_start/<assistant_id>', methods=['GET', 'POST'])
 def start_conversation(assistant_id):
@@ -3316,8 +3321,11 @@ def start_conversation(assistant_id):
     print("Starting a new conversation...")  # Debugging line
     thread = CLIENT_OPENAI.beta.threads.create(
     # tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
-    )                                               
-                                                               
+    )                                     
+
+    session["current_thread_id"] = thread.id   
+
+    print(f"Current thread id: {thread.id}")                                
     
     # Get current UTC time and format it as dd.mm hh:mm
     # timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
@@ -3325,10 +3333,10 @@ def start_conversation(assistant_id):
     
     
     print(f"New thread created with ID: {thread.id}")  # Debugging line
-    return jsonify({"thread_id": thread.id, "assistant_id": assistant_id})
+    return jsonify({"thread_id": thread.id , "assistant_id": assistant_id})
 
-@app.route('/assistant_order_chat/<unique_azz_id>')
-def assistant_order_chat(unique_azz_id, from_splash_page=False):
+@app.route('/assistant_order_chat/<unique_azz_id>/<current_thread_id>')
+def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page=False):
     # Retrieve the full assistant_id from the session
     lang = request.args.get('lang', 'en')
 
@@ -3387,7 +3395,43 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
     session["res_currency"] = res_currency
     session["restaurant_name"] = restaurant_name
 
-    print("Discovery mode we passed: ", discovery_mode)
+    response = CLIENT_OPENAI.beta.threads.messages.list(current_thread_id)
+
+    print(response)
+
+    # Define the regex pattern to capture the text after "Customer's message:"
+    pattern = r"Customer's message:\s*(.*)"
+
+    list_of_current_messages = []
+    for chunk in response.data:
+        message = {}
+        message["role"] = chunk.role
+        # Use re.search to find and extract the part after "Customer's message:"
+        text_content = chunk.content[0].text.value
+        message["content"] = text_content
+        
+        if chunk.role == "user":
+            match = re.search(pattern, text_content)
+            
+            message["content"] = match.group(1)
+        list_of_current_messages.append(message)
+    
+    runs = CLIENT_OPENAI.beta.threads.runs.list(
+    current_thread_id
+    )
+
+    requires_action = False
+    
+    # Iterate over runs.data and check if any status is "requires_action"
+    for run in runs.data:
+        if run.status == "requires_action":
+            requires_action = True
+            break  # Exit the loop early if "requires_action" is found
+
+    print(f"Requires action: {requires_action}")
+
+    print(f"List of current messages: {list_of_current_messages}")
+
     # Use the restaurant_name from the URL and the full assistant_id from the session
     return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
                            lang=lang, 
@@ -3402,7 +3446,9 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
                            default_menu=default_menu,
                            discovery_mode=discovery_mode,
                            current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
-                           from_splash_page=from_splash_page)
+                           from_splash_page=from_splash_page,
+                           list_of_current_messages=list_of_current_messages,
+                           requires_action=requires_action)
 
 
 
@@ -3563,6 +3609,11 @@ def generate_response_streaming(unique_azz_id):
                     yield "discovery_mode_no_order"
                 print("Action in progress...")
 
+                if res_currency != 'EUR':
+                    rate = c.convert(1, res_currency, 'EUR')
+                else:
+                    rate = 1
+                
                 messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
                 #print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
 
@@ -3672,11 +3723,7 @@ def generate_response_streaming(unique_azz_id):
                             yield link_to_payment_buffer
                         else:
                             total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
-                            
-                            if res_currency != 'EUR':
-                                rate = c.convert(1, res_currency, 'EUR')
-                            else:
-                                rate = 1
+
                             
                             total_price_EUR = f"{float(total_price)*rate:.2f}"
 

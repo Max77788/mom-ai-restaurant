@@ -355,10 +355,7 @@ def upload_file_to_s3(file, bucket_name=S3_BUCKET, acl="public-read", s3_key=Non
         s3.upload_fileobj(
             file,
             bucket_name,
-            s3_key,
-            ExtraArgs={
-                "ACL": acl
-            }
+            s3_key
         )
 
         # Construct the full S3 URL
@@ -1087,7 +1084,7 @@ def generate_qr_code_and_upload(text, unique_azz_id):
     qr_code_img = qr_code_img.resize(qr_code_size)
 
     # Paste the QR code at the desired position (coordinates need adjustment based on your image)
-    base_image.paste(qr_code_img, (450, 310))
+    base_image.paste(qr_code_img, (450, 290))
 
     # Convert the base_image (with QR code) to a BytesIO object
     img_byte_arr = BytesIO()
@@ -1922,6 +1919,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
     # Initialize the GoogleTranslator
     translator = GoogleTranslator(source='auto', target='en')
     
+    """
     if language != "en":
         # Translate the user input to English
         translated_user_message = translator.translate(user_message)
@@ -1929,12 +1927,15 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         print("--------------------------------------------------------")
     else:
         translated_user_message = user_message
+    """
 
+    translated_user_message = user_message
     
     messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
     
     PROVIDE_RESPONSE_IN_THIS_LANGUAGE = f"""
     Provide the response in this language: {language}
+    The prices of the items on menu are in this currency: {res_currency}
     """
  
     user_message = f"""
@@ -1947,7 +1948,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
         from this list and use the images from this list:
         {list_of_all_items} 
-        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170"  height="auto"> 
         Provide the images as much as possible.
         Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
         Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
@@ -1958,7 +1959,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
         from this list and use the images from this list:
         {list_of_all_items} 
-        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" style="max-width: 100%; height: auto;" height="auto"> 
         Provide the images as much as possible.
         The prices of the items are in this currency: {res_currency}
         """

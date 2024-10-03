@@ -1,5 +1,5 @@
-Item Name: Chicken Biryani - Item Ingredients: Chicken, rice, spices, herbs - Item Price in currency EUR: 15.99 - Item's image: <img src="(URL to image)" alt="Image of Chicken Biryani" width="170" height="auto">
-Item Name: Vegetable Samosa - Item Ingredients: Potatoes, peas, spices, pastry - Item Price in currency EUR: 5.99 - Item's image: <img src="(URL to image)" alt="Image of Vegetable Samosa" width="170" height="auto">
-Item Name: Lamb Vindaloo - Item Ingredients: Lamb, vinegar, spices, chili - Item Price in currency EUR: 18.99 - Item's image: <img src="(URL to image)" alt="Image of Lamb Vindaloo" width="170" height="auto">
-Item Name: Mango Lassi - Item Ingredients: Mango, yogurt, sugar - Item Price in currency EUR: 4.99 - Item's image: <img src="(URL to image)" alt="Image of Mango Lassi" width="170" height="auto">
-Item Name: Garlic Naan - Item Ingredients: Flour, garlic, butter - Item Price in currency EUR: 3.99 - Item's image: <img src="(URL to image)" alt="Image of Garlic Naan" width="170" height="auto">
+Item Name: Chicken Biryani - Item Ingredients: Rice, Chicken, Spices - Item Price in currency EUR: 19.19 - Item's image: <img src="https://i.ibb.co/x8G2BXW/download.jpg" alt="Image of Chicken Biryani" width="170" height="auto">
+Item Name: Lamb Biryani - Item Ingredients: Rice, Lamb, Spices - Item Price in currency EUR: 21.18 - Item's image: <img src="https://i.ibb.co/Y3fRk5W/download-1.jpg" alt="Image of Lamb Biryani" width="170" height="auto">
+Item Name: Vegetable Biryani - Item Ingredients: Rice, Vegetables, Spices - Item Price in currency EUR: 16.54 - Item's image: <img src="https://i.ibb.co/X8RDYP2/download-2.jpg" alt="Image of Vegetable Biryani" width="170" height="auto">
+Item Name: Shawarma Wrap - Item Ingredients: Chicken, Salad, Sauce, Wrap - Item Price in currency EUR: 9.93 - Item's image: <img src="https://i.ibb.co/2YYHkpv/download-3.jpg" alt="Image of Shawarma Wrap" width="170" height="auto">
+Item Name: Falafel Wrap - Item Ingredients: Falafel, Salad, Sauce, Wrap - Item Price in currency EUR: 8.6 - Item's image: <img src="https://i.ibb.co/ngv68Rw/download-4.jpg" alt="Image of Falafel Wrap" width="170" height="auto">

@@ -62,39 +62,11 @@
 <script src="https://cdn.jsdelivr.net/npm/web3@1.3.5/dist/web3.min.js"></script>
 
 <div style="width: 100%; margin: auto; height: 100vh; display: flex; flex-direction: column; justify-content: space-between;">
-    
-    <div id="overlay" style="position: fixed; width: 100%; height: 100%; top: 0; left: 0; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000;">
-        <div style="background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 300px; width: 90%;">
-            <h2>Select Language & Start</h2>
-            <select id="languageSelectOverlay" style="margin: 10px 0; padding: 10px; width: 100%;">
-                <option value="en-US">English (US) 🇺🇸</option>
-                <option value="es-ES">Spanish 🇪🇸</option>
-                <option value="uk-UA">Ukrainian 🇺🇦</option>
-                <option value="is-IS">Icelandic 🇮🇸</option>
-                <option value="zh-CN">Chinese (Simplified) 🇨🇳</option>
-                <option value="hi-IN">Hindi 🇮🇳</option>
-                <option value="ar-SA">Arabic 🇸🇦</option>
-                <option value="fr-FR">French 🇫🇷</option>
-                <option value="ru-RU">Russian 🇷🇺</option>
-                <option value="th-TH">Thai 🇹🇭</option>
-                <option value="ja-JP">Japanese 🇯🇵</option>
-                <option value="de-DE">German 🇩🇪</option>
-                <option value="pt-BR">Portuguese 🇧🇷</option>
-
-            </select>
-            <button onclick="startChat()" style="padding: 10px; width: 100%;">Start</button>
-            <!--
-            <p style="font-size: 14px; margin-top: 5px;">Connect your web3 wallet<br>&<br>get MOM tokens upon placing the order.</p>
-            <button id="connectWalletButtonOverlay" onclick="connectWallet()" style="margin-top: 10px; padding: 10px; width: 100%;">Connect Web3 Wallet</button>
-            <p id="walletSuccessMessage" style="display: none; color: green; margin-top: 10px;">Wallet connected successfully!<br>Order and get MOM</p>
-            -->
-        </div>
-    </div>
 
     <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;" id="orderHeader">
         Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
     </div>
-    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%; margin-bottom: 100px; margin-top: 55px; height: calc(100vh - 155px);">
+    <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%; margin-bottom: 105px; margin-top: 55px; height: calc(100vh - 155px);">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
             {% if restaurant.res_logo %}
             <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">
@@ -130,9 +102,11 @@
             <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
             <button id="micButton" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
             <!-- Audio button (Play / Mute) -->
-            <button id="audioButton" style="background: none; font-size: 16px; align-items: center;" class="button">🔊</button>
+            <button id="audioButton" style="background: none; font-size: 16px; align-items: center;" class="button">🔊</button><br>
         </div>
         
+        <!-- <button id="topchik" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center; margin-top: 10px;" class="button" disabled>Start a new Chat</button> -->
+
         <div id="spinner" style="display: none; position: absolute; top: 10px; right: 35px;">
             <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
         </div>
@@ -296,19 +270,17 @@
 
 
     function startChat() {
-        userLanguage = document.getElementById('languageSelectOverlay').value;
-
-        sessionStorage.setItem('userLanguage', userLanguage);
+        userLanguage = sessionStorage.getItem('userLanguage');
         console.log("Setup language (", userLanguage, ") in session")
 
         // Hide the overlay
-        document.getElementById('overlay').style.display = 'none';
+        // document.getElementById('overlay').style.display = 'none';
 
         // Translate the texts
         translateTexts(userLanguage);
 
         // Start the conversation
-        startConversation();
+        // startConversation();
         /*
         // Fetch MOM token balance if wallet is connected
         const account = localStorage.getItem("web3_wallet");
@@ -318,9 +290,44 @@
             document.getElementById('tokenBalance').innerText = 'Connect wallet to see MOM token balance';
         }
         */    
+
+        document.getElementById('restaurantLogo').style.display = 'none';
+        document.getElementById('welcomeMessage').style.display = 'none';
+
+        const translation = translations[userLanguage];
+        const initialMessage = `${translation.initialMessage} {{ restaurant_name.replace('_', ' ') }}.<br>${translation.phrase}`;
+        
+        {% if assistant_turned_on and isWorkingHours %}
+        {% if not list_of_current_messages %}
+            appendMessage(initialMessage, 'assistant');
+            const unique_azz_id = "{{ unique_azz_id }}"
+            const intro_url = `https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
+            // console.log(intro_url)
+            appendMessage(intro_url, 'assistant', true);
+            appendStarterPhrases();  // Append starter phrases here
+        {% else %}
+            const messages = {{ list_of_current_messages | tojson }};
+            // You can now use the 'messages' variable in JavaScript
+            messages.reverse();
+            
+            messages.forEach(function(message) {
+            appendMessage(message["content"], message["role"], wordByWord=false)
+            }
+        )
+
+        {% if requires_action %}
+          appendMessage("Press here to continue with your order", "system")
+        {% endif %}
+
+        {% endif %}
+        {% endif %}
+
+        enableInput();
     };
 
     window.startChat = startChat;
+
+    startChat()
 
     function translateTexts(language) {
         const translation = translations[language];
@@ -485,22 +492,6 @@
             // console.log("Received Thread ID: ", data.thread_id);
             // console.log("Current Assistant ID: ", data.assistant_id);
             
-            document.getElementById('restaurantLogo').style.display = 'none';
-            document.getElementById('welcomeMessage').style.display = 'none';
-
-            const translation = translations[userLanguage];
-            const initialMessage = `${translation.initialMessage} {{ restaurant_name.replace('_', ' ') }}.<br>${translation.phrase}`;
-            
-            {% if assistant_turned_on and isWorkingHours %}
-            appendMessage(initialMessage, 'assistant');
-            const unique_azz_id = "{{ unique_azz_id }}"
-            const intro_url = `https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
-            // console.log(intro_url)
-            appendMessage(intro_url, 'assistant', true);
-            appendStarterPhrases();  // Append starter phrases here
-            {% endif %}
-
-            enableInput();
         })
         .catch(error => {
             console.error("Error starting conversation: ", error);
@@ -576,6 +567,9 @@
 
     const formData = new FormData();
     let userLanguage = sessionStorage.getItem('userLanguage');
+
+    currentThreadId =  sessionStorage.getItem("currentThreadId")
+    currentAssistantId =  sessionStorage.getItem("currentAssistantId")
     
     formData.append('message', userMessage);
     formData.append('language', userLanguage);
@@ -614,6 +608,12 @@
             window.location.href = `/takeaway_delivery/${unique_azz_id}`;
             return;
         }
+
+        if (decoded_value.includes("proceed with the placement of the order")){
+            messageDiv.innerHTML = marked.parse("Thank you for your order! I can't proceed with its placement, but you can show the chat to waiter and he will take care of the rest.")
+        }
+
+
 
         messageDiv.innerHTML = marked.parse(output);  // Update the messageDiv dynamically with new text
 
@@ -951,7 +951,7 @@ function scrollToBottom(element) {
 }
 
 
-    function appendMessage(message, sender, isVideo = false) {
+    function appendMessage(message, sender, isVideo = false, wordByWord=true) {
     let isRichContent = false;
 
 
@@ -974,8 +974,6 @@ function scrollToBottom(element) {
         align-items: flex-start;
     `;
 
-
-    
 
 
     if (sender === 'user') {
@@ -1117,12 +1115,22 @@ function scrollToBottom(element) {
         }
 
     } else if (sender === 'system') {
-        messageDiv.style.backgroundColor = '#4CAF50';
+        messageDiv.style.backgroundColor = '#A9A9A9';
         messageDiv.style.color = 'white';
         messageDiv.style.textAlign = 'center';
 
+        
+
         messageContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center;';
         messageContainer.appendChild(messageDiv);
+
+        if (message === "Press here to continue with your order") {
+        // Make messageDiv clickable and redirect to a specific link
+        messageDiv.style.cursor = 'pointer';  // Change cursor to pointer to indicate it's clickable
+        messageDiv.onclick = function() {
+            window.location.href = '/takeaway_delivery/{{ unique_azz_id }}';  // Replace with the URL you want to redirect to
+        }
+        };
     }
 
     document.getElementById('chatBox').appendChild(messageContainer);
@@ -1131,7 +1139,7 @@ function scrollToBottom(element) {
     console.log(`IsRichContent value: ${isRichContent}`)
 
     // If not rich content and sender is assistant, apply word-by-word effect
-    if (!isRichContent) {
+    if (!isRichContent && wordByWord) {
         displayWord(messageDiv, message);
     }
 }

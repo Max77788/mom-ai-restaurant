@@ -1,16 +1,6 @@
 {% extends "layout_no_land.html" %}
 
 {% block content %}
-<div style="
-    display: flex;
-    justify-content: center;
-    align-items: center;
-">
-    <div id="google_translate_element" style="
-        max-width: 200px;
-        width: 100%;
-    "></div>
-</div>
 
 <script type="text/javascript">
     function googleTranslateElementInit() {
@@ -172,8 +162,10 @@
         {% endfor %}
         <b>Total:<br>
         {{ total_price_NATIVE }} {{ res_currency }}<br>
+        {% if res_currency != "EUR" %}
         or<br>
         {{ total_paid }} EUR</b>
+        {% endif %}
     </ul>
     <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
         Please, remember this number - you will not be able to pick your order without this number.</h3>
@@ -341,5 +333,17 @@
     }
     */
 </script>
+
+<div style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+">
+    <div id="google_translate_element" style="
+        margin-top: 10px;
+        max-width: 200px;
+        width: 100%;
+    "></div>
+</div>
 
 {% endblock %}

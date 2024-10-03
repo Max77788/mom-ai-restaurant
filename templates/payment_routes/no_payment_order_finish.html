@@ -1,16 +1,6 @@
 {% extends "layout_no_land.html" %}
 
 {% block content %}
-<div style="
-    display: flex;
-    justify-content: center;
-    align-items: center;
-">
-    <div id="google_translate_element" style="
-        max-width: 200px;
-        width: 100%;
-    "></div>
-</div>
 
 <script type="text/javascript">
     function googleTranslateElementInit() {
@@ -338,6 +328,18 @@
         
         <p>You can make another order in {{ restaurant_name }} by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
         <p style="margin-top: 8px;">To explore the family of AI-empowered restaurants click <a href="/ai-restaurants" target="_blank" style="color: darkred;">this link</a>.</p>
+
+        <div style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+">
+    <div id="google_translate_element" style="
+        margin-top: 10px;
+        max-width: 200px;
+        width: 100%;
+    "></div>
+</div>
 
 {% endblock %}
 
