@@ -53,3 +53,4 @@ boto3
 botocore
 Pillow
 twilio
+flask-socketio
