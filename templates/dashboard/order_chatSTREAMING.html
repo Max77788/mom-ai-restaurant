@@ -63,8 +63,10 @@
 
 <div style="width: 100%; margin: auto; height: 100vh; display: flex; flex-direction: column; justify-content: space-between;">
 
-    <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; flex-direction: column; align-items: center;" id="orderHeader">
-        Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant
+    <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: center; align-items: center;" id="orderHeader">
+        <!-- <div style="position: absolute; left: 10px; width: 24px;"></div> -->
+        <div style="text-align: center; flex-grow: 0;">Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant</div>
+        <!-- <div id="chat_start_button" style="position: absolute; right: 10px; width: 24px; height: 24px; cursor: pointer;"><a href="/chat_start/{{ unique_azz_id }}" target="_blank" style="color: white; text-decoration: none;">awesome</a></div> -->
     </div>
     <div id="chatBox" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; width: 100%; margin-bottom: 105px; margin-top: 55px; height: calc(100vh - 155px);">
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
@@ -315,10 +317,14 @@
             }
         )
 
-        {% if requires_action %}
+        {% if requires_action and not suggest_new_order %}
           appendMessage("Press here to continue with your order", "system")
         {% endif %}
 
+        {% if suggest_new_order %}
+          appendMessage("The order is outdated. Please, press here to start a new order", "system")
+        {% endif %}
+ 
         {% endif %}
         {% endif %}
 
@@ -337,6 +343,7 @@
         if (document.getElementById('offMessage')){
         document.getElementById('offMessage').textContent = translation.offMessage;
         }
+        // document.getElementById("chat_start_button").innerHTML = <a href="/chat_start/{{ unique_azz_id }}" target="_blank" style="color: white; text-decoration: none;">awesome</a>';
     }
 
     function appendStarterPhrases() {
@@ -597,15 +604,17 @@
         output += decoded_value;
 
         if (decoded_value.includes("payment_buffer")) {
+            const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             sessionStorage.setItem("next_link", output)
-            window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
+            window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
             return;
         }
 
         if (decoded_value.includes("Thank you very much! You ordered")){
+            const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             const unique_azz_id = "{{ unique_azz_id }}";
             sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
-            window.location.href = `/takeaway_delivery/${unique_azz_id}`;
+            window.location.href = `/takeaway_delivery/${unique_azz_id}#googtrans(en|${initialLanguage})`;
             return;
         }
 
@@ -713,12 +722,20 @@ function speakText(text) {
     });
 }
 
+// Global variable to track if audio is currently playing
+let isAudioPlaying = false;
 
 // Generate voice output for the assistant's response
 function generateVoiceOutput(llmResponse) {
     if (audioPlayed) return;  // Prevent multiple calls to this function
     audioPlayed = true;  // Set the flag to true after the first execution
 
+    // Check if audio is already playing
+    if (isAudioPlaying) {
+        console.log("Audio is already playing. Skipping this response.");
+        return;
+    }
+    
     const unique_azz_id = "{{ unique_azz_id }}";
     const userLanguage = sessionStorage.getItem('userLanguage');
 
@@ -741,10 +758,26 @@ function generateVoiceOutput(llmResponse) {
             .then(audioBlob => {
                 const audioObjectUrl = window.URL.createObjectURL(audioBlob);
                 const audio = new Audio(audioObjectUrl);
+                
+                // Set flag when audio starts playing
+                audio.onplay = () => {
+                    isAudioPlaying = true;
+                    console.log("Audio is playing")
+                };
+                
+                // Reset flag when audio ends
+                audio.onended = () => {
+                    isAudioPlaying = false;
+                    console.log("Audio is not playing")
+                };
+                
                 audio.play();  // Play the audio response
                 
             })
-            .catch(error => console.error("Error playing audio: ", error));
+            .catch(error => {console.error("Error playing audio: ", error);
+            isAudioPlaying = false;  // Reset flag in case of error
+            console.log("Audio is not playing")
+    });
 
         // Handle the video URL
         const videoUrl = data.video_url;
@@ -998,16 +1031,18 @@ function scrollToBottom(element) {
     ];
 
     if (message.includes("/payment_buffer") && sender === "assistant"){
+        const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
         sessionStorage.setItem("next_link", message)
-        window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
+        window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage}`;
         // appendMessage(llmResponse, "assistant")
         return; // Terminate the function here
     };
 
     if (message.includes("Thank you very much! You ordered") && sender === "assistant"){
         const unique_azz_id = "{{ unique_azz_id }}"
+        const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
         sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
-        window.location.href = "/takeaway_delivery/{{ unique_azz_id }}";
+        window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage}`;
         // appendMessage(llmResponse, "assistant")
         return; // Terminate the function here
     }
@@ -1035,12 +1070,8 @@ function scrollToBottom(element) {
     }
 }
 
-    // If it's rich content, directly insert HTML; otherwise, treat as plain text
-    if (isRichContent) {
-        messageDiv.innerHTML = message;  // Insert the HTML content directly
-    } else {
-        messageDiv.textContent = message;  // For plain text, use textContent
-    }
+    
+    messageDiv.innerHTML = message;
 
     const iconDiv = document.createElement('div');
     iconDiv.style.cssText = 'width: 40px; height: 40px; border-radius: 50%; overflow: hidden; margin: 10px; flex-shrink: 0;';
@@ -1115,7 +1146,7 @@ function scrollToBottom(element) {
         }
 
     } else if (sender === 'system') {
-        messageDiv.style.backgroundColor = '#A9A9A9';
+        messageDiv.style.backgroundColor = 'green';
         messageDiv.style.color = 'white';
         messageDiv.style.textAlign = 'center';
 
@@ -1126,9 +1157,19 @@ function scrollToBottom(element) {
 
         if (message === "Press here to continue with your order") {
         // Make messageDiv clickable and redirect to a specific link
+        
         messageDiv.style.cursor = 'pointer';  // Change cursor to pointer to indicate it's clickable
         messageDiv.onclick = function() {
-            window.location.href = '/takeaway_delivery/{{ unique_azz_id }}';  // Replace with the URL you want to redirect to
+            const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
+            window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+        }
+        };
+
+        if (message === "The order is outdated. Please, press here to start a new order") {
+        // Make messageDiv clickable and redirect to a specific link
+        messageDiv.style.cursor = 'pointer';  // Change cursor to pointer to indicate it's clickable
+        messageDiv.onclick = function() {
+            window.location.href = '/chat_start/{{ unique_azz_id }}';  // Replace with the URL you want to redirect to
         }
         };
     }
@@ -1139,9 +1180,9 @@ function scrollToBottom(element) {
     console.log(`IsRichContent value: ${isRichContent}`)
 
     // If not rich content and sender is assistant, apply word-by-word effect
-    if (!isRichContent && wordByWord) {
-        displayWord(messageDiv, message);
-    }
+    //if (!isRichContent && wordByWord) {
+    //    displayWord(messageDiv, message);
+    //}
 }
 
 // Word-by-word display function, only used for non-rich content
@@ -1265,7 +1306,6 @@ const micButton = document.getElementById('micButton');
                 pollTaskStatus(taskId);
 
                 // showWittyPhrase(false);
- 
                 */ 
             } else {
                 appendMessage('Transcription failed. Please try again.', 'system');

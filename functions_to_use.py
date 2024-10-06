@@ -1,6 +1,7 @@
 #import eventlet
 #eventlet.monkey_patch()
 from flask import Flask, jsonify, session, request, url_for, flash, redirect
+from flask_socketio import SocketIO, emit
 from celery_folder.celery_config import make_celery
 from flask_mail import Mail, Message
 from flask_caching import Cache
@@ -51,9 +52,10 @@ from botocore.exceptions import NoCredentialsError
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-#socketio = SocketIO(app, async_mode='eventlet')
+
 
 app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Initialize Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.privateemail.com'

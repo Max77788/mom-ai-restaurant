@@ -216,6 +216,7 @@
 
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
 
 <script>
     window.onload = function() {
@@ -639,7 +640,7 @@
 
             setTimeout(function() {
             const unique_azz_id = "{{ unique_azz_id }}"
-            const intro_url = `https://mom-ai-restaurant-images.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
+            const intro_url = `https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/restaurant_intros/intro_${unique_azz_id}.mp4`
             // console.log(intro_url)
             appendMessage(intro_url, 'assistant', true);
         }, 1500);
@@ -668,110 +669,24 @@
         console.log("Input and buttons ENABLED");
     }
 
-    // Generate voice output for the assistant's response
-async function generateVoiceOutputStreaming(llmResponse) {
-    // if (audioPlayed) return;  // Prevent multiple calls to this function
-    // audioPlayed = true;  // Set the flag to true after the first execution
-
-    console.log("Entered voice function")
-    
-    const unique_azz_id = "{{ unique_azz_id }}";
-    const userLanguage = sessionStorage.getItem('userLanguage');
-
-    const voiceFormData = new FormData();
-    voiceFormData.append('full_gpts_response', llmResponse);
-    voiceFormData.append('language', userLanguage);
-
-    const response = await fetch(`/generate_voice_output_streaming/${unique_azz_id}`, {
-        method: 'POST',
-        body: voiceFormData
-    });
-
-    const reader = response.body.getReader();
-    let outputBuffer = [];  // Buffer to store 3 outputs
-
-    while (true) {
-        const { done, value } = await reader.read();
-        const outputChunk = new TextDecoder().decode(value);
-
-        console.log("Chunk received: ", outputChunk);
-
-        // Add the current chunk to the buffer
-        outputBuffer.push(outputChunk);
-
-        // If we have 3 chunks in the buffer, concatenate them and pass to speakText
-        if (outputBuffer.length === 40) {
-            const combinedOutput = outputBuffer.join(" ");
-            console.log("Combined output to pass to speakText: ", combinedOutput);
-
-            // Play the combined output
-            await speakText(combinedOutput);
-
-            // Clear the buffer
-            outputBuffer = [];
-        }
-
-        if (done) {
-            console.log("No more chunks to read. Finishing up...");
-
-            // If there's remaining output in the buffer, speak it
-            if (outputBuffer.length > 0) {
-                const remainingOutput = outputBuffer.join(" ");
-                console.log("Final output to speak: ", remainingOutput);
-                await speakText(remainingOutput);
-            }
-
-            break;
-        }
-    }
-}
-
-
     function disableInput() {
         const spinner = document.getElementById('spinner');
         
         if (spinner) {
         spinner.style.display = 'block';
-        // showWittyPhrase(true);
+        // showWittyPhrase(false);
         };
         
-        console.log("Disabling input fields and buttons");
+        console.log("Enabling input fields and buttons");
         document.getElementById('userMessage').disabled = true;
-        document.getElementById('userMessage').value = '';
         document.querySelector('button[onclick="sendMessage()"]').disabled = true;
         document.getElementById('micButton').disabled = true;
-        console.log("Input and buttons DISABLED");
+        console.log("Input and buttons ENABLED");
     }
 
-
-    window.sendMessage = async function sendMessage(message = null) {
-    console.log(`Message within the sendMessage function: ${message}`);
-
-    // Get the message either from the passed parameter or the input field
-    let userMessage = message || document.getElementById('userMessage').value;
-    disableInput();
-
-    console.log("Send button clicked");
-    console.log("User message: ", userMessage);
-
-    // Prevent sending empty messages
-    if (userMessage.trim() === '') {
-        console.log("Empty message, not sending.");
-        enableInput();
-        return;
-    }
-
-    const uniqueAzzId = "{{ unique_azz_id }}";
-    const userLanguage = sessionStorage.getItem('userLanguage');
-
-    // Call the playStreamedAudio function to send the message and stream audio
-    await playStreamedAudio(uniqueAzzId, userMessage, userLanguage, currentThreadId, currentAssistantId);
-
-    enableInput();  // Enable input after audio finishes
-};
-
-
-async function playStreamedAudio(uniqueAzzId, userMessage, userLanguage, currentThreadId, currentAssistantId) {
+    async function playStreamingAudio(uniqueAzzId, userMessage, userLanguage, currentThreadId, currentAssistantId) {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
     try {
         // Prepare the form data for the POST request
         const formData = new FormData();
@@ -788,137 +703,146 @@ async function playStreamedAudio(uniqueAzzId, userMessage, userLanguage, current
             body: formData
         });
 
+        console.log("Server response status:", response.status);
         if (!response.ok) {
+            console.error('Failed to fetch audio stream, status:', response.status);
             throw new Error('Failed to fetch audio stream');
         }
 
-        // Create an AudioContext for Web Audio API
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const reader = response.body.getReader();
+        console.log("Reader initialized for audio stream.");
 
-        // Create a buffer to store chunks temporarily
-        let audioQueue = [];
+        let audioBufferQueue = [];
         let isPlaying = false;
 
-        const reader = response.body.getReader();
+        function playAudioBuffer(buffer) {
+            console.log("Playing audio buffer...");
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioContext.destination);
+            source.start();
+        }
 
-        async function processAndPlayAudioChunks() {
-            while (audioQueue.length > 0) {
-                const chunk = audioQueue.shift();  // Get the next chunk from the queue
-
-                // Decode the audio data from the chunk
-                try {
-                    const decodedAudioData = await audioContext.decodeAudioData(chunk.buffer);
-                    
-                    // Create a buffer source and connect to the destination
-                    const source = audioContext.createBufferSource();
-                    source.buffer = decodedAudioData;
-                    source.connect(audioContext.destination);
-
-                    // Start playing
-                    source.start();
-                    
-                    // Wait for the audio to finish playing
-                    await new Promise(resolve => {
-                        source.onended = resolve;
-                    });
-                } catch (error) {
-                    console.error('Error decoding or playing audio:', error);
-                }
+        function queueAndPlay(buffer) {
+            console.log("Queueing audio buffer...");
+            audioBufferQueue.push(buffer);
+            console.log("Current buffer queue length:", audioBufferQueue.length);
+            if (!isPlaying) {
+                console.log("Starting audio queue processing...");
+                isPlaying = true;
+                processAudioQueue();
             }
+        }
 
+        async function processAudioQueue() {
+            console.log("Processing audio queue...");
+            while (audioBufferQueue.length > 0) {
+                const buffer = audioBufferQueue.shift();
+                console.log("Playing next buffer in queue...");
+                playAudioBuffer(buffer);
+                // Wait for the buffer's duration to finish before playing the next chunk
+                await new Promise((resolve) => setTimeout(resolve, buffer.duration * 1000));
+            }
+            console.log("Audio queue is empty, stopping playback.");
             isPlaying = false;
         }
 
-        // Read the response stream and play audio in real-time
+        // Read and process audio chunks progressively
         while (true) {
+            console.log("Waiting for audio chunk from stream...");
             const { done, value } = await reader.read();
-            if (done) break;  // Stream finished
+            if (done) {
+                console.log("Audio stream done.");
+                break;
+            }
 
-            if (value) {
-                audioQueue.push(value);  // Add chunks to the queue
+            console.log("Received audio chunk from stream. Converting to ArrayBuffer...");
+            // Ensure that the value is properly converted to an ArrayBuffer
+            const arrayBuffer = new Uint8Array(value).buffer;
 
-                // Start processing and playing chunks if not already playing
-                if (!isPlaying) {
-                    isPlaying = true;
-                    processAndPlayAudioChunks();
-                }
+            try {
+                console.log("Decoding audio chunk...");
+                audioContext.decodeAudioData(arrayBuffer, (decodedData) => {
+                    console.log("Audio chunk decoded. Queueing for playback.");
+                    queueAndPlay(decodedData);
+                }, (error) => {
+                    console.error("Error decoding audio data:", error);
+                });
+            } catch (decodeError) {
+                console.error("Failed to decode audio data:", decodeError);
             }
         }
 
-        console.log("Audio streaming completed.");
     } catch (error) {
-        console.error('Error playing streamed audio:', error);
+        console.error("Error in playStreamingAudio:", error);
     }
 }
 
 
+    const socket = io('http://localhost:5000');
+    let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let audioQueue = [];
 
+    // Listen for audio chunks from the server
+    socket.on('audio_chunk', function(audioChunk) {
+        console.log("Received audio chunk from stream. Chunk size:", audioChunk.byteLength);
+        
+        // Convert the received chunk to an ArrayBuffer
+        let arrayBuffer = new Uint8Array(audioChunk).buffer;
+        console.log("Converted chunk to ArrayBuffer:", arrayBuffer);
 
-// Function to delete all speech files after playback
-async function deleteAllSpeeches() {
-    try {
-        const response = await fetch('/delete_speeches', { method: 'DELETE' });
-        if (!response.ok) {
-            throw new Error('Failed to delete speeches');
-        }
-        console.log('Speeches deleted successfully');
-    } catch (error) {
-        console.error("Error deleting speeches:", error);
-    }
-}
-
-let isAudioPlaying = false;
-let audioCounter = 1
-let totalAudioFiles = 0;
-
-// Function to play audio files sequentially
-async function playAudioFromPath() {
-    if (isAudioPlaying) {
-        // Wait until the previous audio finishes
-        return;
-    }
-
-    console.log(`Playing speech number ${audioCounter}.`);
-
-    try {
-        // Fetch the audio file dynamically based on the audioCounter
-        const response = await fetch(`/download_audio?audio_index=${audioCounter}`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'audio/mpeg' },
+        audioContext.decodeAudioData(arrayBuffer, (decodedData) => {
+            console.log("Decoded audio chunk, preparing to play.");
+            
+            let source = audioContext.createBufferSource();
+            source.buffer = decodedData;
+            source.connect(audioContext.destination);
+            
+            console.log("Audio buffer connected, starting playback.");
+            source.start();
+        }, (error) => {
+            console.error("Error decoding audio chunk:", error);
         });
+    });
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch speech${audioCounter}.mp3`);
+    // Handle when the server notifies that the stream has ended
+    socket.on('audio_stream_end', function() {
+        console.log("Audio stream ended. No more chunks to process.");
+    });
+
+    // Handle errors
+    socket.on('error', function(error) {
+        console.error("Error received from server:", error.message);
+    });
+
+    // Listen for the 'test_response' event from the server
+    socket.on('test_response', function(response) {
+        console.log('Received response from server:', response);
+    });
+
+    socket.on('audio_stream_received', function(data) {
+        console.log("Server acknowledged start_audio_stream:", data);
+    });
+
+
+    
+    function startStreaming(data) {
+        if (socket.connected) {
+            console.log('Socket is already connected.');
+            console.log("Emitting start_audio_stream event:", data);
+            socket.emit('start_audio_stream', data);
+        } else {
+            console.log('Socket is not connected yet. Waiting for connect event.');
+            socket.connect();
+            socket.once('connect', function() {
+                console.log('Connected to server.');
+                console.log("Emitting start_audio_stream event:", data);
+                socket.emit('start_audio_stream', data);
+            });
         }
-
-        // Get the audio blob from the response
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-
-        // Set the flag to true while the audio is playing
-        isAudioPlaying = true;
-
-        audio.play();
-
-        // Handle the end of audio playback
-        audio.onended = async () => {
-            isAudioPlaying = false;
-            URL.revokeObjectURL(audioUrl);  // Clean up the object URL to avoid memory leaks
-
-            // Check if there are more audio files to play
-            if (audioCounter < totalAudioFiles) {
-                audioCounter++;  // Move to the next audio file
-                await playAudioFromPath();  // Play the next audio file
-            } else {
-                // Once all audio files are played, delete the speech files
-                await deleteAllSpeeches();
-            }
-        };
-    } catch (error) {
-        console.error("Error playing audio:", error);
     }
-}
+
+
 
 
     
@@ -1327,23 +1251,68 @@ const micButton = document.getElementById('micButton');
 
                 disableInput();
 
+                /*
                 // Create a new FormData for the response generation
                 const responseFormData = new FormData();
                 responseFormData.append('message', transcription);
                 responseFormData.append('thread_id', currentThreadId);
                 responseFormData.append('assistant_id', currentAssistantId);
                 responseFormData.append('language', userLanguage);
+                */
 
                 const unique_azz_id = "{{ unique_azz_id }}";
 
-                await sendMessage(transcription);
+                // await playStreamingAudio(unique_azz_id, transcription, userLanguage, currentThreadId, currentAssistantId)
+
+                data = {
+                message: transcription,
+                language: userLanguage,
+                thread_id: currentThreadId,
+                assistant_id: currentAssistantId,
+                unique_azz_id: unique_azz_id
+                }
+                
+                startStreaming(data)
+                // await sendMessage(transcription);
 
                 enableInput();
 
                 // showWittyPhrase(false);
 
             } else {
-                appendMessage('Transcription failed. Please try again.', 'system');
+                // appendMessage('Transcription failed. Please try again.', 'system');
+                // enableInput();
+                const transcription = "Hey, what's up?";
+                // appendMessage(transcription, "user");
+
+                disableInput();
+
+                /*
+                // Create a new FormData for the response generation
+                const responseFormData = new FormData();
+                responseFormData.append('message', transcription);
+                responseFormData.append('thread_id', currentThreadId);
+                responseFormData.append('assistant_id', currentAssistantId);
+                responseFormData.append('language', userLanguage);
+                */
+
+                const unique_azz_id = "{{ unique_azz_id }}";
+
+                // await playStreamingAudio(unique_azz_id, transcription, userLanguage, currentThreadId, currentAssistantId)
+
+                data = {
+                message: transcription,
+                language: userLanguage,
+                thread_id: currentThreadId,
+                assistant_id: currentAssistantId,
+                unique_azz_id: unique_azz_id
+                }
+                console.log(`Called streaming audio with ${data}`)
+
+                startStreaming(data)
+
+                // await sendMessage(transcription);
+
                 enableInput();
             }
         } catch (error) {

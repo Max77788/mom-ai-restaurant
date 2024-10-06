@@ -110,7 +110,7 @@
         <h2 style="text-align: center; margin-top: 10px;">Or</h2>
         <p>Open this chat on a tablet and put it at the counter in your restaurant: <br>
         {% if not default_menu %}
-        <a href="{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name.replace("_"," ") }}'s AI-Assistant</u></b></a></p>
+        <a href="{{ url_for('chat_start', unique_azz_id=unique_azz_id )}}" target="_blank"><b><u>Open {{ restaurant_name.replace("_"," ") }}'s AI-Assistant</u></b></a></p>
         {% else %}
         <p><i>Your assistant is currently OFF. <a href="/update_menu_gui" target="_blank"><u><b>upload your menu now</b></u></a> to start using {{ restaurant_name }} AI-assistant</i></p>
         {% endif %}
@@ -124,7 +124,7 @@
         <p>Paste the following link on your site:</p>
         <div style="text-align: center; font-size: 24px; margin: 20px 0;">
             <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">
-                <i>https://mom-ai-restaurant.pro{{ url_for('assistant_order_chat', unique_azz_id=unique_azz_id ) }}</i>
+                <i>https://mom-ai-restaurant.pro{{ url_for('chat_start', unique_azz_id=unique_azz_id ) }}</i>
             </strong>
         </div>
                 <p>After clicking the link the customer will be redirected to the MOM AI Restaurant Assistant and will make the order in {{ restaurant_name.replace("_"," ") }}</p>
@@ -138,7 +138,7 @@
         <p>To integrate the assistant window onto your website, use the following code:</p>
             
             <code>
-                &lt;iframe src="https://mom-ai-restaurant.pro/assistant_order_chat/{{ unique_azz_id }}?iframe=yes" width="600" height="700" style="border:none;"&gt;&lt;/iframe&gt;
+                &lt;iframe src="https://mom-ai-restaurant.pro/chat_start/{{ unique_azz_id }}?iframe=yes" width="600" height="700" style="border:none;"&gt;&lt;/iframe&gt;
             </code><br><br>
         <video class="responsive-video" controls poster="/static/images/thumbnails/ThumbnailAddIFrame.png" style="max-height:400px; width:auto">
             <source src="/static/videos/iframe-tutorial.mp4" type="video/mp4">

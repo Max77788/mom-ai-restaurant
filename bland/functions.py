@@ -5,7 +5,22 @@ import json
 from dotenv import load_dotenv, find_dotenv
 from flask import jsonify
 load_dotenv(find_dotenv())
+import os
+from twilio.rest import Client
+from dotenv import load_dotenv, find_dotenv
+from bland.twilio_stuff import full_get_insert_twilio_number
 
+load_dotenv(find_dotenv())
+
+# Find your Account SID and Auth Token at twilio.com/console
+# and set the environment variables. See http://twil.io/secure
+account_sid = os.environ["TWILIO_ACCOUNT_SID"]
+auth_token = os.environ["TWILIO_AUTH_TOKEN"]
+
+client = Client(account_sid, auth_token)
+
+
+BLAND_TWILIO_KEY = os.environ.get("BLAND_TWILIO_KEY")
 BLAND_AI_API_KEY = os.environ.get("BLAND_AI_API_KEY") 
 
 BLAND_BASE_URL = "https://api.bland.ai/v1"
@@ -53,6 +68,59 @@ language_codes = {
     "ro": "Romanian",
     "sk": "Slovak"
 }
+
+
+
+def get_available_phone_numbers(country_code):
+    try:
+        available_phone_numbers = client.available_phone_numbers(country_code).toll_free.list()[0].phone_number
+        return available_phone_numbers
+    except Exception as e:
+        print(f"Error while fetching {country_code} available phone numbers.")
+
+def provision_twilio_number(phone_number):
+    try:
+        coolie = client.incoming_phone_numbers.create(phone_number=phone_number)
+        return coolie
+    except Exception as e:
+        print(f"Error while provisioning {phone_number}. Error: {e}")
+
+def full_get_twilio_number(country_code):
+    phone_number = get_available_phone_numbers(country_code)
+    print(phone_number)
+    response = provision_twilio_number(phone_number)
+    print(response)
+    phone_object = {"phone_number": phone_number, "provision_sid": response.sid}
+    return phone_object
+
+def get_twilio_number(sid_thing):
+    incoming_phone_number = client.incoming_phone_numbers(
+        sid_thing
+    ).fetch()
+    return incoming_phone_number
+
+
+
+def insert_twilio_number(phone_number):
+    url = BLAND_BASE_URL+"/inbound/insert"
+
+    payload = {"numbers": [phone_number]}
+    headers = {
+        "authorization": BLAND_AI_API_KEY,
+        "encrypted_key": BLAND_TWILIO_KEY,
+        "Content-Type": "application/json"
+    }
+
+    response = requests.request("POST", url, json=payload, headers=headers)
+
+    response_json = response.json()
+
+    if response_json["status"] == "success":
+        return {"success":True, "phone_number":phone_number}
+    else:
+        return {"success":False, "phone_number":phone_number}
+
+
 
 
 def send_the_call_on_number_demo(where_to_call, restaurant_name, language, store_location, opening_hours, timezone):
@@ -268,8 +336,8 @@ def purchase_phone_number():
     url = BLAND_BASE_URL + "/inbound/purchase"
 
     payload = {
-        "country_code": "US",
-        "webhook": "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/charge-for-call"
+        "country_code": "CA",
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-call"
     }
 
     headers = {
@@ -279,6 +347,9 @@ def purchase_phone_number():
 
     response = requests.request("POST", url, json=payload, headers=headers)
 
+    print("From purchase phone number route")
+    print(response.json())
+    
     return response.json()["phone_number"]
 
 
@@ -326,22 +397,37 @@ def get_data_for_pathway_change(restaurant):
     
     opening_hours_string = ""
 
-    opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+    working_schedule = restaurant.get("working_schedule")
+
+    start_work_list = []
+    end_work_list = []
+    day_off_list = []
+    
+    for day in working_schedule:
+        start_work_list.append(day["start"])
+        end_work_list.append(day["end"])
+        day_off_list.append(day["dayOff"])
+
+    opening_closing_hours_tuple = zip(start_work_list, end_work_list, day_off_list)
 
     day_of_weeks = {
-        0: 'Monday',
-        1: 'Tuesday',
-        2: 'Wednesday',
-        3: 'Thursday',
-        4: 'Friday',
-        5: 'Saturday',
-        6: 'Sunday'
+    0: 'Monday',
+    1: 'Tuesday',
+    2: 'Wednesday',
+    3: 'Thursday',
+    4: 'Friday',
+    5: 'Saturday',
+    6: 'Sunday'
     }
 
-    for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+    
+    for index, (start_time, end_time, dayOff) in enumerate(opening_closing_hours_tuple):
         day_of_week = day_of_weeks[index]
-        opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
-        opening_hours_string += opening_hours_line + "\n"
+        if dayOff:
+            opening_hours_line = f"{day_of_week}: day off"
+        else:
+            opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+        opening_hours_string += opening_hours_line
     
     return restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu
     
@@ -445,7 +531,11 @@ def add_pathway_to_phone(phone_number, pathway_id, language, timezone):
 
 
 def buy_and_update_phone(pathway_id, language, timezone):
-    phone_number = purchase_phone_number()
+    # phone_number = purchase_phone_number()
+    try:
+        phone_number = full_get_insert_twilio_number("US")
+    except Exception as e:
+        raise Exception("Failed to provision and insert phone number")
 
     success = add_pathway_to_phone(phone_number, pathway_id, language, timezone)
 
