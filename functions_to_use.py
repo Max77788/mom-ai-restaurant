@@ -1086,7 +1086,7 @@ def generate_qr_code_and_upload(text, unique_azz_id):
     qr_code_img = qr_code_img.resize(qr_code_size)
 
     # Paste the QR code at the desired position (coordinates need adjustment based on your image)
-    base_image.paste(qr_code_img, (450, 290))
+    base_image.paste(qr_code_img, (435, 280))
 
     # Convert the base_image (with QR code) to a BytesIO object
     img_byte_arr = BytesIO()

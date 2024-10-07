@@ -1,5 +1,1 @@
-Item Name: Chicken Biryani, Item Description: Rice, Chicken, Spices, Item Price (EUR): 19.19, Item's Image: <img src="https://i.ibb.co/2KgDXq8/food-Image.jpg" alt="Image of Chicken Biryani" width="170" height="auto">
-Item Name: Lamb Biryani, Item Description: Rice, Lamb, Spices, Item Price (EUR): 21.18, Item's Image: <img src="https://i.ibb.co/Y3fRk5W/download-1.jpg" alt="Image of Lamb Biryani" width="170" height="auto">
-Item Name: Vegetable Biryani, Item Description: Rice, Vegetables, Spices, Item Price (EUR): 16.54, Item's Image: <img src="https://i.ibb.co/X8RDYP2/download-2.jpg" alt="Image of Vegetable Biryani" width="170" height="auto">
-Item Name: Shawarma Wrap, Item Description: Chicken, Salad, Sauce, Wrap, Item Price (EUR): 9.93, Item's Image: <img src="https://i.ibb.co/2YYHkpv/download-3.jpg" alt="Image of Shawarma Wrap" width="170" height="auto">
-Item Name: Falafel Wrap, Item Description: Falafel, Salad, Sauce, Wrap, Item Price (EUR): 8.6, Item's Image: <img src="https://i.ibb.co/ngv68Rw/download-4.jpg" alt="Image of Falafel Wrap" width="170" height="auto">
+Item Name: daw, Item Description: daawd, Item Price (EUR): 123.00, 
