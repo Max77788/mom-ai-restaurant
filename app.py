@@ -3761,6 +3761,7 @@ def generate_response_streaming(unique_azz_id):
                             cache.set("order_id", order_id)
                             cache.set("access_granted_no_payment_order", True)
 
+                            """
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
                             "timestamp": human_readable_time_format,
@@ -3773,6 +3774,7 @@ def generate_response_streaming(unique_azz_id):
         
                             db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
                             # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
+                            """
                             
                             string_of_items = transform_orders_to_string(items_ordered)
 
@@ -5181,10 +5183,23 @@ def set_session_ordertype():
 
     return jsonify({"success": True})
 
-
-@app.route("/takeaway_delivery/<unique_azz_id>")
-def takeaway_delivery_template(unique_azz_id):
+@app.route('/takeaway_delivery/<unique_azz_id>/', defaults={'order_id': None})
+@app.route("/takeaway_delivery/<unique_azz_id>/<order_id>")
+def takeaway_delivery_template(unique_azz_id, order_id):
     restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    payment_on = restaurant.get("paymentGatewayTurnedOn")
+
+    if not order_id:
+        order_id = cache.get("order_id")
+    
+    if payment_on:
+        next_link = f"/payment_buffer/{unique_azz_id}/{order_id}"
+    else:
+        
+        next_link = f"/no-payment-order-placed/{unique_azz_id}/{order_id}"
+
+    print(f"\n\n\nNext link: {next_link}\n\n\n")
     
     location_coord = restaurant.get("location_coord")
 
@@ -5205,7 +5220,9 @@ def takeaway_delivery_template(unique_azz_id):
                            restaurant_delivery_radius=restaurant_delivery_radius,
                            GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY, 
                            restaurant_address=restaurant_address,
-                           delivery_offered=delivery_offered)
+                           delivery_offered=delivery_offered,
+                           next_link=next_link,
+                           order_id=order_id)
 
 @app.route('/submit_address', methods=['POST'])
 def submit_address():
@@ -5220,8 +5237,9 @@ def submit_address():
         return jsonify({"status": "error", "message": "No address provided"}), 400
 
 
-@app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])
-def no_payment_order_placed(unique_azz_id):
+@app.route('/no-payment-order-placed/<unique_azz_id>/', methods=["POST", "GET"], defaults={'order_id': None})
+@app.route("/no-payment-order-placed/<unique_azz_id>/<order_id>", methods=["POST", "GET"])
+def no_payment_order_placed(unique_azz_id, order_id):
     suggest_web3_bonus = cache.get("suggest_web3_bonus")
     
     # if not session.get('access_granted_no_payment_order'):
@@ -5229,30 +5247,28 @@ def no_payment_order_placed(unique_azz_id):
     # Find the instance in MongoDB
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
-    
-    
-    
-    orderType = cache.get('orderType')
-    text_address = cache.get('text_address')
-    user_longitude = cache.get('user_longitude')
-    user_latitude = cache.get('user_latitude')
 
-    
-    
-    
-    
+    order_from_db = db_order_dashboard[unique_azz_id].find_one({"orderID": order_id})
+
+    orderType = session.get('orderType')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
+
+    if not order_from_db:
+        order_id = cache.get("order_id")
+        total_price_EUR = cache.get("total_price_EUR")
+        total_price_NATIVE = cache.get("total_price_NATIVE")
+        items_ordered = cache.get("items_ordered")
+    else:
+        total_price_EUR = order_from_db.get("total_paid_EUR")
+        total_price_NATIVE = order_from_db.get("total_paid_NATIVE")
+        items_ordered = order_from_db.get("items")
     
     
     res_currency = current_restaurant_instance.get("res_currency")
-    
-    total_price_EUR = cache.get("total_price_EUR")
-    total_price_NATIVE = cache.get("total_price_NATIVE")
-
-    order_id = cache.get("order_id")
-    items_ordered = cache.get("items_ordered")
-
     restaurant_name = current_restaurant_instance.get("name")
-    MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
+    NEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
     
     # Convert the timestamp to a datetime object
     current_utc_timestamp = time.time()
@@ -5289,7 +5305,11 @@ def no_payment_order_placed(unique_azz_id):
                             "published":True}
     
     
-    db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+    db_order_dashboard[unique_azz_id].update_one(
+    {"orderID": order_to_pass["orderID"]},
+    {"$set": order_to_pass},
+    upsert=True
+    )
     # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
     
     items = items_ordered
@@ -5352,7 +5372,7 @@ def success_payment_backend(unique_azz_id):
     else:
         cache.set("suggest_web3_bonus", False)
 
-    orderType = cache.get('orderType')
+    orderType = session.get('orderType')
     text_address = cache.get('text_address')
     user_longitude = cache.get('user_longitude')
     user_latitude = cache.get('user_latitude')
@@ -5501,8 +5521,10 @@ def success_payment_display(unique_azz_id, id):
     for index, image_url in enumerate(image_urls):
         items[index]['image_url'] = image_url
 
-    total_paid = cache.get('total_to_pay_EUR')
-    total_paid_NATIVE = cache.get("total_to_pay_native")
+    order_from_db = db_order_dashboard[unique_azz_id].find_one({"orderID": id})
+
+    total_paid_EUR = order_from_db.get('total_paid_EUR')
+    total_paid_NATIVE = order_from_db.get('total_paid')
 
     # Check if the delete was successful
     if result.deleted_count > 0:
@@ -5518,7 +5540,7 @@ def success_payment_display(unique_azz_id, id):
                            order_id=id, 
                            suggest_web3_bonus=suggest_web3_bonus, 
                            items=items,
-                           total_paid=total_paid,
+                           total_paid_EUR=total_paid_EUR,
                            unique_azz_id=unique_azz_id,
                            total_price_NATIVE=total_paid_NATIVE,
                            res_currency=res_currency)
@@ -5843,6 +5865,163 @@ def google_callback():
             "message": "Invalid token",
             "type": type_
         }), 400
+
+
+@app.route('/search_instance/<unique_azz_id>', methods=['POST', 'GET'])
+def search_instance(unique_azz_id):
+    # unique_azz_id = request.json.get('unique_azz_id')
+    
+    if request.method == 'OPTIONS':
+        # Handling OPTIONS request
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
+    
+    if not unique_azz_id:
+        return jsonify({"success": False, "message": "No unique_azz_id provided"}), 400
+    
+    try:
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+        name = restaurant.get("name")
+        res_currency = restaurant.get("res_currency")
+        list_of_items = restaurant.get("html_menu_tuples")
+        menu_string = ""
+        for item in list_of_items:
+            menu_string += f"{item['Item Name']} - {item['Item Description']} - {item['Item Price (EUR)']} {res_currency}\n"
+        
+        assistant_turned_on = restaurant.get("assistant_turned_on")
+        is_open = restaurant.get("isOpen")
+        address = restaurant.get("location_name")
+        delivery_offered = restaurant.get("delivery_offered")
+        discovery_mode_is_on = restaurant.get("discovery_mode")
+
+        object_to_send = {"unique_azz_id": unique_azz_id,
+                          "name": name, 
+                          "menu_string": menu_string,
+                          "assistant_turned_on": assistant_turned_on, 
+                          "is_open": is_open,
+                          "address": address,
+                          "delivery_available": delivery_offered,
+                          "discovery_mode_is_on": discovery_mode_is_on}
+
+        if restaurant:
+            return jsonify({"success": True, "restaurant": object_to_send}), 200
+        else:
+            return jsonify({"success": False, "message": "No restaurant found with the provided unique_azz_id"}), 404
+    
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
+
+
+@app.route('/accept-order-details-voice', methods=['POST', 'GET', 'OPTIONS'])
+def accept_order_details_voice():
+    
+    if request.method == 'OPTIONS':
+        print("Handling OPTIONS request")
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
+
+    try:
+        print("Entering try block")
+        # Get the JSON payload from the request
+        payload = request.json
+
+        print("Received payload:", payload)
+        
+        if not payload:
+            print("Error: No JSON payload received")
+            return jsonify({"error": "No JSON payload received"}), 400
+        
+        order_id = payload.get('id')
+        print("Order ID:", order_id)
+        
+        unique_azz_id = payload.get('restaurant_id')
+        print("Restaurant ID:", unique_azz_id)
+        
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+        print("Restaurant data:", restaurant)
+        
+        res_currency = restaurant.get("res_currency")
+        print("Restaurant currency:", res_currency)
+        
+        payment_on = restaurant.get("paymentGatewayTurnedOn")
+        print("Payment gateway turned on:", payment_on)
+        
+        items_ordered = payload.get('items_ordered')
+        print("Items ordered:", items_ordered)
+        
+        total_price_native = payload.get('totalAmount')
+        print("Total price (native):", total_price_native)
+
+        current_utc_timestamp = time.time()
+        print("Current UTC timestamp:", current_utc_timestamp)
+
+        # Convert the timestamp to a datetime object
+        utc_datetime = datetime.utcfromtimestamp(current_utc_timestamp)
+        print("UTC datetime:", utc_datetime)
+
+        # Format the datetime object to a human-readable string
+        human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
+        print("Human-readable time format:", human_readable_time_format)
+
+        if res_currency != 'EUR':
+            rate = c.convert(1, res_currency, 'EUR')
+        else:
+            rate = 1
+        print("Conversion rate to EUR:", rate)
+
+        print("Items ordered set in cache")
+
+        if payment_on:
+            print("Payment gateway is on")
+            # print("Currency and rate set in cache")
+            
+            db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
+            print("Order inserted into db_items_cache")
+            next_link = f"/payment_buffer/{unique_azz_id}/{order_id}"
+            print("Next link (payment on):", next_link)
+        else:
+
+            total_price_EUR = total_price_native * rate
+
+            print("\n\n\nTotal price in EUR:", total_price_EUR, "\n\n\n")
+            
+            order_to_pass = {
+                "items": [{'name': item['name'], 'quantity': item['quantity']} for item in items_ordered],
+                "orderID": order_id,
+                "timestamp": human_readable_time_format,
+                "total_paid": total_price_native,
+                "total_paid_EUR": total_price_EUR,
+                "mom_ai_restaurant_assistant_fee": 0,
+                "paypal_fee": 0,
+                "paid": "NOT PAID",
+                "published": True
+            }
+            print("Order to pass:", order_to_pass)
+        
+            db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+            print("Order inserted into db_order_dashboard")
+            
+            next_link = f"/no-payment-order-placed/{unique_azz_id}"
+            print("Next link (payment off):", next_link)
+        
+        print("Next take delivery link set in cache:", next_link)
+
+        print("Preparing response")
+        return jsonify({
+            "message": "Order details received successfully",
+            "order_details": payload,
+            "next_link": next_link
+        }), 200
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
 
     
 if __name__ == '__main__':

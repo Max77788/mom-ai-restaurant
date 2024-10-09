@@ -121,6 +121,13 @@
 
         // Audio button toggle logic
         document.getElementById("audioButton").addEventListener("click", function() {
+            // Stop all currently playing sounds
+            const audioElements = document.querySelectorAll('audio');
+            audioElements.forEach(audio => {
+                audio.pause();
+                audio.currentTime = 0;
+            });
+            
             // Get the current value of playAudio from sessionStorage
             let playAudio = sessionStorage.getItem('playAudio') === 'true';
             

@@ -2,6 +2,7 @@
 #eventlet.monkey_patch()
 from flask import Flask, jsonify, session, request, url_for, flash, redirect
 from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 from celery_folder.celery_config import make_celery
 from flask_mail import Mail, Message
 from flask_caching import Cache
@@ -55,6 +56,7 @@ load_dotenv(find_dotenv())
 
 
 app = Flask(__name__)
+CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Initialize Flask-Mail
@@ -107,7 +109,7 @@ db_items_cache = client_db["Items_Cache"]
 
 
 
-REDIS_URL = os.environ.get("REDISCLOUD_URL", 'redis://localhost:6379/0')
+REDIS_URL = os.environ.get("REDISCLOUD_URL", 'redis://localhost:6380')
 
 # Configure Flask-Caching
 app.config['CACHE_TYPE'] = 'RedisCache'  # Specify Redis as the cache type
@@ -2177,8 +2179,11 @@ def send_telegram_notification(chat_id, message=f"New order has been published! 
         'text': message,
         'parse_mode': 'HTML'
     }
-    response = requests.post(url, data=payload)
-    print(response.json())
+    try:
+        response = requests.post(url, data=payload, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send Telegram notification: {e}")
 
 
 class InvalidMenuFormatError(Exception):

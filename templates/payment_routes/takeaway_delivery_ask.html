@@ -100,7 +100,7 @@
             .then(response => response.json()) // Parse the JSON response from Flask
         .then(data => {
             console.log('Success:', data); // Handle the response data
-            const next_link = sessionStorage.getItem("next_link")
+            const next_link = "{{ next_link }}".trim() || sessionStorage.getItem("next_link")
             window.location.href = next_link;
         })
         .catch((error) => {
