@@ -54,3 +54,4 @@ botocore
 Pillow
 twilio
 flask-socketio
+flask-cors
