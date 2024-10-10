@@ -104,3 +104,13 @@ class ProfileForm(FlaskForm):
     referral_id = StringField('Referral ID', validators=[Optional()])
     location = StringField('Location', validators=[DataRequired()])
     locationName = StringField('Location Name', validators=[DataRequired()])
+
+class ResetPasswordForm(FlaskForm):
+    new_password = PasswordField('New Password', validators=[
+        DataRequired(),
+        Length(min=8, message='Password must be at least 8 characters long')
+    ])
+    confirm_password = PasswordField('Confirm Password', validators=[
+        DataRequired()
+    ])
+    submit = SubmitField('Reset Password')

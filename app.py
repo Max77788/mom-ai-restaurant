@@ -24,6 +24,7 @@ import re
 import pandas as pd
 import base64
 from bs4 import BeautifulSoup
+from google_folder.google_cloud_storage import delete_file_by_url_google, upload_file_google, download_file_google, list_files_google, upload_file_bytes_google
 import markdown
 import json
 import requests
@@ -33,8 +34,8 @@ from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
-from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from utils.forms import ResetPasswordForm, ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
+from functions_to_use import generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -1788,7 +1789,7 @@ def setup_public_profile():
         assistant, menu_vector_id, menu_file_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
         unique_azz_id = res_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
 
-        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro//chat_start/"+unique_azz_id, unique_azz_id) #assistant_code
+        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/splash-page/"+unique_azz_id, unique_azz_id) #assistant_code
 
         print(f"Type of qr code id: {type(qr_code_id)}")
         print("We are past qr code function")
@@ -1809,7 +1810,7 @@ def setup_public_profile():
         
         video_url = create_and_get_talk_video(f"Hi, welcome to {res_name}! How can I help you?")
         intro_file_name = f"intro_{unique_azz_id}.mp4"
-        full_intro_in_momai_aws(video_url, intro_file_name)
+        full_intro_in_momai_google(video_url, intro_file_name)
         print("Uploaded AI-Intro")
 
         session["unique_azz_id"] = unique_azz_id
@@ -2277,13 +2278,15 @@ def upload_full_menu_picture():
             object_name = unique_azz_id+"_menu_picture_"+str(index)+"_"+file_name
             
             try:
-                s3.upload_file(file_name, bucket_name, f"{folder_name}/{object_name}")
-                
+                google_menu_image_link = upload_file_google(file_name, folder_name=folder_name)
+
                 os.remove(file_name)
                 
                 # flash(f'File {file_name} successfully uploaded to S3!')
-                aws_menu_image_link = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{folder_name}/{object_name}"
-                collection.update_one({"unique_azz_id": unique_azz_id}, {"$push": {"menu_images": aws_menu_image_link}})
+                # google_menu_image_link = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{folder_name}/{object_name}"
+                
+                
+                collection.update_one({"unique_azz_id": unique_azz_id}, {"$push": {"menu_images": google_menu_image_link}})
             except Exception as e:
                 print(f'Error uploading {file_name} to S3: {str(e)}')
                 flash(f'Error uploading {file_name} to S3: {str(e)}')
@@ -2523,7 +2526,7 @@ def delete_menu_image():
     object_key = '/'.join(image_url.split('/')[-2:])
 
     try:
-        s3.delete_object(Bucket="mom-ai-restaurant-pictures", Key=object_key)
+        delete_file_by_url_google(image_url)
         # Remove the image from the database (assuming S3 image URLs are stored in the "menu_images" field)
         collection.update_one(
             {"unique_azz_id": unique_azz_id},
@@ -2575,8 +2578,9 @@ def trigger_extract_menu_from_image():
     
     image_paths = []
     for index, file in enumerate(files):
+        file.save(file.filename)
         if file and allowed_file(file.filename):
-            url = upload_file_to_s3(file)
+            url = upload_file_google(file.filename, folder_name="temp_files")
             if url:
                 image_paths.append(url)  # Append the URL to the list
             else:
@@ -2630,7 +2634,7 @@ def generate_extract_menu_from_image_status(task_id):
             'status': 'Task completed!'
         }
         for url in image_paths:
-            delete_file_from_s3(url)
+            delete_file_by_url_google(url)
     elif task.state == 'FAILURE':
         # clean_the_temp_folder()
         response = {
@@ -2638,7 +2642,7 @@ def generate_extract_menu_from_image_status(task_id):
             'status': str(task.info)  # Exception message if failed
         }
         for url in image_paths:
-            delete_file_from_s3(url)
+            delete_file_by_url_google(url)
     else:
         # clean_the_temp_folder()
         response = {
@@ -5731,8 +5735,46 @@ def add_order_record():
         return 'Send a POST request to submit an order.' 
 """
 
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    email = request.json.get('email')
+    restaurant = collection.find_one({"email": email})
+    unique_azz_id = restaurant.get('unique_azz_id')
+    password = restaurant.get('password')
 
+    reset_password_code = restaurant.get('reset_password_code')
 
+    if restaurant:
+        send_email_raw(mail, email, f"<p style='font-size: 16px; line-height: 1.5;'>Your recovery link is <a href='https://mom-ai-restaurant.pro/reset_password?unique_azz_id={unique_azz_id}&reset_password_code={reset_password_code}'>here</a></p>", "Password Recovery", FROM_EMAIL)
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False})
+
+@app.route('/reset_password', methods=['POST', 'GET'])
+def reset_password():
+    unique_azz_id = request.args.get('unique_azz_id')
+    reset_password_code = request.args.get('reset_password_code')
+    
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+    real_reset_password_code = restaurant.get('reset_password_code')
+    
+    if not unique_azz_id or not reset_password_code or real_reset_password_code != reset_password_code:
+        abort(404)
+
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        new_password = form.new_password.data
+        confirm_password = form.confirm_password.data
+        if new_password == confirm_password:
+            print("Passwords match")
+            # Update the password in the database
+            collection.update_one({"unique_azz_id": unique_azz_id}, {"$set": {"password": hash_password(new_password), "reset_password_code": generate_random_string(10)}})
+            flash("Password has been changed successfully! Please, log in again.", "success")
+            return redirect(url_for('login'))
+        else:
+            print("Passwords do not match")
+            flash("Passwords do not match", "danger")
+    return render_template('start/reset_password.html', form=form)
 ################################### Guides/Static Pages ####################################
 
 @app.route('/excel_guide', methods=['GET'])

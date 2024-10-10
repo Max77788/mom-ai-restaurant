@@ -55,3 +55,4 @@ Pillow
 twilio
 flask-socketio
 flask-cors
+google-cloud-storage
