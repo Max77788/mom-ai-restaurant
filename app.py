@@ -5774,7 +5774,7 @@ def reset_password():
         else:
             print("Passwords do not match")
             flash("Passwords do not match", "danger")
-    return render_template('start/reset_password.html', form=form)
+    return render_template('start/reset_password.html', form=form, title="Reset Password")
 ################################### Guides/Static Pages ####################################
 
 @app.route('/excel_guide', methods=['GET'])
