@@ -1,53 +1,87 @@
-{% extends 'layout_no_land.html' %}
+{% if not from_splash_page %}
+    {% if iframe %}
+    {% extends 'layout_iframe.html' %}
+    {% else %}
+    {% extends 'layout_order_chat.html' %}
+    {% endif %}
+{% else %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - MOM AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+{% endif %}
+
+<head>
+    <meta name="description" content="Discover the best AI-powered restaurants in Keflavik, Iceland with MOM AI's search tool. Find locations, menus, and order food easily.">
+    <link rel="canonical" href="https://mom-ai-restaurant.pro/ai-restaurants?location=Keflavík,Iceland" />
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Restaurant",
+      "name": "MOM AI Restaurant Search",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Hafnargata 18",
+        "addressLocality": "Keflavik",
+        "addressRegion": "Reykjanesbær",
+        "postalCode": "230",
+        "addressCountry": "IS"
+      },
+      "telephone": "+3541234567",
+      "url": "https://mom-ai-restaurant.pro/ai-restaurants?location=Keflavík,Iceland"
+    }
+    </script>
+</head>
 
 {% block content %}
-<div style="width: 90%; max-width: 400px; margin: auto; height: 80vh; display: flex; flex-direction: column; justify-content: space-between;">
-    <header style="background-color: #000000; color: white; padding: 10px; text-align: center;">
-        Example of Chat Room for {{ restaurant_name }}
+<div style="width: 100%; margin: auto; height: 100vh; display: flex; flex-direction: column; justify-content: space-between;">
+    <header style="background-color: #000000; color: white; padding: 10px; text-align: center; position: fixed; top: 0; left: 0; width: 100%; z-index: 100;">
+        Conversate with Your Restaurant's AI-Assistant
     </header>
-    <div id="message-container" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px;">
+    <div id="message-container" style="overflow-y: auto; flex-grow: 1; background: white; padding: 10px; margin-top: 55px; margin-bottom: 105px;">
         {% for message in messages %}
             {% if message.sender == 'assistant' %}
-                {% if not message.present %}
                 <div style="margin: 10px; padding: 10px; background-color: #000000; color: white; text-align: right; border-radius: 10px;">
                     <p>{{ message.content }}</p>
                 </div>
-                {% else %}
-                <div style="margin: 10px; padding: 10px; background-color: #000000; color: white; text-align: right; border-radius: 10px;">
-                    <p>{{ message.content }}</p><br>
-                    <p>That's the example of the taken order</p>
-                    <ol>
-                        <li>Roast Beef - 1 serving</li>
-                    </ol>
-                    <br><img src='/static/images/roast_beef_demo.jpeg' width='170' height='auto'>
-                </div>
-                {% endif %}
             {% else %}
                 <div style="margin: 10px; padding: 10px; background-color: #e5e5e5; text-align: left; border-radius: 10px;">
-                    <p>{{ message.content }}</p>
+                    <p>{{ message.content|safe }}</p>
                 </div>
             {% endif %}
         {% endfor %}
+        <div style="margin: 10px; padding: 10px; background-color: #000000; color: white; text-align: right; border-radius: 10px;">
+            <img src="/static/images/roast_beef_demo.jpeg" style="width: 50%; height: auto; border-radius: 10px;">
+        </div>
     </div>
-    <footer id="chatInputFooter" style="background-color: #000000; color: white; padding: 10px; position: relative;">
-        <div id="countdown" style="color: white; text-align: center;"></div>
-        <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; font-size: 16px;" disabled>
-        <button onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; font-size: 16px; align-items: center; margin-top: 7px;" disabled>Send</button>
-        <!-- spinner yuhuu! -->
+    <footer id="chatInputFooter" style="position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background-color: #000000; z-index: 100;">
+        <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; border-radius: 30px; font-size: 16px;">
+        <div style="display: flex; flex-direction: row; align-items: center; margin-top: 10px; justify-content: center; gap: 10px;">
+            <button onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; padding: 10px 20px; margin-bottom: 10px;">Send✈️</button>
+            <button id="micButton" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; padding: 10px 20px; margin-bottom: 10px;">🎤</button>
+            <button id="audioButton" style="background: none; font-size: 16px; padding: 10px 20px;">🔊</button>
+        </div>
         <div id="spinner" style="display: none; position: absolute; top: 10px; right: 10px;">
-            <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 50px; height: 50px;">
+            <img src="/static/assets/loading-gif.gif" alt="Loading..." style="width: 40px; height: 40px;">
         </div>
     </footer>
 </div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const messages = {{ messages | length }};
-        console.log(`Messages length: ${messages}`)
-        const countdownElement = document.getElementById('countdown');
+        console.log(`Messages length: ${messages}`);
 
         if (messages >= 3) {
             let timeLeft = 7;
-            countdownElement.textContent = 'Redirecting in ' + timeLeft + ' seconds...';
+            const countdownElement = document.createElement('div');
+            countdownElement.id = 'countdown';
+            countdownElement.style.cssText = 'color: white; text-align: center; margin-top: 10px;';
+            document.getElementById('chatInputFooter').prepend(countdownElement);
 
             const interval = setInterval(function() {
                 timeLeft--;
@@ -59,6 +93,52 @@
                 }
             }, 1000);
         }
+    });
+
+    function sendMessage() {
+        const userMessage = document.getElementById('userMessage').value;
+        if (userMessage.trim() === '') return;
+
+        appendMessage(userMessage, 'user');
+        document.getElementById('userMessage').value = '';
+
+        // Simulate assistant response (for demo purposes)
+        setTimeout(() => {
+            appendMessage("This is a demo response from the AI assistant.", 'assistant');
+        }, 1000);
+    }
+
+    function appendMessage(message, sender) {
+        const messageContainer = document.getElementById('message-container');
+        const messageDiv = document.createElement('div');
+        messageDiv.style.cssText = `
+            margin: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 80%;
+        `;
+
+        if (sender === 'user') {
+            messageDiv.style.backgroundColor = '#e5e5e5';
+            messageDiv.style.textAlign = 'left';
+        } else {
+            messageDiv.style.backgroundColor = '#000000';
+            messageDiv.style.color = 'white';
+            messageDiv.style.textAlign = 'right';
+        }
+
+        messageDiv.textContent = message;
+        messageContainer.appendChild(messageDiv);
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
+
+    // Add event listeners for mic and audio buttons (for demo, they won't have actual functionality)
+    document.getElementById('micButton').addEventListener('click', () => {
+        console.log('Microphone button clicked');
+    });
+
+    document.getElementById('audioButton').addEventListener('click', () => {
+        console.log('Audio button clicked');
     });
 </script>
 {% endblock %}
