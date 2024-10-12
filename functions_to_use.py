@@ -1055,7 +1055,7 @@ def generate_qr_code_and_upload(text, unique_azz_id):
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
-        border=4,
+        border=1,
     )
     print("QR Code instance created.")
 
