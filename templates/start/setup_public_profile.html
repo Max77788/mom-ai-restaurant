@@ -1,13 +1,6 @@
 {% extends 'layout_no_land.html' %}
 
 {% block content %}
-<div id="orientation-banner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; color: #000; z-index: 1000; display: flex; justify-content: center; align-items: center; text-align: center;">
-    <div>
-        <h1 style="margin-bottom: 10px; margin-top: 40px;">Please switch to <br>horizontal mode</h1>
-        <p style="margin-top: 10px;">This page is best viewed <br>in landscape orientation.</p>
-        <img src="/static/images/rotateScreen.png" style="width: 80%; height: auto;">
-    </div>
-</div>
 
 <div id="page-content">
     <!-- Add this at the beginning of the content block -->
@@ -101,6 +94,7 @@
     </div>
 </div>
 
+
 <!-- JavaScript for live updating the preview -->
 <script>
     // Description Update
@@ -157,16 +151,18 @@
 
 function formatAddressWithCity(place) {
     let addressComponents = place.address_components;
+    // console.log(addressComponents);
     let street = '', buildingNumber = '', city = '', region = '', country = '';
 
     addressComponents.forEach(component => {
+        console.log(component.types);
         if (component.types.includes('route')) {
             street = component.long_name;
         }
         if (component.types.includes('street_number')) {
             buildingNumber = component.long_name;
         }
-        if (component.types.includes('locality')) {
+        if (component.types.includes('locality') || component.types.includes('postal_town')) {
             city = component.long_name;
         }
         if (component.types.includes('administrative_area_level_1')) {
@@ -176,6 +172,7 @@ function formatAddressWithCity(place) {
             country = component.long_name;
         }
     });
+    // console.log(street, buildingNumber, city, region, country);
 
     let formattedAddress = '';
     if (buildingNumber && street) {
@@ -192,6 +189,8 @@ function formatAddressWithCity(place) {
     if (country) {
         formattedAddress += ', ' + country;
     }
+
+    // console.log(`Street: ${street}, City: ${city}, Country: ${country}`);
 
     // Ensure that required components are present
     if (!street || !city || !country) {
@@ -258,6 +257,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 </script>
+<div id="orientation-banner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; color: #000; z-index: 1000; display: flex; justify-content: center; align-items: center; text-align: center;">
+    <div>
+        <h1 style="margin-bottom: 10px; margin-top: 40px;">Please switch to <br>horizontal mode</h1>
+        <p style="margin-top: 10px;">This page is best viewed <br>in landscape orientation.</p>
+        <img src="/static/images/rotateScreen.png" style="width: 80%; height: auto;">
+    </div>
+</div>
 
 <!-- Include Google Maps JavaScript API with Places library -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ GOOGLE_MAPS_API_KEY }}&libraries=places&callback=initAutocomplete" async defer></script>

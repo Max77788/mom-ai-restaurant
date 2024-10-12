@@ -1300,8 +1300,8 @@ def create_web_wallet():
 def assistant_demo_chat():
     
     # Check if the session variable is set
-    #if not session.get('access_granted_assistant_demo_chat'):
-        #sabort(403)  # Forbidden
+    if not session.get('access_granted_assistant_demo_chat'):
+        abort(403)  # Forbidden
     user_message = 'Customer\'s message example'
     
     #ai_assist_response = get_assistants_response(user_message)
