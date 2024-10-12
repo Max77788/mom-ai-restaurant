@@ -6,6 +6,8 @@ from werkzeug.utils import secure_filename
 import statistics
 from flask_migrate import Migrate
 import os
+from bland.twilio_stuff import full_get_insert_twilio_number
+import threading
 import glob
 from urllib.parse import urlparse
 # from google.cloud import speech
@@ -22,6 +24,7 @@ import re
 import pandas as pd
 import base64
 from bs4 import BeautifulSoup
+from google_folder.google_cloud_storage import delete_file_by_url_google, upload_file_google, download_file_google, list_files_google, upload_file_bytes_google
 import markdown
 import json
 import requests
@@ -31,8 +34,8 @@ from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
-from utils.forms import ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_aws, FROM_EMAIL, app, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from utils.forms import ResetPasswordForm, ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
+from functions_to_use import generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -1297,11 +1300,8 @@ def create_web_wallet():
 def assistant_demo_chat():
     
     # Check if the session variable is set
-    if not session.get('access_granted_assistant_demo_chat'):
-        abort(403)  # Forbidden
-    
-    print(request.form)
-    data = request.form
+    #if not session.get('access_granted_assistant_demo_chat'):
+        #sabort(403)  # Forbidden
     user_message = 'Customer\'s message example'
     
     #ai_assist_response = get_assistants_response(user_message)
@@ -1488,6 +1488,7 @@ def dashboard_display(show_popup=False):
 
         print(f"Assistant ID added in session: {assistant_id}")
         print(f"Restaurant name added in session: {restaurant_name}")
+        print(f"Unique azz id added in session: {res_unique_azz_id}")
         
         if logo_id == None:
             logo_id = "666af654dee400a1d635eb08"
@@ -1785,7 +1786,7 @@ def setup_public_profile():
         assistant, menu_vector_id, menu_file_id = create_assistant(res_name, "EUR", menu_path=None, client=CLIENT_OPENAI, menu_path_is_bool=False)
         unique_azz_id = res_name.lower().strip().replace(" ", "_").replace("'","")+"_"+assistant.id[-4:]
 
-        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/assistant_order_chat/"+unique_azz_id, unique_azz_id) #assistant_code
+        qr_code_id = generate_qr_code_and_upload("https://mom-ai-restaurant.pro/splash-page/"+unique_azz_id, unique_azz_id) #assistant_code
 
         print(f"Type of qr code id: {type(qr_code_id)}")
         print("We are past qr code function")
@@ -1806,7 +1807,7 @@ def setup_public_profile():
         
         video_url = create_and_get_talk_video(f"Hi, welcome to {res_name}! How can I help you?")
         intro_file_name = f"intro_{unique_azz_id}.mp4"
-        full_intro_in_momai_aws(video_url, intro_file_name)
+        full_intro_in_momai_google(video_url, intro_file_name)
         print("Uploaded AI-Intro")
 
         session["unique_azz_id"] = unique_azz_id
@@ -2274,13 +2275,15 @@ def upload_full_menu_picture():
             object_name = unique_azz_id+"_menu_picture_"+str(index)+"_"+file_name
             
             try:
-                s3.upload_file(file_name, bucket_name, f"{folder_name}/{object_name}")
-                
+                google_menu_image_link = upload_file_google(file_name, folder_name=folder_name)
+
                 os.remove(file_name)
                 
                 # flash(f'File {file_name} successfully uploaded to S3!')
-                aws_menu_image_link = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{folder_name}/{object_name}"
-                collection.update_one({"unique_azz_id": unique_azz_id}, {"$push": {"menu_images": aws_menu_image_link}})
+                # google_menu_image_link = f"https://{bucket_name}.s3.eu-north-1.amazonaws.com/{folder_name}/{object_name}"
+                
+                
+                collection.update_one({"unique_azz_id": unique_azz_id}, {"$push": {"menu_images": google_menu_image_link}})
             except Exception as e:
                 print(f'Error uploading {file_name} to S3: {str(e)}')
                 flash(f'Error uploading {file_name} to S3: {str(e)}')
@@ -2520,7 +2523,7 @@ def delete_menu_image():
     object_key = '/'.join(image_url.split('/')[-2:])
 
     try:
-        s3.delete_object(Bucket="mom-ai-restaurant-pictures", Key=object_key)
+        delete_file_by_url_google(image_url)
         # Remove the image from the database (assuming S3 image URLs are stored in the "menu_images" field)
         collection.update_one(
             {"unique_azz_id": unique_azz_id},
@@ -2572,8 +2575,9 @@ def trigger_extract_menu_from_image():
     
     image_paths = []
     for index, file in enumerate(files):
+        file.save(file.filename)
         if file and allowed_file(file.filename):
-            url = upload_file_to_s3(file)
+            url = upload_file_google(file.filename, folder_name="temp_files")
             if url:
                 image_paths.append(url)  # Append the URL to the list
             else:
@@ -2627,7 +2631,7 @@ def generate_extract_menu_from_image_status(task_id):
             'status': 'Task completed!'
         }
         for url in image_paths:
-            delete_file_from_s3(url)
+            delete_file_by_url_google(url)
     elif task.state == 'FAILURE':
         # clean_the_temp_folder()
         response = {
@@ -2635,7 +2639,7 @@ def generate_extract_menu_from_image_status(task_id):
             'status': str(task.info)  # Exception message if failed
         }
         for url in image_paths:
-            delete_file_from_s3(url)
+            delete_file_by_url_google(url)
     else:
         # clean_the_temp_folder()
         response = {
@@ -2764,7 +2768,7 @@ def payment_buffer(unique_azz_id, id):
     if not id:
         abort(403)  # Forbidden
     
-    session['access_granted_payment_result'] = True
+    cache.set("access_granted_payment_result", True)
 
     restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
 
@@ -2778,6 +2782,7 @@ def payment_buffer(unique_azz_id, id):
     CURRENCY = restaurant.get("res_currency", "EUR")
 
     restaurant_menu = restaurant.get("html_menu_tuples")
+    current_thread_id = session.get("current_thread_id")
 
     # print("Restaurant html menu tuples: \n\n\n", restaurant.get("html_menu_tuples"), "\n\n\n")
 
@@ -2805,7 +2810,7 @@ def payment_buffer(unique_azz_id, id):
         total_to_pay_str = str(sum_of_order_euro+fees_amount_EUR)
         total_to_pay_EUR = str(round(float(total_to_pay_str), 2))
 
-        session["sum_of_order"] = sum_of_order_euro
+        cache.set("sum_of_order", sum_of_order_euro)
 
         total_to_pay_native = str(round(float(total_to_pay_EUR)/conversion_rate, 2))
 
@@ -2819,7 +2824,7 @@ def payment_buffer(unique_azz_id, id):
         total_to_pay_EUR = total_to_pay*conversion_rate
         total_to_pay_EUR = str(round(float(total_to_pay_EUR), 2))
 
-        session["sum_of_order"] = total_to_pay_EUR
+        cache.set("sum_of_order", total_to_pay_EUR)
 
         total_to_pay_native = str(round(float(total_to_pay_EUR)/conversion_rate, 2))
 
@@ -2828,16 +2833,16 @@ def payment_buffer(unique_azz_id, id):
 
     fees_amount = fees_amount_EUR
 
-    session["total_to_pay_EUR"] = total_to_pay_EUR
+    cache.set("total_to_pay_EUR", total_to_pay_EUR)
 
-    session["total_to_pay_native"] = total_to_pay_native
+    cache.set("total_to_pay_native", total_to_pay_native)
     
     total_to_pay_display = f"{float(total_to_pay_EUR):.2f}"
 
-    session["unique_azz_id"] = unique_azz_id
+    cache.set("unique_azz_id", unique_azz_id)
 
-    session["items_ordered"] = items
-    session['order_id'] = id
+    cache.set("items_ordered", items)
+    cache.set("order_id", id)
 
     ordered_items_names = [item["name"] for item in items]
 
@@ -2876,7 +2881,8 @@ def payment_buffer(unique_azz_id, id):
                            sum_of_order=sum_of_order,
                            fees_amount_native=fees_amount_native,
                            fees_amount_EUR=fees_amount_EUR,
-                           res_currency=res_currency)
+                           res_currency=res_currency,
+                           current_thread_id=current_thread_id)
 
 
 @app.route("/create_payment", methods=['POST','GET'])
@@ -3033,10 +3039,10 @@ def purchase_phone_number():
         flash("Please top up your balance. You need at least 23 Euros on your account.", "danger")
         return redirect("/voice-setup")
     
-    dict_response = buy_and_update_phone(pathway_id, language, timezone)
-
-    if not dict_response["success"]:
-        flash("There is an error on our side. Try again!", "danger")
+    try:
+        dict_response = buy_and_update_phone(pathway_id, language, timezone)
+    except Exception as e:
+        flash("There is an error on our side. Try again later!", "danger")
         return redirect("/voice-setup")
     
     phone_number = dict_response["phone_number"]
@@ -3163,7 +3169,7 @@ def post_create_pathway():
 
     collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"voice_pathway_id":pathway_id}})
 
-    flash("Congratulations! Your voice agent has been successfully created!")
+    flash("Congratulations! Your voice agent has been successfully created!", "success")
     return redirect('/voice-setup')
     
 
@@ -3264,7 +3270,18 @@ def trigger_demo_call():
 
     opening_hours_string = ""
 
-    opening_closing_hours_tuple = zip(restaurant.get("start_work"), restaurant.get("end_work"))
+    working_schedule = restaurant.get("working_schedule")
+
+    start_work_list = []
+    end_work_list = []
+    day_off_list = []
+    
+    for day in working_schedule:
+        start_work_list.append(day["start"])
+        end_work_list.append(day["end"])
+        day_off_list.append(day["dayOff"])
+
+    opening_closing_hours_tuple = zip(start_work_list, end_work_list, day_off_list)
 
     day_of_weeks = {
     0: 'Monday',
@@ -3277,9 +3294,12 @@ def trigger_demo_call():
     }
 
     
-    for index, (start_time, end_time) in enumerate(opening_closing_hours_tuple):
+    for index, (start_time, end_time, dayOff) in enumerate(opening_closing_hours_tuple):
         day_of_week = day_of_weeks[index]
-        opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
+        if dayOff:
+            opening_hours_line = f"{day_of_week}: day off"
+        else:
+            opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
         opening_hours_string += opening_hours_line
 
     store_location = restaurant.get("location_name")
@@ -3303,6 +3323,11 @@ def trigger_demo_call():
     
 ######################### Chat Flow ############################
 
+@app.route('/chat_start/<unique_azz_id>', methods=['GET', 'POST'])
+def chat_start(unique_azz_id):
+    assistant_id = collection.find_one({"unique_azz_id": unique_azz_id})["assistant_id"]
+    return render_template("dashboard/choose_chat_lang.html", unique_azz_id=unique_azz_id, assistant_id=assistant_id, title="Start Chat")
+
 # Start conversation thread
 @app.route('/assistant_start/<assistant_id>', methods=['GET', 'POST'])
 def start_conversation(assistant_id):
@@ -3316,8 +3341,11 @@ def start_conversation(assistant_id):
     print("Starting a new conversation...")  # Debugging line
     thread = CLIENT_OPENAI.beta.threads.create(
     # tool_resources={"file_search": {"vector_store_ids": [vector_store_id]}}
-    )                                               
-                                                               
+    )                                     
+
+    session["current_thread_id"] = thread.id   
+
+    print(f"Current thread id: {thread.id}")                                
     
     # Get current UTC time and format it as dd.mm hh:mm
     # timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
@@ -3325,10 +3353,10 @@ def start_conversation(assistant_id):
     
     
     print(f"New thread created with ID: {thread.id}")  # Debugging line
-    return jsonify({"thread_id": thread.id, "assistant_id": assistant_id})
+    return jsonify({"thread_id": thread.id , "assistant_id": assistant_id})
 
-@app.route('/assistant_order_chat/<unique_azz_id>')
-def assistant_order_chat(unique_azz_id, from_splash_page=False):
+@app.route('/assistant_order_chat/<unique_azz_id>/<current_thread_id>')
+def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page=False):
     # Retrieve the full assistant_id from the session
     lang = request.args.get('lang', 'en')
 
@@ -3387,7 +3415,48 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
     session["res_currency"] = res_currency
     session["restaurant_name"] = restaurant_name
 
-    print("Discovery mode we passed: ", discovery_mode)
+    response = CLIENT_OPENAI.beta.threads.messages.list(current_thread_id)
+
+    # print(response)
+
+    # Define the regex pattern to capture the text after "Customer's message:"
+    pattern = r"Customer's message:\s*(.*)"
+
+    list_of_current_messages = []
+    for chunk in response.data:
+        message = {}
+        message["role"] = chunk.role
+        # Use re.search to find and extract the part after "Customer's message:"
+        text_content = chunk.content[0].text.value
+        message["content"] = text_content
+        
+        if chunk.role == "user":
+            match = re.search(pattern, text_content)
+            
+            message["content"] = match.group(1)
+        list_of_current_messages.append(message)
+    
+    runs = CLIENT_OPENAI.beta.threads.runs.list(
+    current_thread_id
+    )
+
+    requires_action = False
+    suggest_new_order = False
+    
+    # Iterate over runs.data and check if any status is "requires_action"
+    for run in runs.data:
+        if run.status == "requires_action":
+            requires_action = True
+            break  # Exit the loop early if "requires_action" is found
+
+    if len(runs.data) > 0:
+        # Get the current timestamp
+        current_timestamp = time.time() 
+        if current_timestamp - runs.data[-1].created_at > 300:
+            suggest_new_order = True
+        # print(f"List of current messages: {list_of_current_messages}")
+        print(f"Suggest new order: {suggest_new_order} and requires action: {requires_action}")
+
     # Use the restaurant_name from the URL and the full assistant_id from the session
     return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
                            lang=lang, 
@@ -3402,7 +3471,10 @@ def assistant_order_chat(unique_azz_id, from_splash_page=False):
                            default_menu=default_menu,
                            discovery_mode=discovery_mode,
                            current_balanceHigherThanTwentyCents = current_balanceHigherThanTwentyCents,
-                           from_splash_page=from_splash_page)
+                           from_splash_page=from_splash_page,
+                           list_of_current_messages=list_of_current_messages,
+                           requires_action=requires_action,
+                           suggest_new_order=suggest_new_order)
 
 
 
@@ -3563,6 +3635,11 @@ def generate_response_streaming(unique_azz_id):
                     yield "discovery_mode_no_order"
                 print("Action in progress...")
 
+                if res_currency != 'EUR':
+                    rate = c.convert(1, res_currency, 'EUR')
+                else:
+                    rate = 1
+                
                 messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
                 #print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
 
@@ -3672,11 +3749,7 @@ def generate_response_streaming(unique_azz_id):
                             yield link_to_payment_buffer
                         else:
                             total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
-                            
-                            if res_currency != 'EUR':
-                                rate = c.convert(1, res_currency, 'EUR')
-                            else:
-                                rate = 1
+
                             
                             total_price_EUR = f"{float(total_price)*rate:.2f}"
 
@@ -3687,8 +3760,9 @@ def generate_response_streaming(unique_azz_id):
                             cache.set("total_price_NATIVE", total_price)
 
                             cache.set("order_id", order_id)
-                            cache.set('access_granted_no_payment_order', True)
+                            cache.set("access_granted_no_payment_order", True)
 
+                            """
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
                             "timestamp": human_readable_time_format,
@@ -3701,6 +3775,7 @@ def generate_response_streaming(unique_azz_id):
         
                             db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
                             # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
+                            """
                             
                             string_of_items = transform_orders_to_string(items_ordered)
 
@@ -3791,45 +3866,37 @@ def generate_response_VOICE_ONLY_streaming(unique_azz_id):
         
         # Define sentence-ending punctuation marks
         sentence_endings = re.compile(r'[.!?]')
+
+        # Adjusting buffer size limits
+        BUFFER_LIMIT = 200  # Adjust to control when to send mid-sentence
         
         for chunk in stream:
-            print(chunk)
             if chunk.event == "thread.message.delta":
                 text_chunk = chunk.data.delta.content[0].text.value
-                sentence += text_chunk  # Append the chunk to the sentence
+                sentence += text_chunk  # Append to the sentence
 
-                # Check if there is a sentence-ending punctuation
+                # Once a sentence is complete or large enough, send it for TTS
                 if sentence_endings.search(sentence):
-                    # Send the complete sentence to the API
-                    speech_file_path = get_dynamic_speech_file_name()
-                    with client.audio.speech.with_streaming_response.create(
-                    model="tts-1-hd",
-                    voice="nova",
-                    input=sentence,
-                    speed=1.2,
-                    response_format="pcm"
-                    ) as response:
+                    try:
+                        # Call TTS API and stream audio chunks back
+                        with client.audio.speech.with_streaming_response.create(
+                            model="tts-1-hd",
+                            voice="nova",
+                            input=sentence,
+                            speed=1.2,
+                            response_format="pcm"
+                        ) as response:
+                            for audio_chunk in response.iter_bytes(1024):
+                                yield audio_chunk  # Stream audio to the client
+                        
+                        sentence = ""  # Reset sentence after processing
 
-                        for chunk in response.iter_bytes(1024):
-                            yield chunk
-            if chunk.event == "thread.message.completed":
-                text_chunk = chunk.data.content[0].text.value
-                print(f"Final message is {text_chunk}")
-            
-            if chunk.event == "thread.run.completed":
-                tokens_used = chunk.data.usage.total_tokens
-                
-                charge_for_message = PRICE_PER_1_TOKEN * tokens_used
-                print(f"Charge for message in generate(): {charge_for_message} USD")
-
-                result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
-                if result_charge_for_message.matched_count > 0:
-                    print("Balances were successfully updated.")
-                else:
-                    print("No matching document found.")
-            if chunk.event == "thread.run.failed":
+                    except Exception as e:
+                        print(f"Error generating audio: {e}")
+                        yield b"Error processing the sentence."
+            elif chunk.event == "thread.run.failed":
                 yield ("Error in Thread")
-            if chunk.event == "thread.run.requires_action":
+            elif chunk.event == "thread.run.requires_action":
                 if discovery_mode:
                     print("Action interrupted because of discovery mode.")
                     run = client.beta.threads.runs.cancel(
@@ -4007,6 +4074,19 @@ def generate_response_VOICE_ONLY_streaming(unique_azz_id):
                         #print(f"\n\nRun steps: \n{run_steps}\n")
                         response = 'O-oh, little issues, repeat the message now'
                         yield "Please, write the message again!"
+            
+            # Ensure any remaining text is processed
+        if sentence:
+            with client.audio.speech.with_streaming_response.create(
+                model="tts-1-hd",
+                voice="nova",
+                input=sentence,
+                speed=1.2,
+                response_format="wav"
+            ) as response:
+                for audio_chunk in response.iter_bytes(1024):
+                    print("Audio Chunk: ", audio_chunk)
+                    yield audio_chunk
     
     for key, value in session_data.items():
         session[key] = value
@@ -4031,6 +4111,332 @@ def get_dynamic_speech_file_name():
 
     # Create the new file name
     return speech_dir / f"speech{next_file_num}.mp3"
+
+
+
+
+
+
+
+
+
+
+from flask_socketio import emit
+
+
+
+
+@socketio.on('connect')
+def handle_connect():
+    print("Client connected")
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print("Client disconnected")
+
+
+
+
+@socketio.on('start_audio_stream')
+def handle_start_audio_stream(data):
+    print("start_audio_stream event received:", data)
+    unique_azz_id = data.get('unique_azz_id')
+    user_input = data.get('message', '')
+    thread_id = data.get('thread_id')
+    assistant_id = data.get('assistant_id')
+    language = data.get("language", "en-US")[:2]
+    
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    payment_on = restaurant_instance.get("paymentGatewayTurnedOn")
+    discovery_mode = restaurant_instance.get('discovery_mode')
+    
+    print("\n\nlanguage we received on /generate_response: ", language, "\n\n")
+    
+    transcription = " "
+
+    restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
+    session_data = {}
+    
+    menu_file_id = restaurant_instance.get("menu_file_id")
+    res_currency = restaurant_instance.get("res_currency")
+    print(f"Menu file ID on /generate_response: {menu_file_id}")
+
+    print(f"User input: {user_input}")
+    print(f"Thread ID: {thread_id}")
+    print(f"Assistant ID: {assistant_id}")
+
+    html_menu_tuples = restaurant_instance.get('html_menu_tuples')
+
+    for item in html_menu_tuples:
+        if "Item Price (EUR)" in item:
+            # Rename the key
+            item["Item Price"] = item.pop("Item Price (EUR)")
+    
+    client = CLIENT_OPENAI
+
+    stream = get_assistants_response_celery_VOICE_ONLY_streaming(user_input, language, thread_id, assistant_id, menu_file_id,
+                                                                 payment_on, list_of_all_items=html_menu_tuples, 
+                                                                 list_of_image_links=None, unique_azz_id=unique_azz_id, 
+                                                                 res_currency=res_currency, discovery_mode=discovery_mode)
+    
+    sentence = ""
+    
+    # Define sentence-ending punctuation marks
+    sentence_endings = re.compile(r'[.!?]')
+
+    # Adjusting buffer size limits
+    BUFFER_LIMIT = 200  # Adjust to control when to send mid-sentence
+    
+    for chunk in stream:
+        if chunk.event == "thread.message.delta":
+            text_chunk = chunk.data.delta.content[0].text.value
+            sentence += text_chunk  # Append to the sentence
+
+            # Once a sentence is complete or large enough, send it for TTS
+            if len(sentence)>BUFFER_LIMIT or sentence_endings.search(sentence):
+                try:
+                    threading.Thread(target=stream_audio, args=(sentence)).start()
+                    
+                    sentence = ""  # Reset sentence after processing
+
+                except Exception as e:
+                    print(f"Error generating audio: {e}")
+                    emit('error', {'message': 'Error processing the sentence.'})
+        elif chunk.event == "thread.run.failed":
+            socketio.emit('error', {'message': 'Error in Thread'})
+        elif chunk.event == "thread.run.requires_action":
+            if discovery_mode:
+                print("Action interrupted because of discovery mode.")
+                run = client.beta.threads.runs.cancel(
+                    thread_id=thread_id,
+                    run_id=run.id
+                    )
+                no_action_response = "Please, type in the other message as I can't proceed with the placement of the order. I am not entitled to do that."
+                emit('discovery_mode_no_order', {'message': 'Order cannot proceed due to discovery mode.'})
+            print("Action in progress...")
+
+            messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
+            #print(f"Messages retrieved in action step {messages_gpt}")  # debugging line
+
+            joined_messages_of_assistant = ""
+            messages_gpt_list = list(messages_gpt)
+            messages_gpt_list.reverse()
+
+            pattern = r"Task: Here is the current user's message, respond to it:\n\s*(.*?)\s*\(in the context of"
+            
+            for message in messages_gpt_list:
+                if message.role == 'assistant':
+                    joined_messages_of_assistant += f"\nAssistant:\n{message.content[0].text.value}\n"
+                if message.role == 'user':
+                    match = re.search(pattern, message.content[0].text.value, re.DOTALL)
+                    if match:
+                        user_message = match.group(1).strip()
+                        joined_messages_of_assistant += f"\nCustomer:\n{user_message}\n"
+                    else:
+                        joined_messages_of_assistant += f"\nCustomer:\n{message.content[0].text.value}\n"
+
+            print(f"\nRetrieved all messages with Summary from convo: {joined_messages_of_assistant}\n")
+
+            summary_to_convert = f"""
+            These are all messages of the assistant from the chat with client. 
+            From the following messages find the last one which summarizes agreed upon order and retrieve items stated in the final confirmed summary:
+            {joined_messages_of_assistant}
+            Ensure that the found items are part of this list of items presented in the format (item name, item ingredients, item price):
+            {html_menu_tuples}
+            """
+
+            print(f"Summary to convert sent to MOM AI JSON: {summary_to_convert}")  # debugging line
+            
+
+            thread_id_json = client.beta.threads.create().id
+            print(f"JSON assistant thread {thread_id_json}")
+
+            response = client.beta.threads.messages.create(thread_id=thread_id_json,
+                                                        role="user",
+                                                        content=summary_to_convert)
+
+            run_json = client.beta.threads.runs.create(thread_id=thread_id_json,
+                                                    assistant_id=MOM_AI_JSON_LORD_ID)
+
+            json_start_time = time.time()
+            while True:
+                if time.time() - json_start_time > 25:
+                    response = 'O-oh, little issues when forming the response, repeat the message now'
+                    yield "Please, write the message again!"
+
+                run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_json,
+                                                            run_id=run_json.id)
+                if run_status.status == 'completed':
+                    messages_gpt_json = client.beta.threads.messages.list(thread_id=thread_id_json)
+                    print(f"\n\nTokens used by JSON assistant: {run_status.usage.total_tokens}\n\n")
+                    total_tokens_used_JSON = run_status.usage.total_tokens
+                    total_tokens_used = total_tokens_used_JSON
+
+                    if res_currency != 'EUR':
+                        rate = c.convert(1, res_currency, 'EUR')
+                    else:
+                        rate = 1
+                    
+                    charge_for_message = PRICE_PER_1_TOKEN * total_tokens_used
+                    print(f"Charge for message in JSON generate(): {charge_for_message} USD")
+
+                    result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
+                    if result_charge_for_message.matched_count > 0:
+                        print("Balances were successfully updated.")
+                    
+                    formatted_json_order = messages_gpt_json.data[0].content[0].text.value
+                    print(f"\nFormatted JSON Order (Output from MOM AI JSON LORD): {formatted_json_order}\n")
+
+                    # Get the conversion rate from USD to EUR (you can change to any currencies)
+                    
+                    parsed_formatted_json_order = ast.literal_eval(formatted_json_order.strip())
+                    items_ordered = parsed_formatted_json_order["items_ordered"]
+                    cache.set("items_ordered", items_ordered)
+                    # print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
+                
+                    order_id = generate_code()
+                    current_utc_timestamp = time.time()
+
+                    # Convert the timestamp to a datetime object
+                    utc_datetime = datetime.utcfromtimestamp(current_utc_timestamp)
+
+                    # Format the datetime object to a human-readable string
+                    human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
+
+
+                    if items_ordered and payment_on:
+                        db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
+
+                    if payment_on:
+                        total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
+                        
+                        total_price_EUR = f"{float(total_price)*rate:.2f}"
+
+                        cache.set("currency", res_currency)
+                        cache.set("currency_rate", rate)
+
+                        
+                        link_to_payment_buffer = f"/payment_buffer/{unique_azz_id}/{order_id}"
+                        print(link_to_payment_buffer)
+
+                        clickable_link = f'<a href={link_to_payment_buffer} style="color: #c0c0c0;" target="_blank">Press here to proceed</a>'
+                        response_cart = f"Order formed successfully. Please, follow this link to finish the purchase: {clickable_link}"
+                        # translator.translate()
+
+                        # Charge acc with 'total_tokens_used'
+
+                        emit(link_to_payment_buffer)
+                    else:
+                        total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
+                        
+                        
+                        
+                        total_price_EUR = f"{float(total_price)*rate:.2f}"
+
+                        cache.set("currency", res_currency)
+                        cache.set("currency_rate", rate)
+
+                        cache.set("total_price_EUR", total_price_EUR)
+                        cache.set("total_price_NATIVE", total_price)
+
+                        cache.set("order_id", order_id)
+                        cache.set('access_granted_no_payment_order', True)
+
+                        order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
+                        "orderID":order_id,
+                        "timestamp": human_readable_time_format,
+                        "total_paid": total_price,
+                        "total_paid_EUR": total_price_EUR,
+                        "mom_ai_restaurant_assistant_fee": 0,
+                        "paypal_fee": 0,
+                        "paid":"NOT PAID",
+                        "published":True}
+    
+                        db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+                        # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
+                        
+                        string_of_items = transform_orders_to_string(items_ordered)
+
+                        no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} {res_currency}\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
+                        
+                        restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+                        all_ids_chats = restaurant_instance.get("notif_destin", [])
+
+                        cache.set("order_confirm_access_granted", True)
+                        
+                        for chat_id in all_ids_chats:
+                            send_telegram_notification(chat_id)
+                        cache.set("suggest_web3_bonus", True)
+
+                        # Charge acc with 'total_tokens_used'
+
+                        emit(no_payment_order_finish_message)
+                if run_status.status == 'failed':
+                    print("Run of JSON assistant failed.")
+                    last_error = run_json.last_error if "last_error" in run else None
+                    if last_error:
+                        print("Last Error:", last_error)
+                    else:
+                        print("No errors reported for this run.")
+
+                    #print(f"\n\nRun steps: \n{run_steps}\n")
+                    response = 'O-oh, little issues, repeat the message now'
+                    emit('Please, write the message again!')
+            
+            # Ensure any remaining text is processed
+        if sentence:
+            try:
+                with client.audio.speech.with_streaming_response.create(
+                    model="tts-1-hd",
+                    voice="nova",
+                    input=sentence,
+                    speed=1.2,
+                    response_format="pcm"
+                ) as response:
+                    for audio_chunk in response.iter_bytes(1024):
+                        print("Audio Chunk: ", audio_chunk)
+                        emit('audio_chunk', audio_chunk)
+            except Exception as e:
+                print(f"Error generating remaining audio: {e}")
+                emit('error', {'message': 'Error processing remaining text.'})
+        
+        # Notify the client that the stream has ended
+        emit('audio_stream_end')
+
+
+def stream_audio(sentence):
+    try:
+        with CLIENT_OPENAI.audio.speech.with_streaming_response.create(
+            model="tts-1-hd", voice="nova", input=sentence, speed=1.2, response_format="pcm"
+        ) as response:
+            for audio_chunk in response.iter_bytes(1024):
+                emit('audio_chunk', audio_chunk)
+    except Exception as e:
+        emit('error', {'message': 'Audio generation failed'})
+
+
+@socketio.on('test')
+def socket_test(data):
+    name = data.get('name')
+
+    print("\n\n\ncalled_test\n\n\n")
+    emit("test_response", f"Hi, {name}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4778,10 +5184,23 @@ def set_session_ordertype():
 
     return jsonify({"success": True})
 
-
-@app.route("/takeaway_delivery/<unique_azz_id>")
-def takeaway_delivery_template(unique_azz_id):
+@app.route('/takeaway_delivery/<unique_azz_id>/', defaults={'order_id': None})
+@app.route("/takeaway_delivery/<unique_azz_id>/<order_id>")
+def takeaway_delivery_template(unique_azz_id, order_id):
     restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    payment_on = restaurant.get("paymentGatewayTurnedOn")
+
+    if not order_id:
+        order_id = cache.get("order_id")
+    
+    if payment_on:
+        next_link = f"/payment_buffer/{unique_azz_id}/{order_id}"
+    else:
+        
+        next_link = f"/no-payment-order-placed/{unique_azz_id}/{order_id}"
+
+    print(f"\n\n\nNext link: {next_link}\n\n\n")
     
     location_coord = restaurant.get("location_coord")
 
@@ -4802,7 +5221,9 @@ def takeaway_delivery_template(unique_azz_id):
                            restaurant_delivery_radius=restaurant_delivery_radius,
                            GOOGLE_MAPS_API_KEY = GOOGLE_MAPS_API_KEY, 
                            restaurant_address=restaurant_address,
-                           delivery_offered=delivery_offered)
+                           delivery_offered=delivery_offered,
+                           next_link=next_link,
+                           order_id=order_id)
 
 @app.route('/submit_address', methods=['POST'])
 def submit_address():
@@ -4817,8 +5238,9 @@ def submit_address():
         return jsonify({"status": "error", "message": "No address provided"}), 400
 
 
-@app.route('/no-payment-order-placed/<unique_azz_id>', methods=["POST", "GET"])
-def no_payment_order_placed(unique_azz_id):
+@app.route('/no-payment-order-placed/<unique_azz_id>/', methods=["POST", "GET"], defaults={'order_id': None})
+@app.route("/no-payment-order-placed/<unique_azz_id>/<order_id>", methods=["POST", "GET"])
+def no_payment_order_placed(unique_azz_id, order_id):
     suggest_web3_bonus = cache.get("suggest_web3_bonus")
     
     # if not session.get('access_granted_no_payment_order'):
@@ -4826,30 +5248,28 @@ def no_payment_order_placed(unique_azz_id):
     # Find the instance in MongoDB
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
-    
-    
-    
-    orderType = cache.get('orderType')
-    text_address = cache.get('text_address')
-    user_longitude = cache.get('user_longitude')
-    user_latitude = cache.get('user_latitude')
 
-    
-    
-    
-    
+    order_from_db = db_order_dashboard[unique_azz_id].find_one({"orderID": order_id})
+
+    orderType = session.get('orderType')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
+
+    if not order_from_db:
+        order_id = cache.get("order_id")
+        total_price_EUR = cache.get("total_price_EUR")
+        total_price_NATIVE = cache.get("total_price_NATIVE")
+        items_ordered = cache.get("items_ordered")
+    else:
+        total_price_EUR = order_from_db.get("total_paid_EUR")
+        total_price_NATIVE = order_from_db.get("total_paid_NATIVE")
+        items_ordered = order_from_db.get("items")
     
     
     res_currency = current_restaurant_instance.get("res_currency")
-    
-    total_price_EUR = cache.get("total_price_EUR")
-    total_price_NATIVE = cache.get("total_price_NATIVE")
-
-    order_id = cache.get("order_id")
-    items_ordered = cache.get("items_ordered")
-
     restaurant_name = current_restaurant_instance.get("name")
-    MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
+    NEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
     
     # Convert the timestamp to a datetime object
     current_utc_timestamp = time.time()
@@ -4886,7 +5306,11 @@ def no_payment_order_placed(unique_azz_id):
                             "published":True}
     
     
-    db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+    db_order_dashboard[unique_azz_id].update_one(
+    {"orderID": order_to_pass["orderID"]},
+    {"$set": order_to_pass},
+    upsert=True
+    )
     # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
     
     items = items_ordered
@@ -4945,28 +5369,28 @@ def success_payment_backend(unique_azz_id):
     suggest_web3_bonus = request.args.get("suggest_web3_bonus")
     
     if suggest_web3_bonus:
-        session["suggest_web3_bonus"] = True
+        cache.set("suggest_web3_bonus", True)
     else:
-        session["suggest_web3_bonus"] = False
+        cache.set("suggest_web3_bonus", False)
 
-    orderType = cache.get('orderType')
+    orderType = session.get('orderType')
     text_address = cache.get('text_address')
     user_longitude = cache.get('user_longitude')
     user_latitude = cache.get('user_latitude')
     
-    print("Setup suggest web3 hours in session to ", session["suggest_web3_bonus"])
+    print("Setup suggest web3 hours in session to ", cache.get("suggest_web3_bonus"))
     
-    if not session.get('access_granted_payment_result'):
+    if not cache.get('access_granted_payment_result'):
         abort(403)  # Forbidden
 
     session.pop('access_granted_payment_buffer', None)
     
-    items = session.get('items_ordered')
-    total_paid_EUR = session.get("total_to_pay_EUR")
-    total_paid_native = session.get("total_to_pay_native")
-    order_id = session.get("order_id")
+    items = cache.get('items_ordered')
+    total_paid_EUR = cache.get("total_to_pay_EUR")
+    total_paid_native = cache.get("total_to_pay_native")
+    order_id = cache.get("order_id")
 
-    sum_of_order = session.get('sum_of_order')
+    sum_of_order = cache.get('sum_of_order')
 
     #total_received = float(round(float(round(float(total_paid),2))*0.99, 2)) # 1 percent retained for prOOOOOOfit
     
@@ -4991,7 +5415,7 @@ def success_payment_backend(unique_azz_id):
     # Create Item instances for each item in the request
     #items = [Item(name=item['name'], quantity=item['quantity']) for item in items_data]
     
-    assistant_used = session["unique_azz_id"]
+    assistant_used = cache.get("unique_azz_id")
     
     if orderType == "delivery":
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
@@ -5063,7 +5487,7 @@ def success_payment_backend(unique_azz_id):
 
 @app.route('/success_payment/<unique_azz_id>/<id>', methods=["GET", "POST"])
 def success_payment_display(unique_azz_id, id):
-    suggest_web3_bonus = session.get("suggest_web3_bonus", False)
+    suggest_web3_bonus = cache.get("suggest_web3_bonus") or False
 
     print("Suggest web3 bonus, ", suggest_web3_bonus)
     
@@ -5098,8 +5522,10 @@ def success_payment_display(unique_azz_id, id):
     for index, image_url in enumerate(image_urls):
         items[index]['image_url'] = image_url
 
-    total_paid = session.get('total_to_pay_EUR')
-    total_paid_NATIVE = session.get("total_to_pay_native")
+    order_from_db = db_order_dashboard[unique_azz_id].find_one({"orderID": id})
+
+    total_paid_EUR = order_from_db.get('total_paid_EUR')
+    total_paid_NATIVE = order_from_db.get('total_paid')
 
     # Check if the delete was successful
     if result.deleted_count > 0:
@@ -5107,15 +5533,15 @@ def success_payment_display(unique_azz_id, id):
     else:
         print("No document matches the query. Nothing was deleted.")
 
-    if session.get("suggest_web3_bonus", None):
-        session.pop("suggest_web3_bonus")
+    if cache.get("suggest_web3_bonus"):
+        cache.delete("suggest_web3_bonus")
 
     return render_template('payment_routes/success_payment.html', title="Payment Successful", restaurant_name=restaurant_name, 
                            res_unique_azz_id=unique_azz_id, 
                            order_id=id, 
                            suggest_web3_bonus=suggest_web3_bonus, 
                            items=items,
-                           total_paid=total_paid,
+                           total_paid_EUR=total_paid_EUR,
                            unique_azz_id=unique_azz_id,
                            total_price_NATIVE=total_paid_NATIVE,
                            res_currency=res_currency)
@@ -5306,8 +5732,46 @@ def add_order_record():
         return 'Send a POST request to submit an order.' 
 """
 
+@app.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    email = request.json.get('email')
+    restaurant = collection.find_one({"email": email})
+    unique_azz_id = restaurant.get('unique_azz_id')
+    password = restaurant.get('password')
 
+    reset_password_code = restaurant.get('reset_password_code')
 
+    if restaurant:
+        send_email_raw(mail, email, f"<p style='font-size: 16px; line-height: 1.5;'>Your recovery link is <a href='https://mom-ai-restaurant.pro/reset_password?unique_azz_id={unique_azz_id}&reset_password_code={reset_password_code}'>here</a></p>", "Password Recovery", FROM_EMAIL)
+        return jsonify({"success": True})
+    else:
+        return jsonify({"success": False})
+
+@app.route('/reset_password', methods=['POST', 'GET'])
+def reset_password():
+    unique_azz_id = request.args.get('unique_azz_id')
+    reset_password_code = request.args.get('reset_password_code')
+    
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+    real_reset_password_code = restaurant.get('reset_password_code')
+    
+    if not unique_azz_id or not reset_password_code or real_reset_password_code != reset_password_code:
+        abort(404)
+
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        new_password = form.new_password.data
+        confirm_password = form.confirm_password.data
+        if new_password == confirm_password:
+            print("Passwords match")
+            # Update the password in the database
+            collection.update_one({"unique_azz_id": unique_azz_id}, {"$set": {"password": hash_password(new_password), "reset_password_code": generate_random_string(10)}})
+            flash("Password has been changed successfully! Please, log in again.", "success")
+            return redirect(url_for('login'))
+        else:
+            print("Passwords do not match")
+            flash("Passwords do not match", "danger")
+    return render_template('start/reset_password.html', form=form, title="Reset Password")
 ################################### Guides/Static Pages ####################################
 
 @app.route('/excel_guide', methods=['GET'])
@@ -5441,9 +5905,166 @@ def google_callback():
             "type": type_
         }), 400
 
+
+@app.route('/search_instance/<unique_azz_id>', methods=['POST', 'GET'])
+def search_instance(unique_azz_id):
+    # unique_azz_id = request.json.get('unique_azz_id')
+    
+    if request.method == 'OPTIONS':
+        # Handling OPTIONS request
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
+    
+    if not unique_azz_id:
+        return jsonify({"success": False, "message": "No unique_azz_id provided"}), 400
+    
+    try:
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+        name = restaurant.get("name")
+        res_currency = restaurant.get("res_currency")
+        list_of_items = restaurant.get("html_menu_tuples")
+        menu_string = ""
+        for item in list_of_items:
+            menu_string += f"{item['Item Name']} - {item['Item Description']} - {item['Item Price (EUR)']} {res_currency}\n"
+        
+        assistant_turned_on = restaurant.get("assistant_turned_on")
+        is_open = restaurant.get("isOpen")
+        address = restaurant.get("location_name")
+        delivery_offered = restaurant.get("delivery_offered")
+        discovery_mode_is_on = restaurant.get("discovery_mode")
+
+        object_to_send = {"unique_azz_id": unique_azz_id,
+                          "name": name, 
+                          "menu_string": menu_string,
+                          "assistant_turned_on": assistant_turned_on, 
+                          "is_open": is_open,
+                          "address": address,
+                          "delivery_available": delivery_offered,
+                          "discovery_mode_is_on": discovery_mode_is_on}
+
+        if restaurant:
+            return jsonify({"success": True, "restaurant": object_to_send}), 200
+        else:
+            return jsonify({"success": False, "message": "No restaurant found with the provided unique_azz_id"}), 404
+    
+    except Exception as e:
+        return jsonify({"success": False, "message": f"An error occurred: {str(e)}"}), 500
+
+
+@app.route('/accept-order-details-voice', methods=['POST', 'GET', 'OPTIONS'])
+def accept_order_details_voice():
+    
+    if request.method == 'OPTIONS':
+        print("Handling OPTIONS request")
+        response = jsonify({'message': 'OK'})
+        response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response
+
+    try:
+        print("Entering try block")
+        # Get the JSON payload from the request
+        payload = request.json
+
+        print("Received payload:", payload)
+        
+        if not payload:
+            print("Error: No JSON payload received")
+            return jsonify({"error": "No JSON payload received"}), 400
+        
+        order_id = payload.get('id')
+        print("Order ID:", order_id)
+        
+        unique_azz_id = payload.get('restaurant_id')
+        print("Restaurant ID:", unique_azz_id)
+        
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+        print("Restaurant data:", restaurant)
+        
+        res_currency = restaurant.get("res_currency")
+        print("Restaurant currency:", res_currency)
+        
+        payment_on = restaurant.get("paymentGatewayTurnedOn")
+        print("Payment gateway turned on:", payment_on)
+        
+        items_ordered = payload.get('items_ordered')
+        print("Items ordered:", items_ordered)
+        
+        total_price_native = payload.get('totalAmount')
+        print("Total price (native):", total_price_native)
+
+        current_utc_timestamp = time.time()
+        print("Current UTC timestamp:", current_utc_timestamp)
+
+        # Convert the timestamp to a datetime object
+        utc_datetime = datetime.utcfromtimestamp(current_utc_timestamp)
+        print("UTC datetime:", utc_datetime)
+
+        # Format the datetime object to a human-readable string
+        human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
+        print("Human-readable time format:", human_readable_time_format)
+
+        if res_currency != 'EUR':
+            rate = c.convert(1, res_currency, 'EUR')
+        else:
+            rate = 1
+        print("Conversion rate to EUR:", rate)
+
+        print("Items ordered set in cache")
+
+        if payment_on:
+            print("Payment gateway is on")
+            # print("Currency and rate set in cache")
+            
+            db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
+            print("Order inserted into db_items_cache")
+            next_link = f"/payment_buffer/{unique_azz_id}/{order_id}"
+            print("Next link (payment on):", next_link)
+        else:
+
+            total_price_EUR = total_price_native * rate
+
+            print("\n\n\nTotal price in EUR:", total_price_EUR, "\n\n\n")
+            
+            order_to_pass = {
+                "items": [{'name': item['name'], 'quantity': item['quantity']} for item in items_ordered],
+                "orderID": order_id,
+                "timestamp": human_readable_time_format,
+                "total_paid": total_price_native,
+                "total_paid_EUR": total_price_EUR,
+                "mom_ai_restaurant_assistant_fee": 0,
+                "paypal_fee": 0,
+                "paid": "NOT PAID",
+                "published": True
+            }
+            print("Order to pass:", order_to_pass)
+        
+            db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+            print("Order inserted into db_order_dashboard")
+            
+            next_link = f"/no-payment-order-placed/{unique_azz_id}"
+            print("Next link (payment off):", next_link)
+        
+        print("Next take delivery link set in cache:", next_link)
+
+        print("Preparing response")
+        return jsonify({
+            "message": "Order details received successfully",
+            "order_details": payload,
+            "next_link": next_link
+        }), 200
+
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
     
 if __name__ == '__main__':
-    app.run(host="localhost", port=5000, debug=True)
+    socketio.run(app, debug=True, host='localhost', port=5000, use_reloader=True)
 
 
 

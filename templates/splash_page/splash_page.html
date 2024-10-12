@@ -6,7 +6,7 @@
     <title>Restaurant Splash Page</title>
     <style>
         html, body {
-            margin: 0;
+            margin-top: 0;
             padding: 0;
             height: 100%; /* Make sure html and body take the full height of the viewport */
             display: flex;
@@ -21,16 +21,15 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
-            align-items: center;
-            height: 100vh;
+            gap: -40px;
+            align-items: center; 
             text-align: center;
-            height: 100%;
-            padding-top: 25px; /* Adjust padding if necessary */
+            margin-top: 30px; /* Reduced padding */
         }
         .logo {
             width: 250px; /* Increased size */
             height: auto;
-            margin-bottom: 30px; /* More space between logo and play button */
+            margin-bottom: 20px; /* More space between logo and play button */
         }
         .play-button {
             position: relative;
@@ -47,7 +46,7 @@
             transform: translate(-50%, -50%);
             width: 150px; /* Increased size */
             height: 150px; /* Increased size */
-            background-color: rgba(255, 0, 0, 0.7);
+            background-color: rgba(255, 0, 0, 0.9);
             border-radius: 50%;
             z-index: 1;
         }
@@ -62,7 +61,7 @@
             height: 60px; /* Increased size */
         }
         .menu-venu {
-            margin-top: 30px; /* More space between play button and MenuVenu */
+            margin-top: 0px; /* More space between play button and MenuVenu */
             font-size: 30px; /* Increased text size */
             font-family: 'Arial', sans-serif;
             color: #444;
@@ -72,7 +71,7 @@
         }
 
         .menu-venu img {
-            width: 200px; /* Increased width of MenuVenu logo */
+            width: 100px; /* Increased width of MenuVenu logo */
             height: auto;
             margin: 0; /* Removes margin between the images */
             display: block; /* Ensures images are block elements */
@@ -85,19 +84,31 @@
 <body>
     <div class="container">
         <!-- Display the logo -->
-        <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" class="logo">
+        <img src="{{ url_for('serve_image', file_id=restaurant.res_logo or '666af654dee400a1d635eb08') }}" alt="Restaurant Logo" style="width: 200px; height: auto;" class="logo">
 
         <!-- Play button overlay with clickable redirect -->
-        <a href="/assistant_order_chat/{{ unique_azz_id }}">
+        <a href="https://voice.mom-ai-restaurant.pro/{{ unique_azz_id }}">
             <div class="play-button">
                 <img src="/static/images/PlayButton-removebg.png" alt="Play Video">
             </div>
         </a>
 
-        <!-- MenuVenu text -->
+        <p style="font-size: 20px; color: white; background-color: black;">⬆️<br>Start Voice Chat</p>
+
+        <!-- Play button overlay with clickable redirect -->
+        <a href="/chat_start/{{ unique_azz_id }}">
+            <div class="play-button">
+                <img src="/static/images/PlayButton-removebg.png" alt="Play Video">
+            </div>
+        </a>
+
+        <p style="font-size: 20px; color: white; background-color: black;">⬆️<br>Start Text Chat</p>
+
+        <!-- MenuVenu text 
         <div class="menu-venu">
-            <img src="/static/logos/MenuVenuLogo-removebg.png" alt="MenuVenu Logo"><img style="margin-top: 10px;" src="/static/logos/LogoInvertedColors_noSlogan.png" width="50" height="auto">
+             <img src="/static/logos/MenuVenuLogo-removebg.png" alt="MenuVenu Logo"> <img src="/static/logos/LogoInvertedColors_noSlogan.png" width="30" height="auto">
         </div>
+    -->
     </div>
 </body>
 </html>

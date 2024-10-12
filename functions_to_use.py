@@ -1,6 +1,8 @@
 #import eventlet
 #eventlet.monkey_patch()
 from flask import Flask, jsonify, session, request, url_for, flash, redirect
+from flask_socketio import SocketIO, emit
+from flask_cors import CORS
 from celery_folder.celery_config import make_celery
 from flask_mail import Mail, Message
 from flask_caching import Cache
@@ -20,6 +22,7 @@ import ast
 from pydub import AudioSegment
 import secrets
 import statistics
+from google_folder.google_cloud_storage import extract_text_from_image_google
 from deep_translator import GoogleTranslator
 from langdetect import detect, detect_langs
 import azure.cognitiveservices.speech as speechsdk
@@ -42,6 +45,7 @@ import time
 from datetime import datetime
 import pytz
 import logging
+from google_folder.google_cloud_storage import upload_file_google, download_file_google, list_files_google, upload_file_bytes_google
 import bcrypt
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
@@ -51,9 +55,11 @@ from botocore.exceptions import NoCredentialsError
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 
-#socketio = SocketIO(app, async_mode='eventlet')
+
 
 app = Flask(__name__)
+CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Initialize Flask-Mail
 app.config['MAIL_SERVER'] = 'mail.privateemail.com'
@@ -105,7 +111,7 @@ db_items_cache = client_db["Items_Cache"]
 
 
 
-REDIS_URL = os.environ.get("REDISCLOUD_URL", 'redis://localhost:6379/0')
+REDIS_URL = os.environ.get("REDISCLOUD_URL", 'redis://localhost:6380')
 
 # Configure Flask-Caching
 app.config['CACHE_TYPE'] = 'RedisCache'  # Specify Redis as the cache type
@@ -284,9 +290,10 @@ def get_talk_video(id):
 
 ############ Upload Intro to my AWS ###############
 
-def full_intro_in_momai_aws(url, intro_filename):
+def full_intro_in_momai_google(url, intro_filename):
     download_video_from_url(url, intro_filename)
-    upload_to_s3(intro_filename)
+    upload_file_google(intro_filename, folder_name="restaurant_intros")
+    #upload_to_s3(intro_filename)
 
 def download_video_from_url(url, local_filename):
     """
@@ -355,10 +362,7 @@ def upload_file_to_s3(file, bucket_name=S3_BUCKET, acl="public-read", s3_key=Non
         s3.upload_fileobj(
             file,
             bucket_name,
-            s3_key,
-            ExtraArgs={
-                "ACL": acl
-            }
+            s3_key
         )
 
         # Construct the full S3 URL
@@ -587,7 +591,8 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "discovery_mode": False,
             "delivery_offered": False,
             "radius_delivery_value": 10,
-            "notif_destin":[]
+            "notif_destin":[],
+            "reset_password_code": generate_random_string(10)
             # "stripe_secret_test_key": stripe_secret_test_key
         }
 
@@ -1087,7 +1092,7 @@ def generate_qr_code_and_upload(text, unique_azz_id):
     qr_code_img = qr_code_img.resize(qr_code_size)
 
     # Paste the QR code at the desired position (coordinates need adjustment based on your image)
-    base_image.paste(qr_code_img, (450, 310))
+    base_image.paste(qr_code_img, (435, 280))
 
     # Convert the base_image (with QR code) to a BytesIO object
     img_byte_arr = BytesIO()
@@ -1095,9 +1100,13 @@ def generate_qr_code_and_upload(text, unique_azz_id):
     img_byte_arr.seek(0)  # Move the pointer to the start of the stream
 
     # Set the S3 key (location in S3)
-    s3_key = f"final_images/{unique_azz_id}_qr_code_template.jpg"
+    # s3_key = f"final_images/{unique_azz_id}_qr_code_template.jpg"
     
-    template_url = upload_file_to_s3(img_byte_arr, s3_key=s3_key)
+    # template_url = upload_file_to_s3(img_byte_arr, s3_key=s3_key)
+    template_url = upload_file_bytes_google(img_byte_arr, 
+                                            object_name=f"{unique_azz_id}_qr_code_template.jpg",
+                                            folder_name=f"final_images",
+                                            content_type='image/jpeg')
 
     print(f"Successfully uploaded qr-code template on link: {template_url}")
 
@@ -1922,6 +1931,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
     # Initialize the GoogleTranslator
     translator = GoogleTranslator(source='auto', target='en')
     
+    """
     if language != "en":
         # Translate the user input to English
         translated_user_message = translator.translate(user_message)
@@ -1929,12 +1939,15 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         print("--------------------------------------------------------")
     else:
         translated_user_message = user_message
+    """
 
+    translated_user_message = user_message
     
     messages_gpt = client.beta.threads.messages.list(thread_id=thread_id)
     
     PROVIDE_RESPONSE_IN_THIS_LANGUAGE = f"""
     Provide the response in this language: {language}
+    The prices of the items on menu are in this currency: {res_currency}
     """
  
     user_message = f"""
@@ -1947,7 +1960,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
         from this list and use the images from this list:
         {list_of_all_items} 
-        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170"  height="auto"> 
         Provide the images as much as possible.
         Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
         Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
@@ -1958,7 +1971,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
         from this list and use the images from this list:
         {list_of_all_items} 
-        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" height="auto"> 
+        Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" style="max-width: 100%; height: auto;" height="auto"> 
         Provide the images as much as possible.
         The prices of the items are in this currency: {res_currency}
         """
@@ -2174,8 +2187,11 @@ def send_telegram_notification(chat_id, message=f"New order has been published! 
         'text': message,
         'parse_mode': 'HTML'
     }
-    response = requests.post(url, data=payload)
-    print(response.json())
+    try:
+        response = requests.post(url, data=payload, timeout=10)
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send Telegram notification: {e}")
 
 
 class InvalidMenuFormatError(Exception):
@@ -3768,9 +3784,11 @@ def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_i
 
     folder_name = f"ai_food_images/{unique_azz_id}"
 
-    upload_to_s3(local_filename, folder_name=folder_name)
+    # upload_to_s3(local_filename, folder_name=folder_name)
 
-    aws_ai_image_link = f"https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
+    # google_ai_image_link = f"https://mom-ai-restaurant-pictures.s3.eu-north-1.amazonaws.com/{folder_name}/{local_filename}"
+
+    google_ai_image_link = upload_file_google(local_filename, object_name=local_filename, folder_name=folder_name)
 
     # Set the new field and value to add to the array element
     new_field = "AI-Image"
@@ -3780,7 +3798,7 @@ def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_i
     # Query to filter by unique_azz_id and update html_menu_tuples based on Item Name
     result = collection.update_one(
         { "unique_azz_id": unique_azz_id, "html_menu_tuples.Item Name": item_name },  # Filter criteria
-        { "$set": { "html_menu_tuples.$." + new_field: aws_ai_image_link },
+        { "$set": { "html_menu_tuples.$." + new_field: google_ai_image_link },
           "$inc": {"balance":-PRICE_OF_ONE_IMAGE, "assistant_fund":PRICE_OF_ONE_IMAGE} }  # Update specific element in the array
     )
 
@@ -3791,7 +3809,7 @@ def generate_ai_menu_item_image_celery(item_name, item_description, unique_azz_i
     else:
         print(f"No document found with unique_azz_id '{unique_azz_id}' and item '{item_name}'.")
 
-    return aws_ai_image_link
+    return google_ai_image_link
 
 @celery.task
 def fully_extract_menu_from_image_celery(image_paths:list):
@@ -3803,43 +3821,10 @@ def fully_extract_menu_from_image_celery(image_paths:list):
     for image_path in image_paths:
         # print(f"Processing image: {image_path}")
 
-        # Initialize the Textract client
-        # print("Initializing Textract client...")
-        textract = boto3.client('textract',
-                                aws_access_key_id=AWS_ACCESS_KEY,
-                                aws_secret_access_key=AWS_SECRET_KEY,
-                                region_name='us-east-1')
-        # print("Textract client initialized.")
-
+        
         try:
-            # print(f"Attempting to download image from: {image_path}")
-            # Download the image from the S3 URL
-            response = requests.get(image_path)
-
-            # Check if the request was successful
-            # print(f"Image download status code: {response.status_code}")
-            if response.status_code != 200:
-                raise Exception(f"Failed to download image from {image_path}, status code: {response.status_code}")
-
-            # Read the image in binary mode (in memory)
-            # print("Reading image content into memory...")
-            image_bytes = BytesIO(response.content)
-            #print(f"Downloaded image size: {len(response.content)} bytes")
-
-            # Call Amazon Textract with the downloaded image
-            # print("Sending image to Textract for text detection...")
-            textract_response = textract.detect_document_text(
-                Document={'Bytes': image_bytes.read()}
-            )
-            # print("Textract response received.")
-
-            # Extract and return detected text
-            extracted_text = ""
-            # print("Extracting text from Textract response...")
-            for item in textract_response['Blocks']:
-                if item['BlockType'] == 'LINE':
-                    print(f"Detected line of text: {item['Text']}")
-                    extracted_text += item['Text'] + "\n"
+            extracted_text = extract_text_from_image_google(image_path)
+            print(f"\n\n\nExtracted Text: {extracted_text}\n\n\n")
 
         except requests.exceptions.RequestException as e:
             print(f"RequestException: {str(e)}")

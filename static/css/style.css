@@ -479,29 +479,31 @@ input, select {
 
 
 
-.wallet-address {
-    background-image: url('/static/images/dashboard_background.jpg'); /* Replace with your image path */
-    background-size: cover; /* Cover the entire div */
-    background-position: center; /* Center the image */
-    margin-left: 7px;
-    margin-right: 7px;
-    padding: 20px; /* Add some padding */
-    color: white; /* Text color for better visibility */
-    border-radius: 10px; /* Optional: Rounded corners */
-}
-
-.wallet-address h1 {
-    text-shadow:
-    -2px -2px 0 #000,  
-    2px -2px 0 #000,
-    -2px 2px 0 #000,
-    2px 2px 0 #000,
-    -2px 0 0 #000,
-    2px 0 0 #000,
-    0 -2px 0 #000,
-    0 2px 0 #000;
-/* Creates a thicker outline effect with a black shadow on all sides */
-}
+    .wallet-address {
+        background-image: url('/static/images/dashboard_background.jpg');
+        background-size: cover;
+        background-position: center;
+        margin-left: 0; /* Removed left margin */
+        margin-right: 0; /* Removed right margin */
+        padding: 30px; /* Increased padding */
+        color: white;
+        border-radius: 10px;
+        width: 70%; /* Set width to 100% */
+        max-width: 1200px; /* Added max-width for very large screens */
+        margin: 0 auto; /* Center the element horizontally */
+    }
+    
+    .wallet-address h1 {
+        text-shadow:
+        -2px -2px 0 #000,  
+        2px -2px 0 #000,
+        -2px 2px 0 #000,
+        2px 2px 0 #000,
+        -2px 0 0 #000,
+        2px 0 0 #000,
+        0 -2px 0 #000,
+        0 2px 0 #000;
+    }
     
 
 

@@ -64,7 +64,7 @@
         </select>
     </div>
     <div style="margin-bottom: 20px;">
-        <a id="timeLink" href="https://time.is/{{ current_rest_timezone.replace('Etc/', '') }}" target="_blank" style="font-family: 'Arial', sans-serif; font-size: 16px;"><u><b>Check the current time in the specified timezone</b></u></a>
+        <a id="timeLink" href="https://time.is/{{ current_rest_timezone.replace('Etc/', '').replace('+0', '').replace('-0', '') }}" target="_blank" style="font-family: 'Arial', sans-serif; font-size: 16px;"><u><b>Check the current time in the specified timezone</b></u></a>
     </div>
     <div id="scheduleInputs" style="margin-bottom: 20px;">
         <!-- Schedule inputs will be dynamically generated here -->

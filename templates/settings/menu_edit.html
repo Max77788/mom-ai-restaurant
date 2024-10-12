@@ -2,6 +2,32 @@
 
 {% block content %}
 <body>
+
+    <div id="orientation-banner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; color: #000; z-index: 1000; display: flex; justify-content: center; align-items: center; text-align: center;">
+        <div>
+            <h1 style="margin-bottom: 10px; margin-top: 40px;">Please switch to <br>horizontal mode</h1>
+            <p style="margin-top: 10px;">This page is best viewed <br>in landscape orientation.</p>
+            <img src="/static/images/rotateScreen.png" style="width: 80%; height: auto;">
+        </div>
+    </div>
+
+    <script>
+        // Add this function to check and update the orientation banner
+    function checkOrientation() {
+        const banner = document.getElementById('orientation-banner');
+        if (window.innerWidth < window.innerHeight) {
+            banner.style.display = 'block';
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    // Call checkOrientation on page load and window resize
+    window.addEventListener('load', checkOrientation);
+    window.addEventListener('resize', checkOrientation);
+    checkOrientation();
+    </script>
+
     <h1 class="mb-4" style="text-align: center; position: relative;">
         {% if initial_setup %}Setup the menu{% else %}Update the menu{% endif %}
         <!-- Add your element here -->
@@ -124,7 +150,7 @@
 
 
         <!-- Add new row form -->
-        <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-left: 10px; margin-right: 10px;">
             <input type="text" id="newItemNameExtracted" placeholder="Item Name" style="flex: 1;">
             <input type="text" id="newItemDescriptionExtracted" placeholder="Item Description" style="flex: 2;">
             <input type="number" id="newItemPriceExtracted" placeholder="Item Price" style="flex: 1;">
@@ -546,7 +572,10 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
             </tbody>
         </table>
 
-        <button type="submit" id="submitMenuBtn" style="margin-top: 20px;">Submit Menu</button>
+        <!-- Move the Submit Menu button here, right after the table -->
+        <div id="submitMenuButtonContainer" style="display: none; text-align: center; margin-top: 20px;">
+            <button id="submitMenuBtn" style="padding: 15px 30px; font-size: 18px; border-radius: 10px; width: 200px; height: 60px;">Submit Menu</button>
+        </div>
     </div>
 
     <script>
@@ -562,7 +591,7 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
             document.getElementById('loadingGif').style.display = 'none';
         }
         
-        document.getElementById('addItemBtn').addEventListener('click', function() {
+        document.getElementById('addItemBtn')?.addEventListener('click', function() {
             
             // Get the values from the form inputs
             let itemName = document.getElementsByName('item_name')[0].value.trim();
@@ -605,6 +634,8 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
             // Clear the form inputs
             document.getElementById('menuForm').reset();
 
+            toggleSubmitMenuButton();
+
             attachDeleteOneByOneListeners();
         });
 
@@ -645,11 +676,53 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
             });
         });
 
+        // Function to check if the table has rows and show/hide the Submit Menu button
+    function toggleSubmitMenuButton() {
+        console.log("Toggle submit menu button")
+        const table = document.getElementById('itemTable');
+        console.log("Table rows: ", table.rows.length)
+        const submitMenuButtonContainer = document.getElementById('submitMenuButtonContainer');
+        if (table.rows.length > 1) { // > 1 because the first row is usually the header
+            submitMenuButtonContainer.style.display = 'block';
+        } else {
+            submitMenuButtonContainer.style.display = 'none';
+        }
+    }
+
+    // Call this function initially and after any changes to the table
+    toggleSubmitMenuButton();
+
+    // Modify the delete button event listener
+    function attachDeleteListeners() {
+        document.querySelectorAll('.delete-row-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                let confirmation = confirm('Are you sure you want to delete this row?');
+                if (confirmation) {
+                    let row = button.closest('tr');
+                    row.parentNode.removeChild(row);
+                    // After deleting a row, call toggleSubmitMenuButton
+                    toggleSubmitMenuButton();
+                }
+            });
+        });
+    }
+
         
 
 
         document.getElementById('submitMenuBtn').addEventListener('click', function() {
+            if (document.getElementById("itemTable").rows.length <= 1) {
+                alert("You have to add at least one item to the menu.");
+                return;
+            }
+
+            if (document.getElementById("itemTable").rows.length > 100) {
+                alert("You have to add at most 100 items to the menu.");
+                return;
+            }
+
             document.getElementById("loadingGif").style.display = "block";
+
             
             let rows = document.querySelectorAll('#itemTable tbody tr');
             let items = [];
@@ -685,7 +758,7 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
                     if(!initial_setup){
                     location.reload();
                     } else {
-                        window.location.href = "/dashboard?show_popup=True"
+                        window.location.href = "/set-working-hours?start_setup=True"
                     }
                 } else {
                     alert('Failed to update the menu.');
@@ -781,11 +854,11 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
         </script>
         </div>
 
+        {% endif %}
+
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
             <img src="/static/assets/loading-gif.gif" width="70" style="display: none;" id="loadingGif">
         </div>
-
-        {% endif %}
 
         <div style="display: flex; align-items: center; justify-content: center;">
             <button id="saveChangesBtn" style="margin-top: 20px; flex-direction: column; align-items: center; padding: 15px 30px; font-size: 18px; border-radius: 10px; width: 200px; height: 60px;">Save Changes</button>
@@ -814,7 +887,7 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
                             <th>Item Name</th>
                             <th>Item Description</th>
                             <th>Item Price ({{ currency }})</th>
-                            <th>Link to Image</th>
+                            <th>Link to Image <a id="getImageLinkTutor" href="https://www.youtube.com/watch?v=sULX0_wR5_8" target="_blank">(How to get link?)</a></th>
                             <th>Image</th>
                             {% if not default_menu %}
                             <th>AI-Image</th> <!-- New Column -->
@@ -1020,7 +1093,7 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
                     };
 
 
-                    document.getElementById('addNewItemBtn').addEventListener('click', function() {
+                    document.getElementById('addNewItemBtn')?.addEventListener('click', function() {
                     // Get the values from the form inputs
                     let itemName = document.getElementById('newItemName').value.trim();
                     let itemDescription = document.getElementById('newItemDescription').value.trim();
@@ -1094,7 +1167,7 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
                     const inputs = document.querySelectorAll('#newItemForm input');
                     inputs.forEach(input => input.value = '');
 
-
+                    // After adding the new row, call toggleSubmitMenuButton
 
                     // appendGenerateImageButton();
 
@@ -1128,10 +1201,8 @@ document.getElementById("addRowBtn").addEventListener("click", function () {
                     function isValidUrl(string) {
                         try {
                             if (string) {
-                                console.log("Entered URL")
                             new URL(string);
                             }
-                            console.log("Returned True")
                             return true;
                         } catch (_) {
                             return false;

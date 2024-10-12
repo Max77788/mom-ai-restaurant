@@ -1,4 +1,4 @@
-{% extends "layout_no_land.html" %}
+{% extends "layout_marketing_dashboard.html" %}
 
 {% block content %}
     <div class="restaurant-profile">
@@ -39,7 +39,7 @@
                 <p>{{ restaurant['description'] or "The best restaurant embracing the future with AI-implementation and just serving an awesome food"}}</p>
             </div>
             <div class="assistant-section">
-                <a href="/assistant_order_chat/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Make the AI-order</button></a>
+                <a href="/splash-page/{{ restaurant.unique_azz_id }}" target="_blank"><button class="ai-button">Make the AI-order</button></a>
             </div>
 
             <div class="working-hours">

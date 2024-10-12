@@ -1,23 +1,8 @@
 {% extends "layout_no_land.html" %}
 
 {% block content %}
-<div style="
-    display: flex;
-    justify-content: center;
-    align-items: center;
-">
-    <div id="google_translate_element" style="
-        max-width: 200px;
-        width: 100%;
-    "></div>
-</div>
 
-<script type="text/javascript">
-    function googleTranslateElementInit() {
-        new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
-    }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 <style>
     /* Modal styles */
     .modal {
@@ -172,8 +157,10 @@
         {% endfor %}
         <b>Total:<br>
         {{ total_price_NATIVE }} {{ res_currency }}<br>
+        {% if res_currency != "EUR" %}
         or<br>
-        {{ total_paid }} EUR</b>
+        {{ total_paid_EUR }} EUR</b>
+        {% endif %}
     </ul>
     <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
         Please, remember this number - you will not be able to pick your order without this number.</h3>
@@ -199,7 +186,7 @@
             
     <hr>
     
-    <p>You can make another order in {{ restaurant_name }} by following <a href='{{ url_for("assistant_order_chat", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
+    <p>You can make another order in {{ restaurant_name }} by following <a href='{{ url_for("chat_start", unique_azz_id=res_unique_azz_id) }}' target="_blank" style="color: darkred;">this link</a>.</p>
     <p style="margin-top: 8px;">To explore the family of AI-empowered restaurants click <a href="/ai-restaurants" target="_blank" style="color: darkred;">this link</a>.</p>
     
     <hr>
@@ -341,5 +328,22 @@
     }
     */
 </script>
+
+<style>#google_translate_element,.skiptranslate{display:none;}body{top:0!important;}</style>
+<div id="google_translate_element"></div>
+<script>
+    const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'en', 
+            includedLanguages: initialLanguage, 
+            autoDisplay: false
+        }, 'google_translate_element');
+        var a = document.querySelector("#google_translate_element select");
+        a.selectedIndex=1;
+        a.dispatchEvent(new Event('change'));
+    }
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 {% endblock %}

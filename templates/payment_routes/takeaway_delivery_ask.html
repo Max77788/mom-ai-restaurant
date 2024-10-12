@@ -2,17 +2,6 @@
 
 {% block content %}
 
-<div style="
-    display: flex;
-    justify-content: center;
-    align-items: center;
-">
-    <div id="google_translate_element" style="
-        max-width: 200px;
-        width: 100%;
-    "></div>
-</div>
-
 <div style="text-align: center; padding: 20px;">
     <h2>How would you like to receive your order?</h2>
     <form id="orderTypeForm" onsubmit="return false;">
@@ -37,6 +26,23 @@
     <button onclick="submitDeliveryAddress()">Submit Delivery Address</button>
 </div>
 -->
+
+<style>#google_translate_element,.skiptranslate{display:none;}body{top:0!important;}</style>
+<div id="google_translate_element"></div>
+<script>
+    const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
+    function googleTranslateElementInit() {
+        new google.translate.TranslateElement({
+            pageLanguage: 'en', 
+            includedLanguages: initialLanguage, 
+            autoDisplay: false
+        }, 'google_translate_element');
+        var a = document.querySelector("#google_translate_element select");
+        a.selectedIndex=1;
+        a.dispatchEvent(new Event('change'));
+    }
+</script>
+<script src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 
 <div id="deliveryLocationDiv" style="display: none; text-align: center; padding: 20px;">
@@ -64,14 +70,6 @@
 <div id="deliveryImpossible" style="margin-top: 10px; display: none;">
     <p style="color: red; text-align: center;">Opt the other type or choose the address closer to the restaurant</p>
 </div>
-
-<!-- Google Translate Script -->
-<script type="text/javascript">
-    function googleTranslateElementInit() {
-        new google.translate.TranslateElement({pageLanguage: 'en'}, 'google_translate_element');
-    }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <script>
     const proceedButton = document.getElementById('nextStep');
@@ -102,7 +100,7 @@
             .then(response => response.json()) // Parse the JSON response from Flask
         .then(data => {
             console.log('Success:', data); // Handle the response data
-            const next_link = sessionStorage.getItem("next_link")
+            const next_link = "{{ next_link }}".trim() || sessionStorage.getItem("next_link")
             window.location.href = next_link;
         })
         .catch((error) => {

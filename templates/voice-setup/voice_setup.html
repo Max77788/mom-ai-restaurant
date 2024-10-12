@@ -179,7 +179,7 @@
     <button type="submit" class="btn btn-success" {% if restaurant["balance"] < 22.95 %} style='cursor: not-allowed; opacity: 0.5;' disabled{% endif %}>Obtain Phone Number for {{ restaurant_name }}'s AI Voice Agent</button>
 </form>
 </div>
-<p>*IMPORTANT - if you choose the language other than English your AI-agent won't capture orders, but will stull be able to provide the commong customer support.</p>
+<p>*IMPORTANT - if you choose the language other than English your AI-agent won't capture orders, but will still be able to provide the commong customer support.</p>
 {% if restaurant["balance"] <= 22.95 %}
 <p style="font-size: large">You must have <b>AT LEAST <u>23€</u> on your balance</b> to obtain the number. <b>Your current balance is {{ restaurant["balance"] | round(2) }}€</b></p>
 <div style="margin-top: 10px; margin-bottom: 10px; text-align: center">
@@ -320,7 +320,7 @@
             checkLanguageSelection();
         </script>
     </form>
-    <p>*IMPORTANT - if you choose the language other than English your AI-agent won't capture orders, but will stull be able to provide the commong customer support.</p>
+    <p>*IMPORTANT - Currently the assistant does not take orders, but will still be able to provide the common customer support.</p>
     </div>
 
 {% endif %}

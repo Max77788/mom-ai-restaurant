@@ -1,63 +1,75 @@
 {% extends 'layout_no_land.html' %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: flex-start;">
-    <!-- Left Column: Form -->
-    <div style="flex: 1; margin-right: 20px; text-align: center;">
-        <h2>Setup your restaurant global profile</h2>
-        <h4>So people from anywhere in the world🌍 can see YOUR restaurant👀</h4>
+<div id="orientation-banner" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: #ffffff; color: #000; z-index: 1000; display: flex; justify-content: center; align-items: center; text-align: center;">
+    <div>
+        <h1 style="margin-bottom: 10px; margin-top: 40px;">Please switch to <br>horizontal mode</h1>
+        <p style="margin-top: 10px;">This page is best viewed <br>in landscape orientation.</p>
+        <img src="/static/images/rotateScreen.png" style="width: 80%; height: auto;">
+    </div>
+</div>
 
-        <form action="{{ url_for('setup_public_profile') }}" method="POST" enctype="multipart/form-data">
-            {{ form.hidden_tag() }}
-            
-            <!-- Name -->
-            <div>
-                <label for="name">Name of Your Restaurant</label>
-                {{ form.name(cols=50, rows=4, id='name-input', required=True) }}
-                {% if form.name.errors %}
-                    <span style="color: red;">{{ form.name.errors[0] }}</span>
-                {% endif %}
-            </div>
-            
-            <!-- Description -->
-            <div>
-                <label for="description">Description of your restaurant (50-350 characters):</label>
-                {{ form.description(cols=50, rows=4, id='description-input', required=True) }}
-                {% if form.description.errors %}
-                    <span style="color: red;">{{ form.description.errors[0] }}</span>
-                {% endif %}
-            </div>
+<div id="page-content">
+    <!-- Add this at the beginning of the content block -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <!-- Left Column: Form -->
+        <div style="flex: 1; margin-right: 20px; text-align: center;">
+            <h2>Setup your restaurant global profile</h2>
+            <h4>So people from anywhere in the world🌍 can see YOUR restaurant👀</h4>
 
-            <!-- Location Input-->
-            <div class="form-group">
-                <label for="location">Restaurant Location:</label>
-                <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
-                    <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
-                        <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location" required>
-                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
-                    </div>
+            <form action="{{ url_for('setup_public_profile') }}" method="POST" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                
+                <!-- Name -->
+                <div>
+                    <label for="name">Name of Your Restaurant</label>
+                    {{ form.name(cols=50, rows=4, id='name-input', required=True) }}
+                    {% if form.name.errors %}
+                        <span style="color: red;">{{ form.name.errors[0] }}</span>
+                    {% endif %}
                 </div>
-                <input type="hidden" id="locationInput" name="location" required>
-                <input type="hidden" id="locationName" name="locationName" required>
-            </div>
-            
-            <!-- Website URL (Optional) -->
-            <div>
-                <label for="website_url">Website URL of your restaurant (optional):</label>
-                {{ form.website_url(size=50, id='website-url-input') }}
-            </div>
 
-            <!-- Logo (Optional) -->
-            <div style="margin-bottom: 5px;">
-                <label for="logo">Logo of your restaurant (optional):</label>
-                {{ form.logo(id='logo-input') }}
-                <p style="font-size: 14px;">The image should be square - for example, 1080x1080, 840x840</p>
-            </div>
+                <!-- Location Input-->
+                <div class="form-group">
+                    <label for="location" style="margin-top: 10px;">Restaurant Location:</label>
+                    <div style="text-align: left; margin-bottom: 20px; display: flex; justify-content: center; align-items: left; flex-direction: column;">
+                        <div style="display: flex; align-items: center; justify-content: flex-start; width: 100%; max-width: 400px;">
+                            <input id="pac-input" class="controls form-control" type="text" placeholder="Enter a location" required>
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Google_Maps_Logo_2020.svg/512px-Google_Maps_Logo_2020.svg.png" style="height:40px; width: auto; margin-left: 10px;">
+                        </div>
+                    </div>
+                    <input type="hidden" id="locationInput" name="location" required>
+                    <input type="hidden" id="locationName" name="locationName" required>
+                </div>
+                
+                <!-- Description -->
+                <div>
+                    <label for="description">Description of your restaurant (25-350 characters):</label>
+                    {{ form.description(cols=50, rows=4, id='description-input', required=True, class="form-control", style="width: 80%; max-width: 400px;") }}
+                    {% if form.description.errors %}
+                        <span style="color: red;">{{ form.description.errors[0] }}</span>
+                    {% endif %}
+                </div>
 
-            <div class="form-group">
-                <label for="email">*If someone invited you input their referral ID<br>(you both will earn from it):</label>
-                {{ form.referral_id }}
-            </div>
+                
+                
+                <!-- Website URL (Optional) -->
+                <div>
+                    <label for="website_url">Website URL of your restaurant (optional):</label>
+                    {{ form.website_url(size=50, id='website-url-input', class="form-control", style="width: 80%; max-width: 400px;") }}
+                </div>
+
+                <!-- Logo (Optional) -->
+                <div style="margin-bottom: 5px;">
+                    <label for="logo">Logo of your restaurant (optional):</label>
+                    {{ form.logo(id='logo-input', class="form-control", style="width: 80%; max-width: 400px;") }}
+                    <p style="font-size: 14px;">The image should be square - for example, 1080x1080, 840x840</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">*If someone invited you input their referral ID<br>(you both will earn from it):</label>
+                    {{ form.referral_id }}
+                </div>
 
             <div style="margin-top: 10px;">
                 <button type="submit" id="submit-button" disabled>Setup Public Profile</button>
@@ -198,20 +210,36 @@ function updateLocation(position, formattedAddress) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+
+    // Add this function to check and update the orientation banner
+    function checkOrientation() {
+        const banner = document.getElementById('orientation-banner');
+        if (window.innerWidth < window.innerHeight) {
+            banner.style.display = 'block';
+        } else {
+            banner.style.display = 'none';
+        }
+    }
+
+    // Call checkOrientation on page load and window resize
+    window.addEventListener('load', checkOrientation);
+    window.addEventListener('resize', checkOrientation);
+    checkOrientation();
+
     const submitButton = document.getElementById('submit-button');
     const requiredFields = [
         document.getElementById('name-input'),
         document.getElementById('description-input'),
         document.getElementById('locationInput'),
         document.getElementById('locationName'),
-        // Add other fields as necessary
     ];
 
     // Function to check if all required fields are filled
     function checkFormValidity() {
         const allValid = requiredFields.every(field => field.value.trim() !== '');
-        const minimum_50 = document.getElementById('description-input').value.length >= 50
-        submitButton.disabled = !(allValid && minimum_50);
+        const descriptionLength = document.getElementById('description-input').value.length;
+        const minimum25 = descriptionLength >= 25;
+        submitButton.disabled = !(allValid && minimum25);
     }
 
     // Attach input event listeners to required fields
