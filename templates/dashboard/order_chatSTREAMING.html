@@ -615,7 +615,14 @@
         if (decoded_value.includes("payment_buffer")) {
             const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             sessionStorage.setItem("next_link", output)
-            window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+            
+            const iframe = "{{ iframe }}" === "True" ? true : false
+            if (iframe) {
+                window.open(`/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`, '_blank'); // Replace with the URL you want to redirect to
+            } else {
+                window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+            }
+
             return;
         }
 
@@ -623,7 +630,14 @@
             const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             const unique_azz_id = "{{ unique_azz_id }}";
             sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
-            window.location.href = `/takeaway_delivery/${unique_azz_id}#googtrans(en|${initialLanguage})`;
+            
+            const iframe = "{{ iframe }}" === "True" ? true : false
+            if (iframe) {
+                window.open(`/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`, '_blank'); // Replace with the URL you want to redirect to
+            } else {
+                window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+            }
+
             return;
         }
 
