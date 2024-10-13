@@ -1,10 +1,8 @@
-{% if not from_splash_page %}
-    {% if iframe %}
-    {% extends 'layout_iframe.html' %}
-    {% else %}
-    {% extends 'layout_order_chat.html' %}
-    {% endif %}
+{% if iframe %}
+{% extends 'layout_iframe.html' %}
 {% else %}
+{% extends 'layout_order_chat.html' %}
+{% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - MOM AI</title>
