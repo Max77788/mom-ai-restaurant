@@ -4,28 +4,6 @@
 {% extends 'layout_order_chat.html' %}
 {% endif %}
 
-<head>
-    <meta name="description" content="Discover the best AI-powered restaurants in Keflavik, Iceland with MOM AI's search tool. Find locations, menus, and order food easily.">
-    <link rel="canonical" href="https://mom-ai-restaurant.pro/ai-restaurants?location=Keflavík,Iceland" />
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Restaurant",
-      "name": "MOM AI Restaurant Search",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Hafnargata 18",
-        "addressLocality": "Keflavik",
-        "addressRegion": "Reykjanesbær",
-        "postalCode": "230",
-        "addressCountry": "IS"
-      },
-      "telephone": "+3541234567",
-      "url": "https://mom-ai-restaurant.pro/ai-restaurants?location=Keflavík,Iceland"
-    }
-    </script>
-</head>
-
 {% block content %}
 
 {% with messages = get_flashed_messages() %}
@@ -516,7 +494,9 @@
         console.log("Enabling input fields and buttons");
         document.getElementById('userMessage').disabled = false;
         document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+        if (document.getElementById('micButton')){
         document.getElementById('micButton').disabled = false;
+        }
         console.log("Input and buttons ENABLED");
     }
 
@@ -534,7 +514,9 @@
         document.getElementById('userMessage').disabled = true;
         document.getElementById('userMessage').value = '';
         document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+        if (document.getElementById('micButton')){
         document.getElementById('micButton').disabled = true;
+        }
         console.log("Input and buttons DISABLED");
     }
 
@@ -1357,7 +1339,6 @@ const micButton = document.getElementById('micButton');
             flashMessages.style.display = 'none';
         }, 5000);
     }
-}
 
 
     /*
@@ -1375,8 +1356,7 @@ const micButton = document.getElementById('micButton');
 
     window.speak = speak;
     */
-    
-    
+    }
 </script>
 
 
