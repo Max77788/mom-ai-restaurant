@@ -583,13 +583,25 @@
 
         output += decoded_value;
 
+        if (output.includes('<img')) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = output;
+            const imgElements = tempDiv.getElementsByTagName('img');
+            for (let img of imgElements) {
+                img.style.width = '170px';
+                img.style.height = 'auto';
+            }
+            output = tempDiv.innerHTML;
+        }
+
         if (decoded_value.includes("payment_buffer")) {
             const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             sessionStorage.setItem("next_link", output)
             
             const iframe = "{{ iframe }}" === "True" ? true : false
             if (iframe) {
-                window.open(`/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`, '_blank'); // Replace with the URL you want to redirect to
+                window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;
+                // window.open(`/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`, '_blank'); // Replace with the URL you want to redirect to
             } else {
                 window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
             }
