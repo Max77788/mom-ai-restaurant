@@ -24,10 +24,9 @@
     }
 </script>
 
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - MOM AI</title>
+    <title>{{ title }} - MOM AI Restaurant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -41,10 +40,9 @@
     
     <!--
     <div id="mobile-banner" class="mobile-banner">
-        <p>For the best experience, please switch your device to the horizontal mode.</p>
+        <p>For the best experience, please switch&nbsp; your device to the horizontal&nbsp; mode.</p>
     </div>
     -->
-
     <header>
         <div class="header-content">
             <div class="logo-section">
@@ -55,18 +53,25 @@
         </div>
     </header>
 
-    <nav class="navigation">
-        <ul>
-            <li><a href="/"><u><b>Welcome Page</b></u></a></li>
-            <li><strong>For Restaurants:</strong></li>
-            <li><a href="/register"><u><b>Register</b></u></a></li>
-            <li><a href="/login"><u><b>Login</b></u></a></li>
-            <li><strong>For Customers:</strong></li>
-            <li><a href="/ai-restaurants"><u><b>Explore Top AI-Restaurants</b></u></a></li>
-            <li><strong>News:</strong></li>
-            <li><a href="{{ url_for('all_posts') }}"><b>AI-restaurants' Industry Fresh Updates</b></a></li>
-        </ul>
-    </nav>
+<nav class="navigation">
+    <div class="burger-menu">
+        <div class="burger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+    <ul class="nav-list">
+        <li><a href="/"><u><b>Welcome Page</b></u></a></li>
+        <li><strong>For Restaurants:</strong></li>
+        <li><a href="/register"><u><b>Register</b></u></a></li>
+        <li><a href="/login"><u><b>Login</b></u></a></li>
+        <li><strong>For Customers:</strong></li>
+        <li><a href="/ai-restaurants"><u><b>Explore Top AI-Restaurants</b></u></a></li>
+        <li><strong>News:</strong></li>
+        <li><a href="{{ url_for('all_posts') }}"><b>AI-restaurants' Industry Fresh Updates</b></a></li>
+    </ul>
+</nav>
 
     <main>
         <div class="flash-messages">
@@ -80,6 +85,7 @@
                 {% endif %}
             {% endwith %}
         </div>
+
         {% block content %}
         <!-- Content overridden in child templates -->
         {% endblock %}
@@ -112,8 +118,6 @@
             text-align: center;
             padding: 10px;
             font-size: 1.2em;
-            position: fixed;
-            top: 0;
             width: 100%;
             z-index: 1000;
         }
@@ -121,9 +125,13 @@
         @media (max-width: 665px) {
             .mobile-banner {
                 display: block;
+                margin-right: 10px;
             }
-            .header-content {
-                padding-top: 5%; /* Adjust this value if needed */
+        }
+        
+        @media (max-width: 398px) {
+            .mobile-banner {
+                padding-right: 10px;
             }
         }
 
@@ -139,7 +147,7 @@
         }
         .logo-section {
             text-align: center;
-            margin-bottom: 5px;
+            margin-bottom: 20px;
         }
         .logo {
             max-width: 150px;
@@ -157,45 +165,59 @@
         }
         .navigation {
             background-color: #000;
-            max-width: 100%;
+            width: 100%;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        /* General styles for the navigation */
+
         .navigation ul {
-            list-style-type: none; /* Remove default list styling */
+            list-style-type: none;
             margin: 0;
             padding: 0;
-            display: flex; /* Use flexbox for layout */
-            flex-wrap: wrap; /* Allow items to wrap to the next line */
-            justify-content: space-around; /* Distribute items evenly */
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 0 20px;
         }
 
-        /* Styles for individual list items */
         .navigation li {
-            margin: 10px; /* Add some spacing around items */
-            flex: 1 1 auto; /* Allow items to grow and shrink */
-            text-align: center; /* Center the text */
-            color:#f0f0f0
+            margin: 0 10px;
+            text-align: center;
+            color: #f0f0f0;
         }
 
-        /* Media query for small screens */
-        @media (max-width: 600px) {
-            .navigation ul {
-                flex-direction: column; /* Stack items vertically */
-            }
-
-            .navigation li {
-                width: 100%; /* Make each item take the full width */
-                text-align: center; /* Align text to the left */
-            }
-        }
         .navigation a {
-            text-decoration: none;
-            color: #00FFFF;
-            font-weight: 600;
+            color: #00ffff;
+            text-decoration: underline;
         }
+
         .navigation a:hover {
             text-decoration: underline;
         }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .navigation {
+                height: auto;
+                height: 20px;
+            }
+            
+            .navigation ul {
+                flex-direction: column;
+                justify-content: center;
+                padding: 10px 0;
+            }
+
+            .navigation li {
+                margin: 5px 0;
+            }
+        }
+
         footer {
             background-color: #000;
             color: #fff;
@@ -207,18 +229,14 @@
             align-items: center;
             max-width: 1200px;
             margin: 0 auto;
+            flex-wrap: wrap;
         }
-        .footer-left {
-            flex: 1;
-            text-align: left;
-        }
-        .footer-center {
-            flex: 1;
-            text-align: center;
-        }
+        .footer-left,
+        .footer-center,
         .footer-right {
             flex: 1;
-            text-align: right;
+            text-align: center;
+            margin-bottom: 10px;
         }
         .social-icons a {
             margin: 0 10px;
@@ -229,8 +247,151 @@
         .social-icons a:hover {
             color: #3498db;
         }
+
+        /* Responsive design for footer */
+        @media (max-width: 768px) {
+            .footer-left {
+                order: 3;
+            }
+            .footer-center {
+                order: 2;
+            }
+            .footer-right {
+                order: 1;
+            }
+            .footer-left,
+            .footer-center,
+            .footer-right {
+                flex: 1 1 100%;
+            }
+        }
+
+        .burger-menu {
+            display: none;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1002; /* Ensure it's above the nav-list */
+        }
+
+        .burger-icon {
+            width: 30px;
+            height: 20px;
+            position: relative;
+            background-color: #000;
+        }
+
+        .burger-icon span {
+            display: block;
+            position: absolute;
+            height: 3px;
+            width: 100%;
+            background: #fff; /* White color for visibility */
+            border-radius: 3px;
+            opacity: 1;
+            left: 0;
+            transform: rotate(0deg);
+            transition: .25s ease-in-out;
+        }
+
+        .burger-icon span:nth-child(1) {
+            top: 0px;
+        }
+
+        .burger-icon span:nth-child(2) {
+            top: 8px;
+        }
+
+        .burger-icon span:nth-child(3) {
+            top: 16px;
+        }
+
+        .burger-icon.open span:nth-child(1) {
+            top: 8px;
+            transform: rotate(45deg);
+        }
+
+        .burger-icon.open span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .burger-icon.open span:nth-child(3) {
+            top: 8px;
+            transform: rotate(-45deg);
+        }
+
+        @media (max-width: 768px) {
+            .nav-list {
+                display: none; /* Ensure the nav-list is hidden by default */
+                flex-direction: column;
+                width: 100%;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                background-color: #000;
+                z-index: 1000;
+            }
+
+            .nav-list.show {
+                display: flex; /* Show the menu when .show is added */
+            }
+
+            .burger-icon.open span:nth-child(1) {
+                transform: rotate(45deg);
+                top: 8px;
+            }
+
+            .burger-icon.open span:nth-child(2) {
+                opacity: 0;
+            }
+
+            .burger-icon.open span:nth-child(3) {
+                transform: rotate(-45deg);
+                top: 8px;
+            }
+        }
+
+        @media (max-width: 768px) {
+        .navigation {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .burger-menu {
+            display: block;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1002;
+        }
+
+        .nav-list {
+            display: none; /* Ensure the nav-list is hidden by default */
+            flex-direction: column;
+            width: 100%;
+            position: absolute;
+            top: 40px; /* Adjust this value based on your header height */
+            left: 0;
+            background-color: #000;
+            z-index: 1000;
+        }
+
+        .nav-list.show {
+            display: flex; /* Show the menu when .show is added */
+        }
+
+        .navigation li {
+            margin: 10px 0;
+            width: 100%;
+            text-align: center;
+        }
+    }
+
     </style>
 
+    <!--
     <script>
         // JavaScript to handle the mobile banner display
         document.addEventListener('DOMContentLoaded', function() {
@@ -239,6 +400,7 @@
             }
         });
     </script>
+    -->
     <script>
         setTimeout(function() {
         const flashMessages = document.querySelectorAll('.flash-message');
@@ -248,18 +410,52 @@
     }, 7000);
 
     </script>
-    <script type="text/javascript">
-        (function(d, t) {
-            var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
-            v.onload = function() {
-              window.voiceflow.chat.load({
-                verify: { projectID: '66f2af175b495ead28f4091e' },
-                url: 'https://general-runtime.voiceflow.com',
-                versionID: 'production'
-              });
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const burgerMenu = document.querySelector('.burger-menu');
+            const navList = document.querySelector('.nav-list');
+            const burgerIcon = document.querySelector('.burger-icon');
+    
+            // Initially hide the nav-list on mobile
+            if (window.innerWidth <= 768) {
+                navList.style.display = 'none';
             }
-            v.src = "https://cdn.voiceflow.com/widget/bundle.mjs"; v.type = "text/javascript"; s.parentNode.insertBefore(v, s);
-        })(document, 'script');
-      </script>
+    
+            burgerMenu.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (navList.style.display === 'flex') {
+                    navList.style.display = 'none';
+                    burgerIcon.classList.remove('open');
+                } else {
+                    navList.style.display = 'flex';
+                    burgerIcon.classList.add('open');
+                }
+            });
+    
+            // Close the menu when clicking outside of it
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && navList.style.display === 'flex' && !navList.contains(event.target) && !burgerMenu.contains(event.target)) {
+                    navList.style.display = 'none';
+                    burgerIcon.classList.remove('open');
+                }
+            });
+    
+            // Prevent clicks inside the nav list from closing the menu
+            navList.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+    
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    navList.style.display = 'flex';
+                } else {
+                    navList.style.display = 'none';
+                    burgerIcon.classList.remove('open');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

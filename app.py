@@ -3325,8 +3325,11 @@ def trigger_demo_call():
 
 @app.route('/chat_start/<unique_azz_id>', methods=['GET', 'POST'])
 def chat_start(unique_azz_id):
+    iframe = True if request.args.get("iframe") else False
+    print("Iframe we passed: ", iframe)
+    
     assistant_id = collection.find_one({"unique_azz_id": unique_azz_id})["assistant_id"]
-    return render_template("dashboard/choose_chat_lang.html", unique_azz_id=unique_azz_id, assistant_id=assistant_id, title="Start Chat")
+    return render_template("dashboard/choose_chat_lang.html", unique_azz_id=unique_azz_id, assistant_id=assistant_id, title="Start Chat", iframe=iframe)
 
 # Start conversation thread
 @app.route('/assistant_start/<assistant_id>', methods=['GET', 'POST'])

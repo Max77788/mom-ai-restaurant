@@ -26,7 +26,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - MOM AI</title>
+    <title>{{ title }} - MOM AI Restaurant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
@@ -57,18 +57,25 @@
     </header>
 -->
 
-    <nav class="navigation">
-        <ul>
-            <li><a href="/"><u><b>Welcome Page</b></u></a></li>
-            <li><strong>For Restaurants:</strong></li>
-            <li><a href="/register"><u><b>Register</b></u></a></li>
-            <li><a href="/login"><u><b>Login</b></u></a></li>
-            <li><strong>For Customers:</strong></li>
-            <li><a href="/ai-restaurants"><u><b>Explore Top AI-Restaurants</b></u></a></li>
-            <li><strong>News:</strong></li>
-            <li><a href="{{ url_for('all_posts') }}"><b>AI-restaurants' Industry Fresh Updates</b></a></li>
-        </ul>
-    </nav>
+<nav class="navigation">
+    <div class="burger-menu">
+        <div class="burger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+    <ul class="nav-list">
+        <li><a href="/"><u><b>Welcome Page</b></u></a></li>
+        <li><strong>For Restaurants:</strong></li>
+        <li><a href="/register"><u><b>Register</b></u></a></li>
+        <li><a href="/login"><u><b>Login</b></u></a></li>
+        <li><strong>For Customers:</strong></li>
+        <li><a href="/ai-restaurants"><u><b>Explore Top AI-Restaurants</b></u></a></li>
+        <li><strong>News:</strong></li>
+        <li><a href="{{ url_for('all_posts') }}"><b>AI-restaurants' Industry Fresh Updates</b></a></li>
+    </ul>
+</nav>
 
     <main>
         <div class="flash-messages">
@@ -128,7 +135,6 @@
         
         @media (max-width: 398px) {
             .mobile-banner {
-                display: block;
                 padding-right: 10px;
             }
         }
@@ -164,55 +170,58 @@
         .navigation {
             background-color: #000;
             width: 100%;
-            height: 60px; /* Initial height for the navigation bar */
+            padding: 10px 0;
             display: flex;
-            justify-content: center; /* Center the navigation bar */
-            align-items: center; /* Vertically center the items */
+            justify-content: center;
+            align-items: center;
         }
 
         .navigation ul {
-            list-style-type: none; /* Remove default list styling */
+            list-style-type: none;
             margin: 0;
             padding: 0;
-            display: flex; /* Use flexbox for layout */
-            flex-wrap: wrap; /* Allow items to wrap to the next line if necessary */
-            justify-content: space-around; /* Distribute items evenly */
-            align-items: center; /* Center items vertically */
-            width: 100%; /* Make the ul take the full width */
-            max-width: 1200px; /* Maximum width for larger screens */
-            padding: 0 20px; /* Padding for responsiveness */
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+            padding: 0 20px;
         }
 
         .navigation li {
-            margin: 0 10px; /* Adjust spacing around items */
-            text-align: center; /* Center the text */
-            color:#f0f0f0
+            margin: 0 10px;
+            text-align: center;
+            color: #f0f0f0;
         }
 
         .navigation a {
-            color: #00ffff; /* Ensure links are still visible */
+            color: #00ffff;
+            text-decoration: underline;
+        }
+
+        .navigation a:hover {
             text-decoration: underline;
         }
 
         /* Responsive design */
         @media (max-width: 768px) {
             .navigation {
-                height: auto; /* Increase height for smaller screens */
+                height: auto;
+                height: 20px;
             }
             
             .navigation ul {
-                flex-direction: column; /* Stack items vertically */
-                justify-content: center; /* Center items vertically */
-                padding: 10px 0; /* Add some vertical padding */
+                flex-direction: column;
+                justify-content: center;
+                padding: 10px 0;
             }
 
             .navigation li {
-                margin: 5px 0; /* Adjust spacing for vertical layout */
+                margin: 5px 0;
             }
         }
-        .navigation a:hover {
-            text-decoration: underline;
-        }
+
         footer {
             background-color: #000;
             color: #fff;
@@ -224,14 +233,14 @@
             align-items: center;
             max-width: 1200px;
             margin: 0 auto;
-            flex-wrap: wrap; /* Ensure the content wraps on smaller screens */
+            flex-wrap: wrap;
         }
         .footer-left,
         .footer-center,
         .footer-right {
             flex: 1;
-            text-align: center; /* Center-align content by default */
-            margin-bottom: 10px; /* Add some space between sections on small screens */
+            text-align: center;
+            margin-bottom: 10px;
         }
         .social-icons a {
             margin: 0 10px;
@@ -246,23 +255,144 @@
         /* Responsive design for footer */
         @media (max-width: 768px) {
             .footer-left {
-                order: 3; /* Move to last */
-                margin-bottom: 10px;
+                order: 3;
             }
             .footer-center {
-                order: 2; /* Move to middle */
-                margin-bottom: 10px;
+                order: 2;
             }
             .footer-right {
-                order: 1; /* Move to first */
+                order: 1;
             }
             .footer-left,
             .footer-center,
             .footer-right {
-                text-align: center;
-                flex: 1 1 100%; /* Make each section take full width */
+                flex: 1 1 100%;
             }
         }
+
+        .burger-menu {
+            display: none;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1002; /* Ensure it's above the nav-list */
+        }
+
+        .burger-icon {
+            width: 30px;
+            height: 20px;
+            position: relative;
+            background-color: #000;
+        }
+
+        .burger-icon span {
+            display: block;
+            position: absolute;
+            height: 3px;
+            width: 100%;
+            background: #fff; /* White color for visibility */
+            border-radius: 3px;
+            opacity: 1;
+            left: 0;
+            transform: rotate(0deg);
+            transition: .25s ease-in-out;
+        }
+
+        .burger-icon span:nth-child(1) {
+            top: 0px;
+        }
+
+        .burger-icon span:nth-child(2) {
+            top: 8px;
+        }
+
+        .burger-icon span:nth-child(3) {
+            top: 16px;
+        }
+
+        .burger-icon.open span:nth-child(1) {
+            top: 8px;
+            transform: rotate(45deg);
+        }
+
+        .burger-icon.open span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .burger-icon.open span:nth-child(3) {
+            top: 8px;
+            transform: rotate(-45deg);
+        }
+
+        @media (max-width: 768px) {
+            .nav-list {
+                display: none; /* Ensure the nav-list is hidden by default */
+                flex-direction: column;
+                width: 100%;
+                position: absolute;
+                top: 60px;
+                left: 0;
+                background-color: #000;
+                z-index: 1000;
+            }
+
+            .nav-list.show {
+                display: flex; /* Show the menu when .show is added */
+            }
+
+            .burger-icon.open span:nth-child(1) {
+                transform: rotate(45deg);
+                top: 8px;
+            }
+
+            .burger-icon.open span:nth-child(2) {
+                opacity: 0;
+            }
+
+            .burger-icon.open span:nth-child(3) {
+                transform: rotate(-45deg);
+                top: 8px;
+            }
+        }
+
+        @media (max-width: 768px) {
+        .navigation {
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .burger-menu {
+            display: block;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1002;
+        }
+
+        .nav-list {
+            display: none; /* Ensure the nav-list is hidden by default */
+            flex-direction: column;
+            width: 100%;
+            position: absolute;
+            top: 40px; /* Adjust this value based on your header height */
+            left: 0;
+            background-color: #000;
+            z-index: 1000;
+        }
+
+        .nav-list.show {
+            display: flex; /* Show the menu when .show is added */
+        }
+
+        .navigation li {
+            margin: 10px 0;
+            width: 100%;
+            text-align: center;
+        }
+    }
+
     </style>
 
     <!--
@@ -284,19 +414,52 @@
     }, 7000);
 
     </script>
-    <script type="text/javascript">
-        (function(d, t) {
-            var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
-            v.onload = function() {
-              window.voiceflow.chat.load({
-                verify: { projectID: '66f2af175b495ead28f4091e' },
-                url: 'https://general-runtime.voiceflow.com',
-                versionID: 'production'
-              });
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const burgerMenu = document.querySelector('.burger-menu');
+            const navList = document.querySelector('.nav-list');
+            const burgerIcon = document.querySelector('.burger-icon');
+    
+            // Initially hide the nav-list on mobile
+            if (window.innerWidth <= 768) {
+                navList.style.display = 'none';
             }
-            v.src = "https://cdn.voiceflow.com/widget/bundle.mjs"; v.type = "text/javascript"; s.parentNode.insertBefore(v, s);
-        })(document, 'script');
-      </script>
+    
+            burgerMenu.addEventListener('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (navList.style.display === 'flex') {
+                    navList.style.display = 'none';
+                    burgerIcon.classList.remove('open');
+                } else {
+                    navList.style.display = 'flex';
+                    burgerIcon.classList.add('open');
+                }
+            });
+    
+            // Close the menu when clicking outside of it
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && navList.style.display === 'flex' && !navList.contains(event.target) && !burgerMenu.contains(event.target)) {
+                    navList.style.display = 'none';
+                    burgerIcon.classList.remove('open');
+                }
+            });
+    
+            // Prevent clicks inside the nav list from closing the menu
+            navList.addEventListener('click', function(event) {
+                event.stopPropagation();
+            });
+    
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    navList.style.display = 'flex';
+                } else {
+                    navList.style.display = 'none';
+                    burgerIcon.classList.remove('open');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
-

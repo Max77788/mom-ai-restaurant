@@ -102,7 +102,9 @@
         
         <div style="display: flex; justify-content: center; gap: 10px; margin-top: 7px;">
             <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
+            {% if not iframe %}
             <button id="micButton" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
+            {% endif %}
             <!-- Audio button (Play / Mute) -->
             <button id="audioButton" style="background: none; font-size: 16px; align-items: center;" class="button">🔊</button><br>
         </div>
