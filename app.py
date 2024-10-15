@@ -5388,9 +5388,9 @@ def success_payment_backend(unique_azz_id):
         cache.set("suggest_web3_bonus", False)
 
     orderType = session.get('orderType')
-    text_address = cache.get('text_address')
-    user_longitude = cache.get('user_longitude')
-    user_latitude = cache.get('user_latitude')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
     
     print("Setup suggest web3 hours in session to ", cache.get("suggest_web3_bonus"))
     
