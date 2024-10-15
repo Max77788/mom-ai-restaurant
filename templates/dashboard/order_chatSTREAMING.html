@@ -583,16 +583,11 @@
 
         output += decoded_value;
 
-        if (output.includes('<img')) {
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = output;
-            const imgElements = tempDiv.getElementsByTagName('img');
-            for (let img of imgElements) {
-                img.style.width = '170px';
-                img.style.height = 'auto';
-            }
-            output = tempDiv.innerHTML;
-        }
+        // Check the entire output for markdown image pattern ![alt text](image_url)
+        const markdownImagePattern = /!\[(.*?)\]\((.*?)\)/g;
+        output = output.replace(markdownImagePattern, (match, altText, url) => {
+            return `<img src="${url}" alt="${altText}" width="170">`;
+        });
 
         if (decoded_value.includes("payment_buffer")) {
             const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
