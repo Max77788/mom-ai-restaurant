@@ -184,7 +184,7 @@ paypal.Button.render({
 <style>#google_translate_element,.skiptranslate{display:none;}body{top:0!important;}</style>
 <div id="google_translate_element"></div>
 <script>
-    const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
+    const initialLanguage = sessionStorage.getItem("userLanguage")?.substring(0, 2); // This should be set in your Flask route
     function googleTranslateElementInit() {
         new google.translate.TranslateElement({
             pageLanguage: 'en', 

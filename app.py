@@ -2927,9 +2927,11 @@ def execute_payment(unique_azz_id):
 def create_order():
     #addFees = request.args.get('addFees')
 
+    unique_azz_id = cache.get("unique_azz_id")
+
     total_to_pay = request.json.get('total_to_pay')
 
-    order = createOrder(total_to_pay=total_to_pay)
+    order = createOrder(total_to_pay=total_to_pay, unique_azz_id=unique_azz_id)
 
     if order.status_code in [201,200]:  # Check if the request was successful
         order_data = order.json()  # Parse the JSON response
