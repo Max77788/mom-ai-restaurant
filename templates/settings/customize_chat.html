@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "layout_no_land.html" %}
 {% block content %}
 <style>
     body {
@@ -38,15 +38,18 @@
   </style>
 </head>
 <body>
+  <a href="/dashboard" style="position: absolute; top: 0; right: 0; font-size: 18px; color: #000; margin: 10px;">
+    <u>Go to Dashboard -></u>
+</a>
   <div class="container">
     <div class="left-panel">
       <h2>Customize your chat</h2>
       <label for="logoCanvas">Use restaurant logo canvas:</label>
-      <input type="checkbox" id="logoCanvas" onchange="toggleBackground()" checked/>
+      <input type="checkbox" id="logoCanvas" onchange="toggleBackground()" {% if canvas_on %}checked{% endif %}/>
       
       <div>
         <label for="bgColor">Pick background color:</label>
-        <input type="color" id="bgColor" value="#ffffff" disabled onchange="changeBackgroundColor()" />
+        <input type="color" id="bgColor" value="{{ bg_color }}" {% if canvas_on %}disabled{% endif %} onchange="changeBackgroundColor()" />
         <button style="margin-top: 10px;" onclick="saveChatStyle()">Save</button>
       </div>
     </div>
@@ -68,7 +71,7 @@
       if (checkbox.checked) {
         bgColorPicker.disabled = true;
         imageContainer.style.backgroundColor = 'transparent';
-        imageContainer.style.backgroundImage = 'url({{ url_for("serve_image", file_id=restaurant.res_logo_canvas) }})';
+        imageContainer.style.backgroundImage = 'url({{ url_for("serve_image", file_id=res_logo_canvas) }})';
       } else {
         // Allow the user to pick a background color
         bgColorPicker.disabled = false;
@@ -85,8 +88,26 @@
 
     function saveChatStyle() {
       const bgColor = document.getElementById('bgColor').value;
-      const imageContainer = document.querySelector('.image-container');
-      imageContainer.style.backgroundColor = bgColor;
-    }
+      const logoCanvasOn = document.getElementById('logoCanvas').checked;
+      fetch('/update_chat_style', {
+        method: 'POST',
+        body: JSON.stringify({ chat_bg_color: bgColor, canvas_on: logoCanvasOn }),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Chat style updated successfully!');
+          location.reload();
+        } else {
+          alert('Failed to update chat style.');
+        }
+      });
+    };
+
+    toggleBackground();
+    changeBackgroundColor();
   </script>
 {% endblock %}

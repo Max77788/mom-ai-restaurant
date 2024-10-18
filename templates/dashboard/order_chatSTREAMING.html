@@ -23,6 +23,14 @@
     body {
         min-height: 100vh; /* Ensure it takes full viewport height */
         min-width: 100vw; /* Ensure it takes full viewport width */
+        background-color: #000000;
+    }
+    main {
+        {% if not canvas_on %}
+        background-color: {{ bg_color }};
+        {% else %}
+        background-color: #ffffff;
+        {% endif %}
     }
     .chatBoxStyle {
         /* background-image: url('{{ url_for("static", filename="images/chat_background.jpg") }}'); */
@@ -50,7 +58,7 @@
         <div style="text-align: center; flex-grow: 0;">Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant</div>
         <!-- <div id="chat_start_button" style="position: absolute; right: 10px; width: 24px; height: 24px; cursor: pointer;"><a href="/chat_start/{{ unique_azz_id }}" target="_blank" style="color: white; text-decoration: none;">awesome</a></div> -->
     </div>
-    <div id="chatBox" class="chatBoxStyle" style="background-color: {{ bg_color }}">   
+    <div id="chatBox" class="chatBoxStyle" {% if not canvas_on %}style="background-color: {{ bg_color }}"{% else %}style="background-image: url('{{ url_for('serve_image', file_id=restaurant.res_logo_canvas) }}')"{% endif %}>   
         <div id="greetingMessage" style="text-align: center; margin: 20px; font-size: 15px;">
             {% if restaurant.res_logo %}
             <div class="restaurant-logo" style="text-align: center; margin-bottom: 10px;" id="restaurantLogo">

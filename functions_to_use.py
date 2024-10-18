@@ -544,9 +544,12 @@ def check_credentials(email, password, collection, for_login_redirect=False):
 
 
 
-def create_full_canvas_diagonal_pattern(logo_path, canvas_size=(800, 800), num_logos_x=12, num_logos_y=12):
+def create_full_canvas_diagonal_pattern(logo_path, canvas_size=(800, 800), num_logos_x=12, num_logos_y=12, transparency=90):
     # Open the logo image
     logo = Image.open(logo_path)
+
+    # Ensure the image is in RGBA mode (which supports transparency)
+    logo = logo.convert("RGBA")
     
     # Calculate the size of each logo based on the desired number of logos along the x and y axes
     logo_width = canvas_size[0] // num_logos_x
@@ -554,9 +557,24 @@ def create_full_canvas_diagonal_pattern(logo_path, canvas_size=(800, 800), num_l
     
     # Resize the logo to fit
     logo = logo.resize((logo_width, logo_height))
+
+    # Get the logo's pixel data
+    logo_data = logo.getdata()
+    
+    # Modify the transparency of the logo
+    new_logo_data = []
+    for item in logo_data:
+        # item is in the format (R, G, B, A), we change A to the desired transparency level
+        if item[3] > 0:  # Only change if the pixel is not completely transparent
+            new_logo_data.append((item[0], item[1], item[2], transparency))
+        else:
+            new_logo_data.append(item)
+    
+    # Apply the new data with modified transparency
+    logo.putdata(new_logo_data)
     
     # Create a blank canvas
-    canvas = Image.new("RGB", canvas_size, "white")
+    canvas = Image.new("RGBA", canvas_size, (255, 255, 255, 255))
     
     # Calculate the space between logos diagonally
     step_x = logo_width + 10  # The space between logos horizontally

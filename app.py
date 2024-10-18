@@ -182,7 +182,7 @@ PRICE_OF_MINUTE_PHONE_CALL = 0.15
 
 fs = gridfs.GridFS(db_mongo)
 
-
+DEFAULT_RESTAURANT_LOGO_CANVAS_ID = "6712a0ab0ff897707dcbdea5"
 
 print("Everything Initialized!")
 
@@ -1776,9 +1776,32 @@ def update_profile(attribute, tg_setup=None):
 @app.route("/customize_chat", methods=['GET', 'POST'])
 def customize_chat():
     restaurant = collection.find_one({"unique_azz_id": session.get("unique_azz_id")})
-    return render_template("settings/customize_chat.html", title="Customize Chat", restaurant=restaurant)
-            
+    bg_color = restaurant.get("chat_bg_color", "#FFFFFF")
+    canvas_on = restaurant.get("canvas_on", False)
+    res_logo_canvas = restaurant.get("res_logo_canvas", DEFAULT_RESTAURANT_LOGO_CANVAS_ID)
 
+    if not res_logo_canvas:
+        res_logo_canvas = DEFAULT_RESTAURANT_LOGO_CANVAS_ID
+    
+    print(f"Res logo canvas: {res_logo_canvas}")
+    
+    return render_template("settings/customize_chat.html", 
+                           title="Customize Chat", 
+                           restaurant=restaurant, 
+                           bg_color=bg_color, 
+                           canvas_on=canvas_on,
+                           res_logo_canvas=res_logo_canvas)
+            
+@app.route('/update_chat_style', methods=['POST'])
+def update_chat_style():
+    data = request.json
+    chat_bg_color = data.get('chat_bg_color')
+    canvas_on = data.get('canvas_on')
+    print(f"Chat background color: {chat_bg_color}, Canvas on: {canvas_on}")
+    
+    collection.update_one({"unique_azz_id": session.get("unique_azz_id")}, {'$set': {'chat_bg_color': chat_bg_color, 'canvas_on': canvas_on}})
+
+    return jsonify({'success': True})
 
 @app.route('/setup_public_profile', methods=['GET', 'POST'])
 def setup_public_profile():
@@ -1816,7 +1839,7 @@ def setup_public_profile():
         print(website_url, logo, description)
 
         file_id = "666af654dee400a1d635eb08"
-        canvas_file_id = None
+        canvas_file_id = DEFAULT_RESTAURANT_LOGO_CANVAS_ID
 
         if logo:
             image = form.logo.data
@@ -1829,7 +1852,7 @@ def setup_public_profile():
 
             canvas_file_id = fs.put(canvas, filename=filename)
 
-            os.remove(filename)
+            # os.remove(filename)
         res_password = session.get("password", "google_acc")
         if res_password != "google_acc":
             hashed_res_password = hash_password(res_password)
@@ -1870,14 +1893,6 @@ def setup_public_profile():
     logo_id=file_id,
     res_logo_canvas=canvas_file_id
 )
-        
-        # Handle file upload and other logic here
-        if logo:
-            image = form.logo.data
-            filename = secure_filename(image.filename)
-            file_id = fs.put(image, filename=filename)
-            print(f'Raw file id {file_id} and string file id {str(file_id)}')
-            collection.update_one({'unique_azz_id': unique_azz_id}, {'$set': {'res_logo': file_id}}) 
         
         if website_url:
             collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"website_url": website_url}})
@@ -3424,6 +3439,9 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
     assistant_turned_on = res_instance.get("assistant_turned_on")
     print(f"Assistant turned on:{assistant_turned_on} of type {type(assistant_turned_on)}")
 
+    bg_color = res_instance.get("chat_bg_color", "#FFFFFF")
+    canvas_on = res_instance.get("canvas_on", False)
+
     # id_of_intro = res_instance.get("intro_video_id", "default_later_here")
     # intro_video_link = get_talk_video(id_of_intro)['result_url']
 
@@ -3501,8 +3519,6 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
         # print(f"List of current messages: {list_of_current_messages}")
         print(f"Suggest new order: {suggest_new_order} and requires action: {requires_action}")
 
-    bg_color = res_instance.get("bg_color", "#ffffff")
-
     # Use the restaurant_name from the URL and the full assistant_id from the session
     return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
                            lang=lang, 
@@ -3521,7 +3537,8 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
                            list_of_current_messages=list_of_current_messages,
                            requires_action=requires_action,
                            suggest_new_order=suggest_new_order,
-                           bg_color=bg_color)
+                           bg_color=bg_color,
+                           canvas_on=canvas_on)
 
 
 
