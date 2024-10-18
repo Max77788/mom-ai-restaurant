@@ -252,7 +252,7 @@ def get_subscription_status(subscription_id, access_token=get_access_token()):
         logging.error(f"Error retrieving subscription status: {response.json()}")
         return "Error retrieving subscription status"
     
-def createOrder(total_to_pay):
+def createOrder(total_to_pay, unique_azz_id=None):
     
     access_token=get_access_token()
 
@@ -285,7 +285,7 @@ def createOrder(total_to_pay):
     restaurant_name = session.get("restaurant_name", "restaurant_name_place") 
     print(f"Data on /createOrder:\n\n{currency_code, reference_id, total_to_pay, restaurant_name}")
 
-    unique_azz_id = session['unique_azz_id']
+    unique_azz_id = session.get('unique_azz_id', unique_azz_id)
     
     data = f'''
 {{

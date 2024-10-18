@@ -1,4 +1,4 @@
-from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file
+from flask import Flask, abort, make_response, jsonify, request, render_template, session, redirect, url_for, flash, render_template_string, Response, send_file, stream_with_context
 #from authlib.integrations.flask_client import OAuth
 from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
@@ -79,8 +79,28 @@ app.config['SECRET_KEY'] = os.environ.get("FLASK_SECRET_KEY")
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL_CORRECT')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+
+if not os.environ.get("LOCAL_DEV") == "True":
+    db = SQLAlchemy(app)
+    migrate = Migrate(app, db)
+
+    # Define the Post model
+    class Post(db.Model):
+        id = db.Column(db.Integer, primary_key=True)
+        url_slug = db.Column(db.String(150), nullable=True, unique=True, index=True)
+        title = db.Column(db.String(100), nullable=False)
+        content = db.Column(db.Text, nullable=False)
+        image_url = db.Column(db.String(2048), nullable=True)  # New column for image URL
+        created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
+    
+    # Ensure the tables are created
+    with app.app_context():
+        if DROP_THE_EXISTING_TABLES:
+            db.drop_all()
+            print("Dropped the tables")
+        db.create_all()
 
 # oauth = OAuth(app)
 
@@ -104,25 +124,9 @@ google = oauth.register(
 )
 """
 
-# Define the Post model
-class Post(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    url_slug = db.Column(db.String(150), nullable=True, unique=True, index=True)
-    title = db.Column(db.String(100), nullable=False)
-    content = db.Column(db.Text, nullable=False)
-    image_url = db.Column(db.String(2048), nullable=True)  # New column for image URL
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
-DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
 
-print("Drop the existing tables = ", DROP_THE_EXISTING_TABLES)
 
-# Ensure the tables are created
-with app.app_context():
-    if DROP_THE_EXISTING_TABLES:
-        db.drop_all()
-        print("Dropped the tables")
-    db.create_all()
 
 CLIENT_ID = os.environ.get("PAYPAL_CLIENT_ID") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_CLIENT_ID")
 SECRET_KEY = os.environ.get("PAYPAL_SECRET_KEY") if os.environ.get("PAYPAL_SANDBOX") == "True" else os.environ.get("PAYPAL_LIVE_SECRET_KEY")
@@ -2794,11 +2798,11 @@ def activate_subscription():
     return jsonify({"success":True})
 """
 
-
+@app.route('/payment_buffer/<unique_azz_id>/', methods=["POST", "GET"], defaults={'id': None})
 @app.route('/payment_buffer/<unique_azz_id>/<id>', methods=['POST', 'GET'])
 def payment_buffer(unique_azz_id, id):
-    if not id:
-        abort(403)  # Forbidden
+    #if not id:
+        #abort(403)  # Forbidden
     
     cache.set("access_granted_payment_result", True)
 
@@ -2807,9 +2811,11 @@ def payment_buffer(unique_azz_id, id):
     item_db = db_items_cache[unique_azz_id].find_one({"id":id})
 
     if item_db == None:
-       abort(403)  # Forbidden
+        items = cache.get("items_ordered")
     else:
         items = item_db.get("data")
+
+    cache.set("items_ordered", items)
     print(f"Items on payment buffer: {items}")
     CURRENCY = restaurant.get("res_currency", "EUR")
 
@@ -2953,9 +2959,11 @@ def execute_payment(unique_azz_id):
 def create_order():
     #addFees = request.args.get('addFees')
 
+    unique_azz_id = cache.get("unique_azz_id")
+
     total_to_pay = request.json.get('total_to_pay')
 
-    order = createOrder(total_to_pay=total_to_pay)
+    order = createOrder(total_to_pay=total_to_pay, unique_azz_id=unique_azz_id)
 
     if order.status_code in [201,200]:  # Check if the request was successful
         order_data = order.json()  # Parse the JSON response
@@ -3647,15 +3655,16 @@ def generate_response_streaming(unique_azz_id):
     def generate():
 
         for chunk in stream:
-            print(chunk)
+            # print(chunk)
             
             if chunk.event == "thread.message.delta":
+                print(f"\n\nYielding message delta content: {chunk.data.delta.content[0].text.value}\n\n")
                 yield(chunk.data.delta.content[0].text.value)
             if chunk.event == "thread.run.completed":
                 tokens_used = chunk.data.usage.total_tokens
                 
                 charge_for_message = PRICE_PER_1_TOKEN * tokens_used
-                print(f"Charge for message in generate(): {charge_for_message} USD")
+                print(f"\n\nCharge for message in generate(): {charge_for_message} USD\n\n")
 
                 result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
                 if result_charge_for_message.matched_count > 0:
@@ -3670,6 +3679,7 @@ def generate_response_streaming(unique_azz_id):
                         run_id=run.id
                         )
                     no_action_response = "Please, type in the other message as I can't proceed with the placement of the order. I am not entitled to do that."
+                    print("Yielding discovery mode no order message: discovery_mode_no_order")
                     yield "discovery_mode_no_order"
                 print("Action in progress...")
 
@@ -3725,6 +3735,7 @@ def generate_response_streaming(unique_azz_id):
                 while True:
                     if time.time() - json_start_time > 25:
                         response = 'O-oh, little issues when forming the response, repeat the message now'
+                        print("Yielding message to write again: Please, write the message again!")
                         yield "Please, write the message again!"
 
                     run_status = client.beta.threads.runs.retrieve(thread_id=thread_id_json,
@@ -3784,6 +3795,7 @@ def generate_response_streaming(unique_azz_id):
 
                             # Charge acc with 'total_tokens_used'
 
+                            print(f"Yielding link to payment buffer: {link_to_payment_buffer}")
                             yield link_to_payment_buffer
                         else:
                             total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
@@ -3830,6 +3842,7 @@ def generate_response_streaming(unique_azz_id):
 
                             # Charge acc with 'total_tokens_used'
 
+                            print(f"Yielding no payment order finish message: {no_payment_order_finish_message}")
                             yield no_payment_order_finish_message
                     if run_status.status == 'failed':
                         print("Run of JSON assistant failed.")
@@ -3841,6 +3854,7 @@ def generate_response_streaming(unique_azz_id):
 
                         #print(f"\n\nRun steps: \n{run_steps}\n")
                         response = 'O-oh, little issues, repeat the message now'
+                        print("Yielding message to write again: Please, write the message again!")
                         yield "Please, write the message again!"
     
     for key, value in session_data.items():
@@ -5235,7 +5249,6 @@ def takeaway_delivery_template(unique_azz_id, order_id):
     if payment_on:
         next_link = f"/payment_buffer/{unique_azz_id}/{order_id}"
     else:
-        
         next_link = f"/no-payment-order-placed/{unique_azz_id}/{order_id}"
 
     print(f"\n\n\nNext link: {next_link}\n\n\n")
@@ -5280,7 +5293,7 @@ def submit_address():
 @app.route("/no-payment-order-placed/<unique_azz_id>/<order_id>", methods=["POST", "GET"])
 def no_payment_order_placed(unique_azz_id, order_id):
     suggest_web3_bonus = cache.get("suggest_web3_bonus")
-    
+
     # if not session.get('access_granted_no_payment_order'):
         # abort(403)  # Forbidden
     # Find the instance in MongoDB
@@ -5412,9 +5425,9 @@ def success_payment_backend(unique_azz_id):
         cache.set("suggest_web3_bonus", False)
 
     orderType = session.get('orderType')
-    text_address = cache.get('text_address')
-    user_longitude = cache.get('user_longitude')
-    user_latitude = cache.get('user_latitude')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
     
     print("Setup suggest web3 hours in session to ", cache.get("suggest_web3_bonus"))
     

@@ -1,41 +1,8 @@
-{% if not from_splash_page %}
-    {% if iframe %}
-    {% extends 'layout_iframe.html' %}
-    {% else %}
-    {% extends 'layout_order_chat.html' %}
-    {% endif %}
+{% if iframe %}
+{% extends 'layout_iframe.html' %}
 {% else %}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }} - MOM AI</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+{% extends 'layout_order_chat.html' %}
 {% endif %}
-
-<head>
-    <meta name="description" content="Discover the best AI-powered restaurants in Keflavik, Iceland with MOM AI's search tool. Find locations, menus, and order food easily.">
-    <link rel="canonical" href="https://mom-ai-restaurant.pro/ai-restaurants?location=Keflavík,Iceland" />
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Restaurant",
-      "name": "MOM AI Restaurant Search",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Hafnargata 18",
-        "addressLocality": "Keflavik",
-        "addressRegion": "Reykjanesbær",
-        "postalCode": "230",
-        "addressCountry": "IS"
-      },
-      "telephone": "+3541234567",
-      "url": "https://mom-ai-restaurant.pro/ai-restaurants?location=Keflavík,Iceland"
-    }
-    </script>
-</head>
 
 {% block content %}
 
@@ -542,7 +509,9 @@
         console.log("Enabling input fields and buttons");
         document.getElementById('userMessage').disabled = false;
         document.querySelector('button[onclick="sendMessage()"]').disabled = false;
+        if (document.getElementById('micButton')){
         document.getElementById('micButton').disabled = false;
+        }
         console.log("Input and buttons ENABLED");
     }
 
@@ -560,7 +529,9 @@
         document.getElementById('userMessage').disabled = true;
         document.getElementById('userMessage').value = '';
         document.querySelector('button[onclick="sendMessage()"]').disabled = true;
+        if (document.getElementById('micButton')){
         document.getElementById('micButton').disabled = true;
+        }
         console.log("Input and buttons DISABLED");
     }
 
@@ -627,10 +598,24 @@
 
         output += decoded_value;
 
+        // Check the entire output for markdown image pattern ![alt text](image_url)
+        const markdownImagePattern = /!\[(.*?)\]\((.*?)\)/g;
+        output = output.replace(markdownImagePattern, (match, altText, url) => {
+            return `<img src="${url}" alt="${altText}" width="170">`;
+        });
+
         if (decoded_value.includes("payment_buffer")) {
             const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             sessionStorage.setItem("next_link", output)
-            window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+            
+            const iframe = "{{ iframe }}" === "True" ? true : false
+            if (iframe) {
+                window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;
+                // window.open(`/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`, '_blank'); // Replace with the URL you want to redirect to
+            } else {
+                window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+            }
+
             return;
         }
 
@@ -638,7 +623,14 @@
             const initialLanguage = sessionStorage.getItem("userLanguage").substring(0, 2); // This should be set in your Flask route
             const unique_azz_id = "{{ unique_azz_id }}";
             sessionStorage.setItem("next_link", `/no-payment-order-placed/${unique_azz_id}`)
-            window.location.href = `/takeaway_delivery/${unique_azz_id}#googtrans(en|${initialLanguage})`;
+            
+            const iframe = "{{ iframe }}" === "True" ? true : false
+            if (iframe) {
+                window.open(`/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`, '_blank'); // Replace with the URL you want to redirect to
+            } else {
+                window.location.href = `/takeaway_delivery/{{ unique_azz_id }}#googtrans(en|${initialLanguage})`;  // Replace with the URL you want to redirect to
+            }
+
             return;
         }
 
@@ -1369,7 +1361,6 @@ const micButton = document.getElementById('micButton');
             flashMessages.style.display = 'none';
         }, 5000);
     }
-}
 
 
     /*
@@ -1387,8 +1378,7 @@ const micButton = document.getElementById('micButton');
 
     window.speak = speak;
     */
-    
-    
+    }
 </script>
 
 
