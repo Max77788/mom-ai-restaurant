@@ -35,7 +35,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ResetPasswordForm, ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import create_full_canvas_diagonal_pattern, generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -1735,9 +1735,20 @@ def update_profile(attribute, tg_setup=None):
         elif attribute == 'image' and form.image.data:
             image = form.image.data
             filename = secure_filename(image.filename)
-            file_id = fs.put(image, filename=filename)
+            image.save(filename)
+            # Step 3: Save the original image to the database (convert it into a file-like object)
+            with open(filename, 'rb') as file_data:
+                file_id = fs.put(file_data, filename=filename)
+            
+            canvas = create_full_canvas_diagonal_pattern(filename)
+
+            canvas_file_id = fs.put(canvas)
+
+            # os.remove(filename)
+            
             print(f'Raw file id {file_id} and string file id {str(file_id)}')
-            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'res_logo': file_id}})   
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'res_logo': file_id, 'res_logo_canvas': canvas_file_id}})   
+            #collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'chat_bg_mode': chat_bg_mode, 'chat_bg_color': file_id, 'chat_background_canvas': canvas_file_id}})
         print('Profile updated successfully!')
         flash('Profile updated successfully!', 'success')
         if tg_setup:
@@ -1757,6 +1768,11 @@ def update_profile(attribute, tg_setup=None):
                            restaurant=restaurant, 
                            title="Update Profile",
                            tg_setup=tg_setup)
+
+@app.route("/customize_chat", methods=['GET', 'POST'])
+def customize_chat():
+    return render_template("settings/customize_chat.html", title="Customize Chat")
+            
 
 
 @app.route('/setup_public_profile', methods=['GET', 'POST'])
@@ -1793,7 +1809,22 @@ def setup_public_profile():
         qr_code_id = str(qr_code_id)
 
         print(website_url, logo, description)
-        
+
+        file_id = "666af654dee400a1d635eb08"
+        canvas_file_id = None
+
+        if logo:
+            image = form.logo.data
+            filename = secure_filename(image.filename)
+            image.save(filename)
+            with open(filename, 'rb') as file_data:
+                file_id = fs.put(file_data, filename=filename)
+            
+            canvas = create_full_canvas_diagonal_pattern(filename)
+
+            canvas_file_id = fs.put(canvas, filename=filename)
+
+            os.remove(filename)
         res_password = session.get("password", "google_acc")
         if res_password != "google_acc":
             hashed_res_password = hash_password(res_password)
@@ -1831,7 +1862,8 @@ def setup_public_profile():
     location_coord=locationCoord,
     location_name=locationName,
     id_of_who_referred=id_of_who_referred,
-    logo_id="666af654dee400a1d635eb08",
+    logo_id=file_id,
+    res_logo_canvas=canvas_file_id
 )
         
         # Handle file upload and other logic here
@@ -3457,6 +3489,8 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
         # print(f"List of current messages: {list_of_current_messages}")
         print(f"Suggest new order: {suggest_new_order} and requires action: {requires_action}")
 
+    bg_color = res_instance.get("bg_color", "#ffffff")
+
     # Use the restaurant_name from the URL and the full assistant_id from the session
     return render_template('dashboard/order_chatSTREAMING.html', restaurant_name=restaurant_name, 
                            lang=lang, 
@@ -3474,7 +3508,8 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
                            from_splash_page=from_splash_page,
                            list_of_current_messages=list_of_current_messages,
                            requires_action=requires_action,
-                           suggest_new_order=suggest_new_order)
+                           suggest_new_order=suggest_new_order,
+                           bg_color=bg_color)
 
 
 

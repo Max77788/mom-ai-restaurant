@@ -539,6 +539,46 @@ def check_credentials(email, password, collection, for_login_redirect=False):
             return True
     return False
 
+
+
+
+
+
+def create_full_canvas_diagonal_pattern(logo_path, canvas_size=(800, 800), num_logos_x=12, num_logos_y=12):
+    # Open the logo image
+    logo = Image.open(logo_path)
+    
+    # Calculate the size of each logo based on the desired number of logos along the x and y axes
+    logo_width = canvas_size[0] // num_logos_x
+    logo_height = canvas_size[1] // num_logos_y
+    
+    # Resize the logo to fit
+    logo = logo.resize((logo_width, logo_height))
+    
+    # Create a blank canvas
+    canvas = Image.new("RGB", canvas_size, "white")
+    
+    # Calculate the space between logos diagonally
+    step_x = logo_width + 10  # The space between logos horizontally
+    step_y = logo_height + 10  # The space between logos vertically
+    
+    # Paste logos in diagonal pattern to cover the entire canvas
+    for y in range(-step_y, canvas_size[1] + step_y, step_y):
+        for x in range(-step_x, canvas_size[0] + step_x, step_x):
+            # Apply a diagonal offset to every alternate row
+            x_offset = (y // step_y) * (step_x // 2)
+            canvas.paste(logo, (x + x_offset, y))
+
+    # Save the result to a BytesIO object
+    img_byte_arr = BytesIO()
+    canvas.save(img_byte_arr, format='PNG')  # Save as PNG to the in-memory byte array
+    img_byte_arr.seek(0)  # Move the pointer to the beginning of the BytesIO object
+    
+    return img_byte_arr  # Return the file-like object
+
+
+
+
 def insert_restaurant(collection, name, unique_azz_id, email, password, website_url, assistant_id, menu_file_id, menu_vector_id, currency, html_menu, qr_code, wallet_public_key_address, wallet_private_key, location_coord, location_name, id_of_who_referred=None, logo_id=None, **kwargs):
     """Insert a document into MongoDB that includes a name and two files."""
     # Replace spaces with underscores
