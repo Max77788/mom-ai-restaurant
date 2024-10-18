@@ -1775,7 +1775,8 @@ def update_profile(attribute, tg_setup=None):
 
 @app.route("/customize_chat", methods=['GET', 'POST'])
 def customize_chat():
-    return render_template("settings/customize_chat.html", title="Customize Chat")
+    restaurant = collection.find_one({"unique_azz_id": session.get("unique_azz_id")})
+    return render_template("settings/customize_chat.html", title="Customize Chat", restaurant=restaurant)
             
 
 
