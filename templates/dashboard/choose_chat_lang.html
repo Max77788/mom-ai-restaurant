@@ -31,6 +31,8 @@
 
 <script>
     function moveNext() {
+
+        const iframe = "{{ iframe }}" === "True" ? true : false
         console.log("Clicked Button")
         const assistantId = "{{ assistant_id }}";
 
@@ -58,7 +60,12 @@
             // console.log("Received Thread ID: ", data.thread_id);
             // console.log("Current Assistant ID: ", data.assistant_id);
             
-            window.location.href = `/assistant_order_chat/${unique_azz_id}/${currentThreadId}`
+            let goTo = `/assistant_order_chat/${unique_azz_id}/${currentThreadId}`
+            if (iframe) {
+                goTo += `?iframe=True`
+            }
+
+            window.location.href = goTo
         })
         .catch(error => {
             console.error("Error starting conversation: ", error);

@@ -1300,8 +1300,8 @@ def create_web_wallet():
 def assistant_demo_chat():
     
     # Check if the session variable is set
-    #if not session.get('access_granted_assistant_demo_chat'):
-        #sabort(403)  # Forbidden
+    if not session.get('access_granted_assistant_demo_chat'):
+        abort(403)  # Forbidden
     user_message = 'Customer\'s message example'
     
     #ai_assist_response = get_assistants_response(user_message)
@@ -3357,8 +3357,11 @@ def trigger_demo_call():
 
 @app.route('/chat_start/<unique_azz_id>', methods=['GET', 'POST'])
 def chat_start(unique_azz_id):
+    iframe = True if request.args.get("iframe") else False
+    print("Iframe we passed: ", iframe)
+    
     assistant_id = collection.find_one({"unique_azz_id": unique_azz_id})["assistant_id"]
-    return render_template("dashboard/choose_chat_lang.html", unique_azz_id=unique_azz_id, assistant_id=assistant_id, title="Start Chat")
+    return render_template("dashboard/choose_chat_lang.html", unique_azz_id=unique_azz_id, assistant_id=assistant_id, title="Start Chat", iframe=iframe)
 
 # Start conversation thread
 @app.route('/assistant_start/<assistant_id>', methods=['GET', 'POST'])

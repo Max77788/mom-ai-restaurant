@@ -1,36 +1,51 @@
-"Item Name","Item Description","Item Price (THB)","Link to Image"
-"Lobster Soup","A rich and creamy soup featuring succulent lobster, enhanced with aromatic herbs and spices.","20.00",""
-"BIRYANI CHICKEN","Yellow rice, chicken, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.","15.34","https://i.ibb.co/DKRtvJ7/800-6012d8a3a0807.jpg"
-"BIRYANI LAMB","Yellow rice, lamb, mixed salad, tomato, red onion, cucumber, olive oi , spicy sauce, yogurt sauce.","15.34","https://i.ibb.co/4FddBW5/800-6012d8e670df3.jpg"
-"BIRYANI FISH","Yellow rice, fish, mixed salad, tomato, cucumber, olive oil, red onion, yogurt sauce, spicy sauce.","15.34",""
-"BIRYANI MIX","Yellow rice, lamb, chicken, fish, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.","16.68","https://i.ibb.co/0QBLMr3/800-6012d9626749b.jpg"
-"BIRYANI VEGETARIAN","Falafel, Hummus, yellow rice, mixed salad, red onion, tomato, cucumber, yogurt sauce, spicy sauce.","15.34",""
-"SHAWARMA CHICKEN","Tortilla bread, marinated chicken in Arabic spices, fries, pomegranate molasses, mayonnaise.","15.34","https://i.ibb.co/1rDv91n/800-66392dae99407.png"
-"SHAWARMA LAMB","Tortilla bread, marinated lamb in Arabic spices, mayonnaise, pomegranate molasses, fries.","15.34","https://i.ibb.co/hBsYd8m/800-6012d1d6f1af8.jpg"
-"SHAWARMA MIX","Tortilla bread, marinated chicken and lamb in Arabic spices, fries, mayonnaise, pomegranate molasses.","16.68","https://i.ibb.co/P90SVMs/800-6012d21eefaf5.jpg"
-"DONER CHICKEN","Pita bread, chicken, mixed salad, garlic sauce, spicy sauce, French fries.","15.34","https://i.ibb.co/hBsYd8m/800-6012d1d6f1af8.jpg"
-"DONER LAMB","Bread, lamb, mixed salad, tomato, red onion, French fries, garlic sauce, spicy sauce.","15.34","https://i.ibb.co/hBsYd8m/800-6012d1d6f1af8.jpg"
-"DONER MIX","Pita bread, chicken, lamb, mixed salad, spicy sauce, garlic sauce, French fries.","16.68","https://i.ibb.co/hBsYd8m/800-6012d1d6f1af8.jpg"
-"DONER FALAFEL","Pita bread, hummus, falafel, mixed salad, tomato, red onion, cucumber, French fries, yogurt sauce, spicy sauce.","15.34","https://i.ibb.co/PZLbXzg/800-6012d13256a8b.jpg"
-"CHICKEN SALAD","Mixed salad, tomato, red onion, cucumber, olive oil, chicken, spicy sauce, garlic sauce.","14.67","https://i.ibb.co/3TJGtbR/800-60134f31a1f32.jpg"
-"LAMB SALAD","Mixed salad, tomato, red onion, cucumber, olive oil, lamb, spicy sauce, garlic sauce.","15.34","https://i.ibb.co/3TJGtbR/800-60134f31a1f32.jpg"
-"MIX SALAD","Mixed salad, tomato, red onion, cucumber, olive oil, chicken, lamb, spicy sauce, garlic sauce.","16.68","https://i.ibb.co/JmRZV7s/800-6012aab2c15a7.jpg"
-"FISH SALAD","Mixed salad, tomato, red onion, cucumber, olive oil, fish, spicy sauce, yogurt sauce.","15.34","https://i.ibb.co/PZG8Njq/800-6012aa1e6fa36.jpg"
-"MAGNUM LAMB","French fries, lamb, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.","15.34","https://i.ibb.co/PDgF2rJ/800-6012aa618cff2.jpg"
-"MAGNUM CHICKEN","French fries, chicken, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.","15.34","https://i.ibb.co/JmRZV7s/800-6012aab2c15a7.jpg"
-"MAGNUM FISH","French fries, fish, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.","15.34","https://i.ibb.co/zFxv5Ds/800-6012cf167d3bb.jpg"
-"MAGNUM MIX","French fries, chicken, lamb, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.","16.68","https://i.ibb.co/r01ytKq/800-6012ce8dd3461.jpg"
-"LAMB MARIA","Minced lamb meat marinated in Arabic spices, mozzarella cheese, French fries, garlic sauce.","15.34","https://i.ibb.co/t481pHP/800-6012ce5b80fc7.jpg"
-"CHICKEN MARIA","Minced chicken meat marinated in Arabic spices, mozzarella cheese, French fries, garlic sauce.","15.34","https://i.ibb.co/LPzxzRR/800-6012ce123334f.jpg"
-"BEEF BURGER","Minced beef, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.","15.34","https://i.ibb.co/NL8T1TR/800-6012adc541a5b.jpg"
-"CHICKEN BURGER","Minced chicken, cheese, lettuce, tomato, onion, special hamburger sauce, spicy sauce, fries.","15.34","https://i.ibb.co/Gd5PdtL/800-6012ae325a211.jpg"
-"LAMB BURGER","Minced lamb, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.","15.34","https://i.ibb.co/kDBKRbS/800-6012acac63175.jpg"
-"VEGETARIAN BURGER","Chickpeas burger, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.","15.34","https://i.ibb.co/h2t8vKN/800-6012ad30ba62d.jpg"
-"DOUBLE BEEF BURGER","Double minced beef, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.","16.68","https://i.ibb.co/bRrt19b/800-6012ad821225e.jpg"
-"EGG BURGER","Chicken, lamb or beef, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.","16.68","https://i.ibb.co/nRpWWtc/800-6012ac57acc78.jpg"
-"CHOCOLATE CAKE","Deepfrozen round choco cake, filled with choco filling, finished with a choco topping, decorated with chocolate drops.","5.03","https://i.ibb.co/fFJwgXM/800-6012a8d2ca653.jpg"
-"BLACKBERRY CHEESECAKE","A plain gluten free biscuit base topped with luxury baked cheesecake.","5.03","https://i.ibb.co/KNkJ5nQ/800-6012a96d269da.jpg"
-"HUMMUS","Chickpea, Tahini (sesame seeds), Lemon, Olive oil, Salt, Sumac, Cumin and Allergy Warning: Tahini (Sesame Seeds).","5.96","https://i.ibb.co/kDBKRbS/800-6012acac63175.jpg"
-"BIG FRIES","Big Fries.","6.63","https://i.ibb.co/KjyjT6F/800-6012a8655da02.jpg"
-"KIDS RICE","Kids Rice.","9.71","https://i.ibb.co/nktXNQ3/800-6012a812af173.jpg"
-"KIDS FRIES","Kids Fries.","9.71","https://i.ibb.co/LdKwhWm/800-6012a6070a898.jpg"
+Item Name,Item Description,Item Price,Link to Image (How to get link?)
+Falafel Vegan,"tortilla bread ,hummus, minced chickpeas mixed with arabic spices ,mixed salad, red onion , cucumber ,tomato, spicy sauce .",11.1,https://images.cdn-files-a.com/uploads/779837/800_6012d4c3c022d.jpg
+Supreme,"tortilla bread ,minced chicken marinated in arabic spices, mozzarella cheese ,mixed salad, mayonnaise , fries , garlic sauce , spicy sauce .",12.54,
+Kofta,"tortilla bread ,hummus, marinated lamb meat in arabic spices ,mixed salad, red onion ,tomato, garlic sauce , spicy sauce.",11.94,https://images.cdn-files-a.com/uploads/779837/800_5d362d80c9251.jpg
+Shesh Tawook,"tortilla bread , hummus, mixed salad, chicken , garlic sauce, spicy sauce.",11.34,https://images.cdn-files-a.com/uploads/779837/800_6012d3cc12ed5.jpg
+Falafel,"tortilla bread ,hummus, minced chickpeas mixed with arabic spices ,mixed salad, red onion , cucumber ,tomato ,yogurt sauce , spicy sauce",11.1,https://images.cdn-files-a.com/uploads/779837/800_5d36389ee498f.jpg
+Fish kebab,"tortilla bread, lettuce ,fish ,yogurt sauce ,spicy sauce.",11.94,https://images.cdn-files-a.com/uploads/779837/800_601206fd04af1.jpg
+Lamb Kebab,"tortilla bread, lettuce ,tomato , red onion, lamb , garlic sauce , spicy sauce.",11.94,https://images.cdn-files-a.com/uploads/779837/800_5d362bfc80a5e.jpg
+Chicken Kebab,"Shawarma chicken tortilla bread, lettuce , chicken , garlic sauce , spicy sauce.",11.94,https://images.cdn-files-a.com/uploads/779837/800_5d362bba81f79.jpg
+BIRYANI FISH ROLL,"tortilla bread, lettuce ,biryani rice , fish , yogurt sauce , spicy sauce.",13.14,https://images.cdn-files-a.com/uploads/779837/800_6012b344e55e5.jpg
+BIRYANI LAMB ROLL,"tortilla bread, lettuce ,biryani rice , lamb, garlic sauce , spicy sauce.",13.14,https://images.cdn-files-a.com/uploads/779837/800_6012b2775a335.jpg
+BIRYANI CHICKEN ROLL,"tortilla bread, lettuce ,biryani rice , chicken , garlic sauce , spicy sauce.",13.14,https://images.cdn-files-a.com/uploads/779837/800_6012b21b68510.jpg
+BIRYANI MIX ROLL,"tortilla bread, lettuce ,biryani rice , chicken, lamb , garlic sauce , spicy sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012b3ad62c67.jpg
+MAGNUM MIX ROLL,"tortilla bread, lettuce , French fries, lamb, chicken, garlic sauce , spicy sauce",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012b77a3b40e.jpg
+MAGNUM FISH ROLL,"tortilla bread, lettuce , French fries , fish, yogurt sauce , spicy sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012b6eee524d.jpg
+MAGNUM LAMB ROLL,"tortilla bread, lettuce ,red onion , tomato , French fries , lamb, garlic sauce , spicy sauce.",13.14,https://images.cdn-files-a.com/uploads/779837/800_6012b68c116df.jpg
+MAGNUM CHICKEN ROLL,"tortilla bread, lettuce , French fries , chicken, garlic sauce , spicy sauce.",13.14,https://images.cdn-files-a.com/uploads/779837/800_6012b60cef87e.jpg
+BIRYANI CHICKEN,"Yellow rice, chicken, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012a6070a898.jpg
+BIRYANI LAMB,"Yellow rice, lamb, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012a812af173.jpg
+BIRYANI FISH,"Yellow rice, fish, mixed salad, tomato, cucumber, olive oil, red onion, yogurt sauce, spicy sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012a8655da02.jpg
+BIRYANI MIX,"Yellow rice, lamb, chicken, fish, mixed salad, tomato, red onion, cucumber, olive oil, spicy sauce, yogurt sauce.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012a8d2ca653.jpg
+BIRYANI VEGETARIAN,"Falafel, Hummus, yellow rice, mixed salad, red onion, tomato, cucumber, yogurt sauce, spicy sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012a96d269da.jpg
+SHAWARMA CHICKEN,"Tortilla bread, marinated chicken in Arabic spices, fries, pomegranate molasses, mayonnaise.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012abfa34c82.jpg
+SHAWARMA LAMB,"Tortilla bread, marinated lamb in Arabic spices, mayonnaise, pomegranate molasses, fries.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012ac57acc78.jpg
+SHAWARMA MIX,"Tortilla bread, marinated chicken and lamb in Arabic spices, fries, mayonnaise, pomegranate molasses.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012acac63175.jpg
+DONER CHICKEN,"Pita bread, chicken, mixed salad, garlic sauce, spicy sauce, French fries.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012ad30ba62d.jpg
+DONER LAMB,"Bread, lamb, mixed salad, tomato, red onion, French fries, garlic sauce, spicy sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012ad821225e.jpg
+DONER MIX,"Pita bread, chicken, lamb, mixed salad, spicy sauce, garlic sauce, French fries.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012adc541a5b.jpg
+DONER FALAFEL,"Pita bread, hummus, falafel, mixed salad, tomato, red onion, cucumber, French fries, yogurt sauce, spicy sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012ae325a211.jpg
+CHICKEN SALAD,"Mixed salad, tomato, red onion, cucumber, olive oil, chicken, spicy sauce, garlic sauce.",13.14,https://images.cdn-files-a.com/uploads/779837/800_6012ce123334f.jpg
+LAMB SALAD,"Mixed salad, tomato, red onion, cucumber, olive oil, lamb, spicy sauce, garlic sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012ce5b80fc7.jpg
+MIX SALAD,"Mixed salad, tomato, red onion, cucumber, olive oil, chicken, lamb, spicy sauce, garlic sauce.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012ce8dd3461.jpg
+FISH SALAD,"Mixed salad, tomato, red onion, cucumber, olive oil, fish, spicy sauce, yogurt sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012cf167d3bb.jpg
+MAGNUM LAMB,"French fries, lamb, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012a9d283a8d.jpg
+MAGNUM CHICKEN,"French fries, chicken, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012aa1e6fa36.jpg
+MAGNUM FISH,"French fries, fish, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012aa618cff2.jpg
+MAGNUM MIX,"French fries, chicken, lamb, mixed salad, red onion, cucumber, tomato, olive oil, spicy sauce, garlic sauce.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012aab2c15a7.jpg
+LAMB MARIA,"Minced lamb meat marinated in Arabic spices, mozzarella cheese, French fries, garlic sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012ab196cf5a.jpg
+CHICKEN MARIA,"Minced chicken meat marinated in Arabic spices, mozzarella cheese, French fries, garlic sauce.",13.74,https://images.cdn-files-a.com/uploads/779837/800_60134f31a1f32.jpg
+BEEF BURGER,"Minced beef, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012d038b7ecd.jpg
+CHICKEN BURGER,"Minced chicken, cheese, lettuce, tomato, onion, special hamburger sauce, spicy sauce, fries.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012d0802e47e.jpg
+LAMB BURGER,"Minced lamb, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012d0d98332a.jpg
+VEGETARIAN BURGER,"Chickpeas burger, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.",13.74,https://images.cdn-files-a.com/uploads/779837/800_6012d13256a8b.jpg
+DOUBLE BEEF BURGER,"Double minced beef, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012d1d6f1af8.jpg
+EGG BURGER,"Chicken, lamb or beef, cheese, lettuce, tomato, red onion, special hamburger sauce, spicy sauce, fries.",14.94,https://images.cdn-files-a.com/uploads/779837/800_6012d21eefaf5.jpg
+CHOCOLATE CAKE,"Deepfrozen round choco cake, filled with choco filling, finished with a choco topping, decorated with chocolate drops.",4.5,https://images.cdn-files-a.com/uploads/779837/800_66392dae99407.png
+BLACKBERRY CHEESECAKE,A plain gluten free biscuit base topped with luxury baked cheesecake.,4.5,https://images.cdn-files-a.com/uploads/779837/800_66392c99b094d.png
+HUMMUS,"Chickpea, Tahini (sesame seeds), Lemon, Olive oil, Salt, Sumac, Cumin and Allergy Warning: Tahini (Sesame Seeds).",5.34,https://images.cdn-files-a.com/uploads/779837/800_6012d82e751c0.jpg
+BIG FRIES,Big Fries.,5.94,https://images.cdn-files-a.com/uploads/779837/800_6012d9626749b.jpg
+KIDS RICE,Kids Rice.,8.7,https://images.cdn-files-a.com/uploads/779837/800_6012d8a3a0807.jpg
+KIDS FRIES,Kids Fries.,8.7,https://images.cdn-files-a.com/uploads/779837/800_6012d8e670df3.jpg
