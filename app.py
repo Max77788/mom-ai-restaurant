@@ -6131,7 +6131,29 @@ def accept_order_details_voice():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/charge_for_voice_realtime_response", methods=["POST"])
+def charge_for_voice_realtime_response():
+    data = request.get_json()
+    print(data)
+
+    unique_azz_id = data.get("unique_azz_id")
+    input_tokens = data.get("input_tokens")
+    output_tokens = data.get("output_tokens")
+
+    PRICE_PER_1_INPUT_TOKEN = 0.0002
+    PRICE_PER_1_OUTPUT_TOKEN = 0.0004
+
+    total_to_charge = round((PRICE_PER_1_INPUT_TOKEN*input_tokens)+(PRICE_PER_1_OUTPUT_TOKEN*output_tokens), 2)
+
+    collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"voice_assistant_fund": total_to_charge, "balance": -total_to_charge}})
     
+    print("\n\n\n", total_to_charge, "\n\n\n")
+
+    return jsonify({"success":True})
+
+
+
+
 if __name__ == '__main__':
     socketio.run(app, debug=True, host='localhost', port=5000, use_reloader=True)
 
