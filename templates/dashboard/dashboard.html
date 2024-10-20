@@ -291,6 +291,10 @@ function downloadImage() {
             </div>
             {% endif %}
             <hr>
+            <div>
+                <a href="https://connect.squareup.com/oauth2/authorize?client_id={{ SQUARE_APP_ID }}&scope=CUSTOMERS_WRITE+CUSTOMERS_READ&session=false&redirect_uri={{ SQUARE_APP_REDIRECT_URI }}" target="_blank"><u>Connect Square POS</u></a>
+                </div>
+            <hr>
             <div class="logout-section">
                 <form action="/logout" method="post">
                     <button type="submit">Logout</button>

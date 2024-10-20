@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import statistics
+import requests
 from flask_migrate import Migrate
 import os
 from bland.twilio_stuff import full_get_insert_twilio_number
@@ -27,7 +28,7 @@ from bs4 import BeautifulSoup
 from google_folder.google_cloud_storage import delete_file_by_url_google, upload_file_google, download_file_google, list_files_google, upload_file_bytes_google
 import markdown
 import json
-import requests
+import requests as online_reqs
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
@@ -93,16 +94,27 @@ if not os.environ.get("LOCAL_DEV") == "True":
         image_url = db.Column(db.String(2048), nullable=True)  # New column for image URL
         created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     
-    DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
+    # DROP_THE_EXISTING_TABLES = os.environ.get("DROP_THE_EXISTING_TABLES", "False") == "True"
     
     # Ensure the tables are created
+    """
     with app.app_context():
         if DROP_THE_EXISTING_TABLES:
             db.drop_all()
             print("Dropped the tables")
         db.create_all()
+    """
+
+SQUARE_APP_ID = os.environ.get("SQUARE_API_ID_PRODUCTION") if os.environ.get("IS_SQUARE_SANDBOX") == "False" else os.environ.get("SQUARE_API_ID_SANDBOX")
+SQUARE_APP_SECRET = os.environ.get("SQUARE_API_SECRET_PRODUCTION") if os.environ.get("IS_SQUARE_SANDBOX") == "False" else os.environ.get("SQUARE_API_SECRET_SANDBOX")
+SQUARE_APP_ACCESS_TOKEN = os.environ.get("SQUARE_APP_ACCESS_TOKEN_PRODUCTION") if os.environ.get("IS_SQUARE_SANDBOX") == "False" else os.environ.get("SQUARE_APP_ACCESS_TOKEN_SANDBOX")
+SQUARE_APP_REDIRECT_URI = os.environ.get("SQUARE_API_REDIRECT_URI", "http://localhost:5000/square-api-callback")
+
+print(f"square token: {SQUARE_APP_ACCESS_TOKEN}")
 
 # oauth = OAuth(app)
+
+
 
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
@@ -1428,7 +1440,7 @@ def dashboard_display(show_popup=False):
     res_email = session.get("res_email")
     res_password = session.get("password")
 
-    
+    CODE_CHALLENGE = ""
 
     # Find the instance in MongoDB
     restaurant_instance = collection.find_one({"email": res_email}) 
@@ -1530,7 +1542,9 @@ def dashboard_display(show_popup=False):
                            delivery_offered=delivery_offered,
                            delivery_radius=delivery_radius,
                            current_balanceHigherThanTwentyCents=current_balanceHigherThanTwentyCents,
-                           is_google_acc=is_google_acc)
+                           is_google_acc=is_google_acc,
+                           SQUARE_APP_REDIRECT_URI=SQUARE_APP_REDIRECT_URI,
+                           SQUARE_APP_ID=SQUARE_APP_ID)
 
 
 @app.route('/splash-page/<unique_azz_id>', methods=['POST', 'GET'])
@@ -6150,6 +6164,44 @@ def charge_for_voice_realtime_response():
     print("\n\n\n", total_to_charge, "\n\n\n")
 
     return jsonify({"success":True})
+
+@app.route("/square-api-callback", methods=["POST", "GET"])
+def square_api_callback():
+    # print(request.get_json())
+    code = request.args.get("code")
+    print(f"Code: {code}")
+
+    # Define the URL
+    url = "https://connect.squareup.com/oauth2/token"
+
+    # Define the headers, if needed (for example, setting content type or authorization)
+    BEARER_STRING = f"Bearer {SQUARE_APP_ACCESS_TOKEN}"
+    print(f"bearer string: {BEARER_STRING}")
+
+    headers = {
+        "Square-Version": "2024-10-17",
+        "Authorization": BEARER_STRING,  # Replace with the actual token if required
+        "Content-Type": "application/json"
+    }
+
+    # Define the data payload
+    data = {
+        "client_id": SQUARE_APP_ID,  # Replace with your client_id
+        "client_secret": SQUARE_APP_SECRET,  # Replace with your client_secret
+        "grant_type": "authorization_code",
+        "code": code  # Replace with the authorization code you received
+    }
+
+    # Send the POST request
+    response = online_reqs.post(url, json=data)
+
+    # Check the response status
+    if response.status_code == 200:
+        print("Success:", response.json())  # If the request was successful, print the response
+    else:
+        print("Error:", response.status_code, response.text)  # If there was an error, print the status and error message
+
+    return redirect("/dashboard")
 
 
 
