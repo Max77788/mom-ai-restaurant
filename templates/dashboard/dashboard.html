@@ -292,8 +292,13 @@ function downloadImage() {
             {% endif %}
             <hr>
             <div>
-                <a href="https://connect.squareup.com/oauth2/authorize?client_id={{ SQUARE_APP_ID }}&scope=CUSTOMERS_WRITE+CUSTOMERS_READ&session=false&redirect_uri={{ SQUARE_APP_REDIRECT_URI }}" target="_blank"><u>Connect Square POS</u></a>
-                </div>
+                {% if not square_merchant_id %}
+                <a href="https://connect.squareup.com/oauth2/authorize?client_id={{ SQUARE_APP_ID }}&scope=CUSTOMERS_WRITE+CUSTOMERS_READ+ORDERS_WRITE+ORDERS_READ+PAYMENTS_WRITE+PAYMENTS_READ&session=false&redirect_uri={{ SQUARE_APP_REDIRECT_URI }}"><u>Connect Square POS</u></a>
+                {% else %}
+                <span>Your Square POS Account is Connected!</span>
+                {% endif %}
+            </div>
+
             <hr>
             <div class="logout-section">
                 <form action="/logout" method="post">

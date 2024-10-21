@@ -9,6 +9,7 @@ from flask_caching import Cache
 import itertools
 import pandas as pd
 from PIL import Image
+from square_folder.square_stuff import create_order_square
 import openpyxl
 import gridfs
 from pathlib import Path

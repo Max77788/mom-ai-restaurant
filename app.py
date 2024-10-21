@@ -4,6 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import statistics
+from square.client import Client as square_client_imp
+from square.http.auth.o_auth_2 import BearerAuthCredentials
+from square_folder.square_stuff import create_order_square
 import requests
 from flask_migrate import Migrate
 import os
@@ -110,6 +113,17 @@ SQUARE_APP_SECRET = os.environ.get("SQUARE_API_SECRET_PRODUCTION") if os.environ
 SQUARE_APP_ACCESS_TOKEN = os.environ.get("SQUARE_APP_ACCESS_TOKEN_PRODUCTION") if os.environ.get("IS_SQUARE_SANDBOX") == "False" else os.environ.get("SQUARE_APP_ACCESS_TOKEN_SANDBOX")
 SQUARE_APP_REDIRECT_URI = os.environ.get("SQUARE_API_REDIRECT_URI", "http://localhost:5000/square-api-callback")
 
+SQUARE_ENVIRONMENT = 'production' if os.environ.get("IS_SQUARE_SANDBOX") == "False" else 'sandbox'
+
+square_client = square_client_imp(
+    bearer_auth_credentials=BearerAuthCredentials(
+       access_token=SQUARE_APP_ACCESS_TOKEN
+    ),
+    environment=SQUARE_ENVIRONMENT)
+
+
+square_auth_api = square_client.o_auth
+
 print(f"square token: {SQUARE_APP_ACCESS_TOKEN}")
 
 # oauth = OAuth(app)
@@ -119,6 +133,7 @@ print(f"square token: {SQUARE_APP_ACCESS_TOKEN}")
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
 GOOGLE_OAUTH_CLIENT_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_CLIENT_REDIRECT_URI", 'http://localhost:5000/login/callback')
+
 
 """
 # Configuration for Google OAuth
@@ -1440,8 +1455,6 @@ def dashboard_display(show_popup=False):
     res_email = session.get("res_email")
     res_password = session.get("password")
 
-    CODE_CHALLENGE = ""
-
     # Find the instance in MongoDB
     restaurant_instance = collection.find_one({"email": res_email}) 
 
@@ -1455,6 +1468,9 @@ def dashboard_display(show_popup=False):
         res_acc_password = restaurant_instance.get("password")
         is_google_acc = res_acc_password == "google_acc"
         
+        square_merchant_id = restaurant_instance.get("square_info", {}).get("merchant_id")
+
+
         assistant_id = restaurant_instance.get("assistant_id")
         web3_wallet_address = restaurant_instance.get("web3_wallet_address")
         current_balance = restaurant_instance.get("balance")
@@ -1544,7 +1560,8 @@ def dashboard_display(show_popup=False):
                            current_balanceHigherThanTwentyCents=current_balanceHigherThanTwentyCents,
                            is_google_acc=is_google_acc,
                            SQUARE_APP_REDIRECT_URI=SQUARE_APP_REDIRECT_URI,
-                           SQUARE_APP_ID=SQUARE_APP_ID)
+                           SQUARE_APP_ID=SQUARE_APP_ID,
+                           square_merchant_id=square_merchant_id)
 
 
 @app.route('/splash-page/<unique_azz_id>', methods=['POST', 'GET'])
@@ -3844,7 +3861,7 @@ def generate_response_streaming(unique_azz_id):
                             cache.set("order_id", order_id)
                             cache.set("access_granted_no_payment_order", True)
 
-                            """
+                            
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
                             "timestamp": human_readable_time_format,
@@ -3857,7 +3874,7 @@ def generate_response_streaming(unique_azz_id):
         
                             db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
                             # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
-                            """
+                            
                             
                             string_of_items = transform_orders_to_string(items_ordered)
 
@@ -5529,6 +5546,21 @@ def success_payment_backend(unique_azz_id):
 
     db_order_dashboard[order_dashboard_id].insert_one(order_to_pass)
 
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    square_client_token = restaurant.get("square_info", {}).get("access_token")
+    currency = restaurant.get("res_currency")
+    
+    if square_client_token:
+        square_client = square_client_imp(
+        bearer_auth_credentials=BearerAuthCredentials(
+        access_token=square_client_token
+        ),
+        environment="production")
+
+        items_for_square = [{"name": item["name"], "quantity": item["quantity"], "base_price_money":{"amount":item["price"], "currency": currency}} for item in items]
+
+        create_order_square(items, order_id, assistant_used, orderType, square_client)
 
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
@@ -6171,35 +6203,35 @@ def square_api_callback():
     code = request.args.get("code")
     print(f"Code: {code}")
 
-    # Define the URL
-    url = "https://connect.squareup.com/oauth2/token"
-
-    # Define the headers, if needed (for example, setting content type or authorization)
-    BEARER_STRING = f"Bearer {SQUARE_APP_ACCESS_TOKEN}"
-    print(f"bearer string: {BEARER_STRING}")
-
-    headers = {
-        "Square-Version": "2024-10-17",
-        "Authorization": BEARER_STRING,  # Replace with the actual token if required
-        "Content-Type": "application/json"
-    }
-
     # Define the data payload
     data = {
         "client_id": SQUARE_APP_ID,  # Replace with your client_id
         "client_secret": SQUARE_APP_SECRET,  # Replace with your client_secret
         "grant_type": "authorization_code",
-        "code": code  # Replace with the authorization code you received
+        "code": code,  # Replace with the authorization code you received
+        "redirect_uri": SQUARE_APP_REDIRECT_URI
     }
 
-    # Send the POST request
-    response = online_reqs.post(url, json=data)
+    result = square_auth_api.obtain_token(body=data)
 
-    # Check the response status
-    if response.status_code == 200:
-        print("Success:", response.json())  # If the request was successful, print the response
-    else:
-        print("Error:", response.status_code, response.text)  # If there was an error, print the status and error message
+    # Send the POST request
+    # response = online_reqs.post(url, json=data)
+
+    if result.is_success():
+        print("Success: ", result.body)
+
+        bodka = result.body
+
+        square_dict = {"access_token": bodka["access_token"], 
+                       "merchant_id": bodka["merchant_id"], 
+                       "refresh_token": bodka["refresh_token"],
+                       "refresh_token_expires_at": bodka["expires_at"]}
+        collection.update_one({"unique_azz_id": session.get("unique_azz_id")}, {"$set":{"square_info": square_dict}})
+
+        flash("You have successfully connected your Square account", "success")
+    elif result.is_error():
+        print("Errors: ", result.errors)
+        flash("Oops, the error occurred. Try again, please!", "danger")
 
     return redirect("/dashboard")
 
