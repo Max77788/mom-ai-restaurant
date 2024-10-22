@@ -5561,7 +5561,7 @@ def success_payment_backend(unique_azz_id):
         items_for_square = [{"name": item["name"], "quantity": item["quantity"], "base_price_money":{"amount":item["price"], "currency": currency}} for item in items]
 
         create_order_square(items, order_id, assistant_used, orderType, square_client)
-
+        
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
 
