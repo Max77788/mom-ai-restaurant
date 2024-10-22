@@ -3763,7 +3763,7 @@ def generate_response_streaming(unique_azz_id):
                 These are all messages of the assistant from the chat with client. 
                 From the following messages find the last one which summarizes agreed upon order and retrieve items stated in the final confirmed summary:
                 {joined_messages_of_assistant}
-                Ensure that the found items are part of this list of items presented in the format (item name, item ingredients, item price):
+                Ensure that the found items are part of this list of items presented in the format (item name, item ingredients, item price). Make sure that the price is formatted as 2-decimals float:
                 {html_menu_tuples}
                 """
 
@@ -4215,9 +4215,14 @@ def get_dynamic_speech_file_name():
 
 
 
+@app.route("/add_order_in_db", methods=["POST"])
+def add_order_in_db():
+    data = request.get_json()
 
+    unique_azz_id = data.get("unique_azz_id")
+    order_id = data.get("order_id")
 
-
+    return None
 
 
 
