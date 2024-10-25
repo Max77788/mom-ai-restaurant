@@ -90,14 +90,19 @@
         </a>.
     </h3>
     <h3>Orders which are older than 30 minutes are in red color</h3>
+    {% if date_taken %} 
+    <h2 style="text-align: center; color:#eccc68">Just Press the Back Button to See All Dates</h2> 
+    {% endif %}
     <h2 id="no-orders-message" style="text-align: center;">No orders yet, as soon as MOM AI Assistant registers the order it will be displayed here</h2>
+    
     <ul id="orders-list">
         <!-- Orders will be dynamically inserted here -->
     </ul>
     
+    {% if date_taken %}   
     <script>
         function fetchOrders() {
-            fetch('/view_orders_ajax')
+            fetch('/view_orders_ajax?date={{ date_taken }}')
                 .then(response => response.json())
                 .then(data => {
                     var ordersList = document.getElementById('orders-list');
@@ -114,10 +119,12 @@
                                 orderItem.className = 'order-item';
                                 orderItem.setAttribute('data-timestamp', order.timestamp);
                                 orderItem.innerHTML = `Order for <b>{{restaurant_name.replace('_', ' ')}}</b> taken by MOM AI Assistant<br><br>
+                                    <span style="font-size: 25px"><b>Order Number: ${order.orderNumber}</b></span><br><br>    
                                     Made at: ${order.timestamp} UTC<br><br>
-                                    Order ID: <span style="font-size: 25px"><b>${order.orderID}</b></span><br><br>
                                     Status: ${order.paid}<br><br>
                                     Order Type : ${order.order_type}<br><br>
+                                    ${order.order_type === "delivery" ? `Customer Address Link: ${order.text_address} - <a href='${order.link_of_user_address}' target='_blank' style='color: #FFD700'>See Location</a><br><br>` : ""}
+                                    Order ID: <b>${order.orderID}</b><br><br>
                                     <ul>`;
 
                                 
@@ -149,18 +156,54 @@
             var orderElements = document.getElementsByClassName('order-item');
             for (var i = 0; i < orderElements.length; i++) {
                 var orderTimestamp = orderElements[i].getAttribute('data-timestamp');
-                var currentYear = new Date().getFullYear();
-                var formattedTimestamp = `${orderTimestamp} ${currentYear}`;
-                var dateParts = formattedTimestamp.split(' ');
-                var date = dateParts[0].split('.');
-                var time = dateParts[1].split(':');
-                var orderTime = new Date(currentYear, date[1] - 1, date[0], time[0], time[1]).getTime();
+                var orderTime;
 
+                // Check if the timestamp is in yyyy-mm-dd format
+                if (orderTimestamp.includes('-')) {
+                    // Handle yyyy-mm-dd hh:mm format
+                    var dateTimeParts = orderTimestamp.split(' '); // Split into date and time parts
+                    var dateParts = dateTimeParts[0].split('-'); // Split the date part
+                    var timeParts = dateTimeParts[1].split(':'); // Split the time part
+
+                    var year = parseInt(dateParts[0]);
+                    var month = parseInt(dateParts[1]) - 1; // Month is 0-indexed in JavaScript
+                    var day = parseInt(dateParts[2]);
+
+                    var hours = parseInt(timeParts[0]); // Get hours from time
+                    var minutes = parseInt(timeParts[1]); // Get minutes from time
+
+                    console.log(dateParts, year, month, day, hours, minutes);
+
+                    // Use the correct date and time for the timestamp
+                    orderTime = new Date(year, month, day, hours, minutes).getTime();
+                } else if (orderTimestamp.includes('.')) {
+                    // Handle dd.mm hh:mm format (assuming current year if the year is missing)
+                    var dateTimeParts = orderTimestamp.split(' ');
+                    var date = dateTimeParts[0].split('.');
+                    var time = dateTimeParts[1].split(':');
+
+                    var day = parseInt(date[0]);
+                    var month = parseInt(date[1]) - 1;
+
+                    // Make sure the time exists (default to 00:00 if not provided)
+                    var hours = time.length > 0 ? parseInt(time[0]) : 0;
+                    var minutes = time.length > 1 ? parseInt(time[1]) : 0;
+
+                    // Use current year only if there's no year in the timestamp
+                    var year = new Date().getFullYear();
+
+                    orderTime = new Date(year, month, day, hours, minutes).getTime();
+                    console.log(`Order Time: ${orderTime}`)
+                }
+
+                // Check if the order is older than 30 minutes
                 if ((now - orderTime) > 1800000) {
                     orderElements[i].classList.add('old-order');
                 }
             }
         }
+
+
 
         // Fetch orders every 20 seconds
         setInterval(fetchOrders, 20000);
@@ -171,7 +214,25 @@
             // Scroll to bottom after loading orders
             scrollToBottom();
         });
+
+        
     </script>
+
+
+
+
+
+    {% else %}
+    <ul class="order-list">
+    {% for date in unique_dates %}
+        <li class="order-item">
+            <a href="/view_orders?date={{ date }}" style="display: block; width: 100%; height: 100%; color:#eccc68">
+                Orders on {{ date }}
+            </a>
+        </li>
+    {% endfor %}
+    </ul>
+    {% endif %}
 </body>
 
 <footer>

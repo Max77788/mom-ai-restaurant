@@ -64,6 +64,11 @@
         <td style="padding: 12px; border: 1px solid #ddd;">Current Background</td>
         <td style="border: 1px solid #ddd; padding: 12px;"><a href="{{ url_for('customize_chat') }}" target="_blank" style="color: #000; text-decoration: none;"><u>Edit</u></a></td>
     </tr>
+    <tr style="background-color: #f9f9f9; color: #000;"></tr>
+        <td style="padding: 12px; border: 1px solid #ddd;">Add Extra Instructions to Your AI-Employee</td>
+        <td style="padding: 12px; border: 1px solid #ddd;">{{ restaurant.get("extra_assistant_instructions") or 'No Extra Instructions' }}</td>
+        <td style="border: 1px solid #ddd; padding: 12px;"><a href="{{ url_for('update_profile', attribute='extra_assistant_instructions') }}" target="_blank" style="color: #000; text-decoration: none;"><u>Edit</u></a></td>
+    </tr>
 </table>
 
 {% endblock %}

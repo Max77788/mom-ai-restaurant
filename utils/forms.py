@@ -56,7 +56,16 @@ def validate_paypal_string(form, field):
 # Custom validator to check if description is at least 40 characters long
 def validate_description_length(form, field):
     if field.data and len(field.data) < 40:
-        raise ValidationError('Description must be at least 40 characters long.')
+        raise ValidationError('Description must from 40 to 300 characters long')
+    elif field.data and len(field.data) > 300:
+        raise ValidationError('Description must from 40 to 300 characters long')
+    
+# Custom validator to check if description is at least 40 characters long
+def validate_instructions_length(form, field):
+    if field.data and len(field.data) < 20:
+        raise ValidationError('Description must from 20 to 300 characters long')
+    elif field.data and len(field.data) > 300:
+        raise ValidationError('Description must from 20 to 300 characters long')
 
 
 
@@ -70,6 +79,7 @@ class RestaurantFormUpdate(FlaskForm):
     ])
     description = StringField('Restaurant Description', validators=[Optional(), validate_description_length])
     submit = SubmitField('Update')
+    extra_assistant_instructions = StringField('Extra Instructions', validators=[Optional(), validate_instructions_length])
     # pp_account = StringField('PayPal secret and ID', validators=[Optional(), validate_paypal_string])
 
 class UpdateMenuForm(FlaskForm):   
@@ -99,7 +109,7 @@ class ProfileForm(FlaskForm):
     logo = FileField('Logo', validators=[Optional(), FileAllowed(['jpg', 'png'], 'Images only!')])
     description = TextAreaField('Description', validators=[
         InputRequired(message="Description is required."),
-        Length(min=50, max=350, message="Description must be between 100 and 350 characters.")
+        Length(min=25, max=350, message="Description must be between 25 and 350 characters.")
     ])
     referral_id = StringField('Referral ID', validators=[Optional()])
     location = StringField('Location', validators=[DataRequired()])

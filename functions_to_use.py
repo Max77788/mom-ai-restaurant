@@ -2014,6 +2014,11 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
     Customer's message: {translated_user_message}
     """
     
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    extra_instructions = restaurant.get("extra_assistant_instructions", "")
+    print(f"\n\nExtra Instructions we pass: {extra_instructions}\n\n")
+    
     if discovery_mode:
        message_to_compare_menu_items = f"""
         Before generating the message ensure that the items you consider suggesting and the items which the user asks for are 
@@ -2024,6 +2029,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
         Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
         The prices of the items are in this currency: {res_currency}
+        {extra_instructions}
         """
     else:
         message_to_compare_menu_items = f"""
@@ -2033,6 +2039,7 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" style="max-width: 100%; height: auto;" height="auto"> 
         Provide the images as much as possible.
         The prices of the items are in this currency: {res_currency}
+        {extra_instructions}
         """
  
     # print("Message to compare menu items: ", message_to_compare_menu_items)

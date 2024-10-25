@@ -65,7 +65,7 @@ from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
 import time
 from google.oauth2 import id_token
-from google.auth.transport import requests
+from google.auth.transport import requests as google_requests
 
 """
 logging.basicConfig(level=logging.DEBUG,
@@ -1743,6 +1743,8 @@ def update_profile(attribute, tg_setup=None):
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'website_url': new_value}})
         elif attribute == 'description' and new_value:
             collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'description': new_value}})    
+        elif attribute == 'extra_assistant_instructions' and new_value:
+            collection.update_one({'unique_azz_id': current_uni_azz_id}, {'$set': {'extra_assistant_instructions': new_value}})    
         elif attribute == 'notif_destin' and new_value:
             # Step 1: Remove extra spaces and split by comma
             str_list = new_value.split(',')
@@ -3834,6 +3836,8 @@ def generate_response_streaming(unique_azz_id):
                             cache.set("currency", res_currency)
                             cache.set("currency_rate", rate)
 
+                            cache.set("order_id", order_id)
+
                             
                             link_to_payment_buffer = f"/payment_buffer/{unique_azz_id}/{order_id}"
                             print(link_to_payment_buffer)
@@ -3861,18 +3865,36 @@ def generate_response_streaming(unique_azz_id):
                             cache.set("order_id", order_id)
                             cache.set("access_granted_no_payment_order", True)
 
+                            # Get current UTC time and format it as dd.mm hh:mm
+                            timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+                            only_date = datetime.utcnow().strftime('%Y-%m-%d')
+
+                            order_dashboard_id = unique_azz_id
+
+                            order_collection = db_order_dashboard[order_dashboard_id]
+                            
+                            # look for all orders on that date
+                            orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
+
+                            # get the length 
+                            num_of_orders_today = len(orders)
                             
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
                             "timestamp": human_readable_time_format,
+                            "order_number": num_of_orders_today,
                             "total_paid": total_price,
                             "total_paid_EUR": total_price_EUR,
                             "mom_ai_restaurant_assistant_fee": 0,
                             "paypal_fee": 0,
                             "paid":"NOT PAID",
                             "published":True}
+
+                            cache.set("order_to_pass", order_to_pass)
+
+                            
         
-                            db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+                            # db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
                             # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
                             
                             
@@ -3881,12 +3903,12 @@ def generate_response_streaming(unique_azz_id):
                             no_payment_order_finish_message = f"Thank you very much! You ordered {string_of_items} and total is {total_price} {res_currency}\nCome to the restaurant and pick up your meal shortly. Love💖\n**PLEASE SAVE THIS: Your order ID is {order_id}**"
                             
                             restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
-                            all_ids_chats = restaurant_instance.get("notif_destin", [])
+                            # all_ids_chats = restaurant_instance.get("notif_destin", [])
 
                             cache.set("order_confirm_access_granted", True)
                             
-                            for chat_id in all_ids_chats:
-                                send_telegram_notification(chat_id)
+                          # for chat_id in all_ids_chats:
+                            # send_telegram_notification(chat_id)
                             cache.set("suggest_web3_bonus", True)
 
                             # Charge acc with 'total_tokens_used'
@@ -3910,6 +3932,36 @@ def generate_response_streaming(unique_azz_id):
         session[key] = value
 
     return Response(generate(), content_type='text/plain')
+
+
+@app.route('/insert_unpaid_order', methods=["POST", "GET"])
+def insert_unpaid_order():
+    order_to_pass = cache.get("order_to_pass")
+    
+    unique_azz_id = request.args.get("unique_azz_id")
+        
+    orderType = session.get('orderType')
+    text_address = session.get('text_address')
+    user_longitude = session.get('user_longitude')
+    user_latitude = session.get('user_latitude')
+
+    if user_longitude:
+        order_to_pass["link_of_user_address"] = f"https://www.google.com/maps?q={user_latitude},{user_longitude}"
+        order_to_pass["text_address"] = text_address
+
+    order_to_pass["order_type"] = orderType
+
+    db_order_dashboard[unique_azz_id].insert_one(order_to_pass)
+    print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
+    
+    restaurant_instance = collection.find_one({"unique_azz_id":unique_azz_id})
+    all_ids_chats = restaurant_instance.get("notif_destin", [])
+
+    cache.set("order_confirm_access_granted", True)
+    
+    for chat_id in all_ids_chats:
+       send_telegram_notification(chat_id)
+    return redirect(url_for("no_payment_order_placed", unique_azz_id=unique_azz_id, order_id=order_to_pass["orderID"]))
 
 """
 import pyaudio
@@ -4134,7 +4186,7 @@ def generate_response_VOICE_ONLY_streaming(unique_azz_id):
 
                             cache.set("order_id", order_id)
                             cache.set('access_granted_no_payment_order', True)
-
+                            
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
                             "timestamp": human_readable_time_format,
@@ -5303,7 +5355,7 @@ def takeaway_delivery_template(unique_azz_id, order_id):
     if payment_on:
         next_link = f"/payment_buffer/{unique_azz_id}/{order_id}"
     else:
-        next_link = f"/no-payment-order-placed/{unique_azz_id}/{order_id}"
+        next_link = f"/insert_unpaid_order?unique_azz_id={unique_azz_id}&order_id={order_id}"
 
     print(f"\n\n\nNext link: {next_link}\n\n\n")
     
@@ -5383,11 +5435,22 @@ def no_payment_order_placed(unique_azz_id, order_id):
     # Format the datetime object to a human-readable string
     human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
 
+    only_date = datetime.utcnow().strftime('%Y-%m-%d')
 
+    order_dashboard_id = unique_azz_id
+
+    order_collection = db_order_dashboard[order_dashboard_id]
+    
+    # look for all orders on that date
+    orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
+
+    # get the length 
+    num_of_orders_today = len(orders)
 
     if orderType == "delivery":
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
+                            "order_number": num_of_orders_today,
                             "timestamp": human_readable_time_format,
                             "total_paid": total_price_NATIVE,
                             "total_paid_EUR": total_price_EUR,
@@ -5401,6 +5464,7 @@ def no_payment_order_placed(unique_azz_id, order_id):
     else:
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
+                            "order_number": num_of_orders_today,
                             "timestamp": human_readable_time_format,
                             "total_paid": total_price_NATIVE,
                             "total_paid_EUR": total_price_EUR,
@@ -5411,11 +5475,13 @@ def no_payment_order_placed(unique_azz_id, order_id):
                             "published":True}
     
     
+    """
     db_order_dashboard[unique_azz_id].update_one(
     {"orderID": order_to_pass["orderID"]},
     {"$set": order_to_pass},
     upsert=True
     )
+    """
     # print("\n\nInserted the order in db_order_dashboard with if ", unique_azz_id, "\n\n")
     
     items = items_ordered
@@ -5440,12 +5506,6 @@ def no_payment_order_placed(unique_azz_id, order_id):
 
     for index, image_url in enumerate(image_urls):
         items[index]['image_url'] = image_url
-    
-    all_ids_chats = current_restaurant_instance.get("notif_destin", [])
-
-    for chat_id in all_ids_chats:
-        send_telegram_notification(chat_id)
-
 
     if suggest_web3_bonus:
         cache.delete("suggest_web3_bonus")
@@ -5464,7 +5524,8 @@ def no_payment_order_placed(unique_azz_id, order_id):
                            restaurant_name=restaurant_name.replace('_', ' '), 
                            items=items_ordered,
                            suggest_web3_bonus=suggest_web3_bonus,
-                           unique_azz_id=unique_azz_id)
+                           unique_azz_id=unique_azz_id,
+                           order=order_from_db)
 
 
 
@@ -5515,7 +5576,18 @@ def success_payment_backend(unique_azz_id):
     print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
 
     # Get current UTC time and format it as dd.mm hh:mm
-    timestamp_utc = datetime.utcnow().strftime('%d.%m.%Y %H:%M')
+    timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+    only_date = datetime.utcnow().strftime('%Y-%m-%d')
+
+    order_dashboard_id = unique_azz_id
+
+    order_collection = db_order_dashboard[order_dashboard_id]
+    
+    # look for all orders on that date
+    orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
+
+    # get the length 
+    num_of_orders_today = len(orders) + 1
 
     # Create Item instances for each item in the request
     #items = [Item(name=item['name'], quantity=item['quantity']) for item in items_data]
@@ -5525,6 +5597,7 @@ def success_payment_backend(unique_azz_id):
     if orderType == "delivery":
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
                             "orderID":order_id,
+                            "order_number": num_of_orders_today,
                             "timestamp": timestamp_utc,
                             "total_paid": total_paid_native,
                             "total_paid_EUR": total_paid_EUR,
@@ -5538,6 +5611,7 @@ def success_payment_backend(unique_azz_id):
     else:
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
                             "orderID":order_id,
+                            "order_number": num_of_orders_today,
                             "timestamp": timestamp_utc,
                             "total_paid": total_paid_native,
                             "total_paid_EUR": total_paid_EUR,
@@ -5566,7 +5640,7 @@ def success_payment_backend(unique_azz_id):
         items_for_square = [{"name": item["name"], "quantity": item["quantity"], "base_price_money":{"amount":item["price"], "currency": currency}} for item in items]
 
         create_order_square(items, order_id, assistant_used, orderType, square_client)
-
+        
     current_balance = current_restaurant_instance.get("balance")
     print(f"Current balance before updating: {current_balance}")
 
@@ -5664,7 +5738,8 @@ def success_payment_display(unique_azz_id, id):
                            total_paid_EUR=total_paid_EUR,
                            unique_azz_id=unique_azz_id,
                            total_price_NATIVE=total_paid_NATIVE,
-                           res_currency=res_currency)
+                           res_currency=res_currency,
+                           order=order)
     
 
 @app.route('/cancel_payment/<unique_azz_id>')
@@ -5755,7 +5830,34 @@ def pp_withdraw_funds():
 @app.route('/view_orders', methods=['GET'])
 def view_orders():
     restaurant_name = session.get("restaurant_name")
-    return render_template('orders_dashboard/orders_display.html', restaurant_name=restaurant_name)
+    unique_azz_id = session.get("unique_azz_id")
+    
+    date_taken = request.args.get("date")
+    
+    # Initialize a list to store extracted dates
+    dates_list = []
+
+    # Loop through each order in the collection
+    for order in db_order_dashboard[unique_azz_id].find():
+        # Convert the 'timestamp' to a datetime object
+        timestamp = pd.to_datetime(order['timestamp'])
+        
+        # Extract only the date part (yyyy:mm:dd)
+        date_only = timestamp.strftime('%Y-%m-%d')
+        
+        # Append the extracted date to the list
+        dates_list.append(date_only)
+
+    # Convert the list to a pandas Series and get unique dates
+    unique_dates = pd.Series(dates_list).unique()
+
+    # Display the unique dates
+    print(unique_dates)
+
+    return render_template('orders_dashboard/orders_display.html', 
+                           restaurant_name=restaurant_name,
+                           unique_dates=unique_dates,
+                           date_taken=date_taken)
 
 
 
@@ -5764,6 +5866,8 @@ def view_orders():
 def view_orders_ajax():
     #restaurant_name = session.get("restaurant_name")
     #restaurant_email = session.get("restaurant_email")
+    date = request.args.get("date")
+    
     unique_azz_id = session.get("unique_azz_id")
     
     order_dashboard_id = unique_azz_id
@@ -5771,7 +5875,7 @@ def view_orders_ajax():
     order_collection = db_order_dashboard[order_dashboard_id]
 
     # Query all orders from the database
-    orders = list(order_collection.find())
+    orders = list(order_collection.find({"timestamp": {"$regex": date}}))
 
     # Format orders for display
     orders_list = []
@@ -5782,7 +5886,10 @@ def view_orders_ajax():
             'published': order['published'],
             'orderID':order.get('orderID', 'no ID provided'),
             'paid':order.get('paid'),
-            'order_type': order.get('order_type')
+            'order_type': order.get('order_type'),
+            'orderNumber': order.get('order_number'),
+            'link_of_user_address': order.get('link_of_user_address'),
+            'text_address': order.get('text_address')
 
         }
         orders_list.append(order_info)
@@ -5985,7 +6092,7 @@ def google_callback():
     try:
         print("Entered 'try'")
         # Verify the token using Google's API
-        id_info = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_OAUTH_CLIENT_ID)
+        id_info = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_OAUTH_CLIENT_ID)
 
         # If the token is valid, id_info will contain user data
         user_data = {

@@ -158,17 +158,17 @@
         <b>Total to pay in the restaurant:<br>
         {{ total_price_EUR or total_price_NATIVE }} {{ res_currency or "EUR" }}</b>
     </ul>
-    <h3>Here is your order ID - <span style="font-size: 1.7em;"><b>{{ order_id }}</b></span>.<br>
-        Please, remember this number - you will not be able to pick your order without this number.</h3>
+    <h3>Here is your order number - <span style="font-size: 1.7em;"><b>{{ order.order_number }}</b></span>.<br>
+        Please, remember this number - you will not be asked it to pick your order.</h3>
 
     <hr>
     
     <h3>Alternatively, you can simply drop your email address below and we will send you the order ID on your email.</h3>
     <div class="email-form">
-        <h2>Receive your Order ID</h2>
+        <h2>Receive your Order Number</h2>
         <form id="orderIdForm">
             <input type="email" id="email" name="email" placeholder="Enter your email address" required>
-            <button id="emailSubmitButton" type="submit" style="background-color: black;">Receive my Order ID</button>
+            <button id="emailSubmitButton" type="submit" style="background-color: black;">Receive my Order Number</button>
         </form>
         <div id="loadingContainer" style="align-items:center;">
            <img id="loadingGif" src="/static/assets/loading-gif.gif" alt="Loading..." style="display:none;" width="70" height="auto">
@@ -213,6 +213,7 @@
         const email = document.getElementById('email').value;
         const restaurant_name = "{{ restaurant_name }}";
         const order_id = "{{ order_id }}";
+        const order_number = "{{ order.order_number }}";
         const loadingGif = document.getElementById('loadingGif');
         const messageElement = document.getElementById('message');
     
@@ -225,7 +226,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ email: email, restaurant_name: restaurant_name, order_id: order_id })
+                body: JSON.stringify({ email: email, restaurant_name: restaurant_name, order_id: order_number })
             });
     
             if (response.ok) {

@@ -49,6 +49,7 @@ order_type = "dine-in"
 create_order_square(items_ordered, order_id, unique_azz_id, order_type, square_client)
 """
 
+'''
 result = square_client.orders.retrieve_order(
   order_id = "0vcF29MfbjlUcemrw0iYQQpjpxHZ"
 )
@@ -57,4 +58,4 @@ if result.is_success():
   print(result.body)
 elif result.is_error():
   print(result.errors)
-
+'''

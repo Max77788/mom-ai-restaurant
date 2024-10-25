@@ -6,7 +6,7 @@
     <h2>How would you like to receive your order?</h2>
     <form id="orderTypeForm" onsubmit="return false;">
         <label>
-            <input type="radio" name="orderType" value="dine-in" onclick="handleOrderType('dine-in')" checked> Eat in {{ restaurant_address }}
+            <input type="radio" name="orderType" value="dine-in" onclick="handleOrderType('dine-in')" checked> Dine in {{ restaurant_address }}
         </label>
         <label>
             <input type="radio" name="orderType" value="takeaway" onclick="handleOrderType('takeaway')"> Pick up at {{ restaurant_address }}
@@ -303,41 +303,56 @@
 }
 
     function formatAddressWithCity(place) {
-    let addressComponents = place.address_components;
-    let street = '', buildingNumber = '', city = '', region = '', country = '';
+        let addressComponents = place.address_components;
+        // console.log(addressComponents);
+        let street = '', buildingNumber = '', city = '', region = '', country = '';
 
-    addressComponents.forEach(component => {
-        if (component.types.includes('route')) {
-            street = component.long_name;
-        }
-        if (component.types.includes('street_number')) {
-            buildingNumber = component.long_name;
-        }
-        if (component.types.includes('locality')) {
-            city = component.long_name;
-        }
-        if (component.types.includes('administrative_area_level_1')) {
-            region = component.long_name;
-        }
-        if (component.types.includes('country')) {
-            country = component.long_name;
-        }
-    });
+        addressComponents.forEach(component => {
+            console.log(component.types);
+            if (component.types.includes('route')) {
+                street = component.long_name;
+            }
+            if (component.types.includes('street_number')) {
+                buildingNumber = component.long_name;
+            }
+            if (component.types.includes('locality') || component.types.includes('postal_town')) {
+                city = component.long_name;
+            }
+            if (component.types.includes('administrative_area_level_1')) {
+                region = component.long_name;
+            }
+            if (component.types.includes('country')) {
+                country = component.long_name;
+            }
+        });
+        // console.log(street, buildingNumber, city, region, country);
 
-    // Ensure that required components are present
-    if (!street || !buildingNumber || !city || !country) {
-        alert("Please select a valid location including street, building number, city, and country.");
-        return '';
-    }
+        let formattedAddress = '';
+        if (buildingNumber && street) {
+            formattedAddress += buildingNumber + ' ' + street;
+        } else if (street) {
+            formattedAddress += street;
+        }
+        if (city) {
+            formattedAddress += ', ' + city;
+        }
+        if (region) {
+            formattedAddress += ', ' + region;
+        }
+        if (country) {
+            formattedAddress += ', ' + country;
+        }
 
-    // Construct formatted address
-    let formattedAddress = `${street}, ${buildingNumber}, ${city}`;
-    if (region) {
-        formattedAddress += `, ${region}`;
-    }
-    formattedAddress += `, ${country}`;
-    return formattedAddress;
-};
+        // console.log(`Street: ${street}, City: ${city}, Country: ${country}`);
+
+        // Ensure that required components are present
+        if (!street || !city || !country) {
+            alert("Please select a valid location including street, city, and country.");
+            return '';
+        }
+
+        return formattedAddress;
+    };
 
 
     // Function to handle the delivery address submission

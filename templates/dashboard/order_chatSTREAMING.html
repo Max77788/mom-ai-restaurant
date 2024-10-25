@@ -14,12 +14,20 @@
     {% endif %}
 {% endwith %}
 
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+
 <style>
     .button:disabled {
         border: 3px solid gray;
         background-color: gray;
         cursor: not-allowed;
     };
+    
+    .icon-button:disabled {
+        cursor: not-allowed;
+    };
+
     body {
         min-height: 100vh; /* Ensure it takes full viewport height */
         min-width: 100vw; /* Ensure it takes full viewport width */
@@ -88,12 +96,14 @@
 
     
     <footer id="chatInputFooter" style="position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px 15px; background-color: #000000; z-index: 100; box-shadow: 0px -2px 10px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; align-items: center; margin: 0;">
-        <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 70%; padding: 10px; border: none; border-radius: 30px; font-size: 16px; margin-bottom: 10px;" disabled>
-        
+        <div style="display: flex; justify-content: center; width: 100%;">
+            <input type="text" id="userMessage" placeholder="Type your message here..." style="width: 85%; padding: 10px; border: none; border-radius: 30px; font-size: 16px; margin-bottom: 10px;" disabled>
+            <button id="sendButton" onclick="sendMessage()" style="background: none; font-size: 16px; align-items: center; margin-left: 10px; margin-right: 25px;" class="icon-button" disabled><i class="fas fa-paper-plane"></i></button>
+        </div>
+
         <div style="display: flex; justify-content: center; gap: 10px; margin-top: 7px;">
-            <button id="sendButton" onclick="sendMessage()" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>Send✈️</button>
             {% if not iframe %}
-            <button id="micButton" style="background: none; border: 3px solid white; color: white; border-radius: 30px; font-size: 16px; align-items: center;" class="button" disabled>🎤</button>
+            <button id="micButton" style="background: none; font-size: 16px; align-items: center;" class="icon-button" disabled>🎤</button>
             {% endif %}
             <!-- Audio button (Play / Mute) -->
             <button id="audioButton" style="background: none; font-size: 16px; align-items: center;" class="button">🔊</button><br>
@@ -264,7 +274,16 @@
         typeMessage: "พิมพ์ข้อความของคุณที่นี่✍️",
         send: "ส่ง",
         offMessage: "ตอนนี้เราปิดอยู่ คุณสามารถสั่งซื้อได้ในภายหลัง"
+    },
+    'yo': {
+        initialMessage: "Kaabo, ku abo si",
+        phrase: "Bawo ni mo ṣe le ran ọ lọwọ?",
+        makeOrder: `Bá àwọn oníṣe ẹ̀rọ alágbára AI ti ${restaurant_name} sọ̀rọ̀`,
+        typeMessage: "Tẹ ifiranṣẹ rẹ sibẹ✍️",
+        send: "Firanṣẹ",
+        offMessage: "A ti ti ilẹ-iṣẹ lọwọlọwọ. O le gbe aṣẹ rẹ nigbamii."
     }
+
 };
 
 
@@ -338,7 +357,7 @@
         const translation = translations[language];
         document.getElementById('orderHeader').textContent = `${translation.makeOrder}`;
         document.getElementById('userMessage').placeholder = translation.typeMessage;
-        document.getElementById('sendButton').textContent = translation.send;
+        // document.getElementById('sendButton').textContent = translation.send;
         if (document.getElementById('offMessage')){
         document.getElementById('offMessage').textContent = translation.offMessage;
         }
@@ -427,7 +446,14 @@
             "ช่วยแนะนำเมนูตามความชอบของฉันได้ไหม?",
             "ฉันอยากทราบข้อมูลเพิ่มเติมเกี่ยวกับเมนู",
             "คุณช่วยบอกโปรโมชั่นของวันนี้ได้ไหม?"
+        ],
+        'yo': [
+            "Kini awọn onjẹ pataki ti o ni?",
+            "Ran mi lọwọ pẹlu awọn imọran da lori ayanfẹ mi.",
+            "Mo fẹ lati mọ diẹ sii nipa akojọ ounjẹ naa.",
+            "Ṣe o le ran mi lọwọ pẹlu awọn ẹbun oni?"
         ]
+
 
     };
 
