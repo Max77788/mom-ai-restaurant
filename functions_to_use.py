@@ -112,13 +112,21 @@ db_items_cache = client_db["Items_Cache"]
 
 
 
-REDIS_URL = os.environ.get("REDISCLOUD_URL", 'redis://localhost:6380')
+REDIS_URL = os.environ.get("REDISCLOUD_URL", "redis://localhost:6380")
 
-# Configure Flask-Caching
-app.config['CACHE_TYPE'] = 'RedisCache'  # Specify Redis as the cache type
-app.config['CACHE_REDIS_URL'] = REDIS_URL
+if REDIS_URL:
+    # Configure Flask-Caching
+    app.config['CACHE_TYPE'] = 'RedisCache'  # Specify Redis as the cache type
+    app.config['CACHE_REDIS_URL'] = REDIS_URL
 
-cache = Cache(app)
+    cache = Cache(app)
+
+else:
+    app.config['CACHE_TYPE'] = 'RedisCache'
+    app.config['CACHE_REDIS_HOST'] = 'localhost'
+    app.config['CACHE_REDIS_PORT'] = 6380  # change this to the correct port if different
+    
+    cache = Cache(app)
 
 
 
@@ -892,7 +900,7 @@ def process_images(image_paths):
 
 def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_name, mongo_restaurants, unique_azz_id, assistant_id, client=CLIENT_OPENAI):
     new_menu_txt_path, new_html = convert_xlsx_to_txt_and_menu_html(input_xlsx_path, output_menu_txt_path, currency)
-    print(new_menu_txt_path, new_html)
+    # print(new_menu_txt_path, new_html)
     
     if not new_html:
         flash(new_menu_txt_path)
@@ -904,35 +912,89 @@ def upload_new_menu(input_xlsx_path, output_menu_txt_path, currency, restaurant_
     
 def update_menu_vector_openai(new_menu_txt_path, restaurant_name, assistant_id, unique_azz_id, new_html):
     client = CLIENT_OPENAI
+
+    file_paths = [new_menu_txt_path]
+    file_streams = [open(path, "rb") for path in file_paths]
     
-    with open(str(new_menu_txt_path), "rb") as menu:    
-        menu_file = client.files.create(file=menu,
-                purpose='assistants')
-        menu_file_id = menu_file.id   
-        
-        # Create a vector store called "Financial Statements"
+    print("Starting update_menu_vector_openai function.")
+    
+    # Step 1: Upload the menu file to OpenAI
+    try:
+        with open(str(new_menu_txt_path), "rb") as menu:    
+            menu_file = client.files.create(file=menu, purpose='assistants')
+            menu_file_id = menu_file.id
+            print(f"Menu file uploaded successfully with ID: {menu_file_id}")
+    except Exception as e:
+        print(f"Error uploading menu file: {e}")
+        return {"success": False, "error": str(e)}
+    
+    # Step 2: Create a vector store for the restaurant menu
+    try:
         vector_store = client.beta.vector_stores.create(name=f"{restaurant_name} Menu")
-        
-        # Ready the files for upload to OpenAI
-        file_paths = [new_menu_txt_path]
-        file_streams = [open(path, "rb") for path in file_paths]
-        
-        # Use the upload and poll SDK helper to upload the files, add them to the vector store,
-        # and poll the status of the file batch for completion.
-        file_batch = client.beta.vector_stores.file_batches.upload_and_poll(
-        vector_store_id=vector_store.id, files=file_streams
-        )
+        print(f"Vector store created successfully with ID: {vector_store.id}")
+    except Exception as e:
+        print(f"Error creating vector store: {e}")
+        return {"success": False, "error": str(e)}
+    
+    # Record the start time
+    start_time = time.time()
+    
+    while True:
+        # Check if the time elapsed is greater than 20 seconds
+        if time.time() - start_time > 20:
+            print("File upload to vector store exceeded the 20-second time limit.")
+            return {"success": False, "error": "File upload timed out after 20 seconds"}
 
+        # Try uploading the files to the vector store
+        file_batch = client.beta.vector_stores.update(
+            vector_store_id=vector_store.id, name="Menu of the Restaurant"
+        )
+        upload_success = True
+        
+        if upload_success:
+            break
+
+        print("Files uploaded to vector store successfully.")
+        
+        for f in file_streams:
+            f.close()
+        print("File streams closed after upload.")
+    
+    # Step 4: Update the assistant with the new vector store
+    try:
         assistant = client.beta.assistants.update(
-        assistant_id=assistant_id,
-        tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
+            assistant_id=assistant_id,
+            tool_resources={"file_search": {"vector_store_ids": [vector_store.id]}},
         )
-
-        average_menu_price = statistics.mean([float(item["Item Price (EUR)"])for item in new_html])
-
-        collection.update_one({"unique_azz_id":unique_azz_id}, {"$set":{"menu_file_id":menu_file_id, "menu_vector_id":vector_store.id, "html_menu_tuples":new_html, "average_menu_price": average_menu_price}})
+        print(f"Assistant updated successfully with new vector store ID: {vector_store.id}")
+    except Exception as e:
+        print(f"Error updating assistant: {e}")
+        return {"success": False, "error": str(e)}
+    
+    # Step 5: Calculate average menu price and update database
+    try:
+        average_menu_price = statistics.mean([float(item["Item Price (EUR)"]) for item in new_html])
+        print(f"Average menu price calculated: {average_menu_price}")
         
-        return {"success":True}
+        collection.update_one(
+            {"unique_azz_id": unique_azz_id},
+            {
+                "$set": {
+                    "menu_file_id": menu_file_id,
+                    "menu_vector_id": vector_store.id,
+                    "html_menu_tuples": new_html,
+                    "average_menu_price": average_menu_price,
+                }
+            }
+        )
+        print(f"Database updated successfully for unique_azz_id: {unique_azz_id}")
+        
+    except Exception as e:
+        print(f"Error calculating average price or updating database: {e}")
+        return {"success": False, "error": str(e)}
+    
+    print("Function completed successfully.")
+    return {"success": True}
 
 
 def update_menu_on_openai(new_menu_txt_path, assistant_id, restaurant_name):
@@ -2029,6 +2091,8 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Do not trigger any action in response. Do not trigger any action in response. Do not trigger any action in response.
         Inform the customer about the fact that he won't be able to order via this chat and he is able to discover the menu and get personalized recommendations.
         The prices of the items are in this currency: {res_currency}
+        
+        Here are the extra instructions from the restaurant to which you must stick: 
         {extra_instructions}
         """
     else:
@@ -2039,6 +2103,8 @@ def get_assistants_response_streaming(user_message, language, thread_id, assista
         Provide the image strictly in the format: <img src="[image_link]" alt="Image of [item name]" width="170" style="max-width: 100%; height: auto;" height="auto"> 
         Provide the images as much as possible.
         The prices of the items are in this currency: {res_currency}
+        
+        Here are the extra instructions from the restaurant to which you must stick: 
         {extra_instructions}
         """
  

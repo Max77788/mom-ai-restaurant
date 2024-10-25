@@ -93,7 +93,7 @@
     {% if date_taken %} 
     <h2 style="text-align: center; color:#eccc68">Just Press the Back Button to See All Dates</h2> 
     {% endif %}
-    <h2 id="no-orders-message" style="text-align: center;">No orders yet, as soon as MOM AI Assistant registers the order it will be displayed here</h2>
+    <h2 id="no-orders-message" style="text-align: center;"></h2>
     
     <ul id="orders-list">
         <!-- Orders will be dynamically inserted here -->
@@ -110,9 +110,9 @@
                     ordersList.innerHTML = '';
                     
                     if (data.orders.length === 0) {
-                        noOrdersMessage.style.display = 'block';
+                        // noOrdersMessage?.style.display = 'none';
                     } else {
-                        noOrdersMessage.style.display = 'none';
+                        // noOrdersMessage?.style.display = 'none';
                         data.orders.forEach(order => {
                             if (order.published) {
                                 var orderItem = document.createElement('li');

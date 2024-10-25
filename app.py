@@ -3877,7 +3877,7 @@ def generate_response_streaming(unique_azz_id):
                             orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
 
                             # get the length 
-                            num_of_orders_today = len(orders)
+                            num_of_orders_today = len(orders) + 1
                             
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
@@ -5445,7 +5445,7 @@ def no_payment_order_placed(unique_azz_id, order_id):
     orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
 
     # get the length 
-    num_of_orders_today = len(orders)
+    num_of_orders_today = len(orders) + 1
 
     if orderType == "delivery":
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
@@ -5653,10 +5653,11 @@ def success_payment_backend(unique_azz_id):
     all_ids_for_acc = current_restaurant_instance.get('notif_destin')
 
     restaurant_name = current_restaurant_instance.get("name")
-    MEW_ORDER_MESSAGE = f"New order for {restaurant_name.replace('_', ' ')} has been published! 🚀🚀🚀"
+    MEW_ORDER_MESSAGE = f"New order has been published! 🚀🚀🚀"
     
     if all_ids_for_acc is not None:
         for chatId in all_ids_for_acc:
+            #print(f"\n\nSent notification on {chatId}\n\n")
             send_telegram_notification(chat_id=chatId, message=MEW_ORDER_MESSAGE)
     
     # Check if the update was successful
@@ -5851,9 +5852,6 @@ def view_orders():
     # Convert the list to a pandas Series and get unique dates
     unique_dates = pd.Series(dates_list).unique()
 
-    # Display the unique dates
-    print(unique_dates)
-
     return render_template('orders_dashboard/orders_display.html', 
                            restaurant_name=restaurant_name,
                            unique_dates=unique_dates,
@@ -5862,11 +5860,13 @@ def view_orders():
 
 
 
-@app.route('/view_orders_ajax', methods=['GET'])
+@app.route('/view_orders_ajax', methods=['GET', "POST"])
 def view_orders_ajax():
     #restaurant_name = session.get("restaurant_name")
     #restaurant_email = session.get("restaurant_email")
     date = request.args.get("date")
+
+    print(f"Date: {date}")
     
     unique_azz_id = session.get("unique_azz_id")
     
@@ -5876,6 +5876,9 @@ def view_orders_ajax():
 
     # Query all orders from the database
     orders = list(order_collection.find({"timestamp": {"$regex": date}}))
+ 
+    print(f"Orders: {orders}")
+
 
     # Format orders for display
     orders_list = []
@@ -6351,7 +6354,7 @@ def square_api_callback():
 
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, host='localhost', port=5000, use_reloader=True)
+    app.run(debug=True, host='localhost', port=5000, use_reloader=True)
 
 
 
