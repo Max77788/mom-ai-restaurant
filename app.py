@@ -3329,7 +3329,7 @@ def post_voice_order():
     array_of_ordered_items = data.get("array_of_ordered_items")
     name_of_customer = data.get("name")
 
-    total_paid = sum(item["price"] for item in array_of_ordered_items)
+    total_paid = sum(item["price"]*item["quantity"] for item in array_of_ordered_items)
 
     orderID = generate_code()
 
