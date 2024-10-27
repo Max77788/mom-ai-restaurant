@@ -63,7 +63,7 @@
 
     <div style="background-color: #000000; color: white; padding: 10px; position: fixed; top: 0; left: 0; width: 100%; display: flex; justify-content: center; align-items: center;" id="orderHeader">
         <!-- <div style="position: absolute; left: 10px; width: 24px;"></div> -->
-        <div style="text-align: center; flex-grow: 0;">Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant</div>
+        <div style="text-align: center; flex-grow: 0; height:100%">Conversate with {{ restaurant_name.replace("_"," ") }} AI-Assistant</div>
         <!-- <div id="chat_start_button" style="position: absolute; right: 10px; width: 24px; height: 24px; cursor: pointer;"><a href="/chat_start/{{ unique_azz_id }}" target="_blank" style="color: white; text-decoration: none;">awesome</a></div> -->
     </div>
     <div id="chatBox" class="chatBoxStyle" {% if not canvas_on %}style="background-color: {{ bg_color }}"{% else %}style="background-image: url('{{ url_for('serve_image', file_id=restaurant.res_logo_canvas) }}')"{% endif %}>   
@@ -324,7 +324,11 @@
             const intro_url = `https://storage.googleapis.com/mom-ai-restaurant-pictures/restaurant_intros/intro_${unique_azz_id}.mp4`
             // console.log(intro_url)
             appendMessage(intro_url, 'assistant', true);
-            appendStarterPhrases();  // Append starter phrases here
+            
+            const use_default_starter_phrases = "{{ use_default_starter_phrases }}" === "True"
+            console.log(use_default_starter_phrases)
+
+            appendStarterPhrases(use_default_phrases=use_default_starter_phrases);  // Append starter phrases here
         {% else %}
             const messages = {{ list_of_current_messages | tojson }};
             // You can now use the 'messages' variable in JavaScript
@@ -364,7 +368,7 @@
         // document.getElementById("chat_start_button").innerHTML = <a href="/chat_start/{{ unique_azz_id }}" target="_blank" style="color: white; text-decoration: none;">awesome</a>';
     }
 
-    function appendStarterPhrases() {
+    function appendStarterPhrases(use_default_phrases=true) {
     const userLanguage = sessionStorage.getItem('userLanguage') || 'en-US';
 
     // Translated starter phrases for each language
@@ -454,14 +458,23 @@
             "Ṣe o le ran mi lọwọ pẹlu awọn ẹbun oni?"
         ]
 
-
     };
 
     console.log("Selected language: ", userLanguage);
 
-    
+    let starterPhrases = [];
+
     // Get the translated phrases based on selected language
-    const starterPhrases = starterPhrasesTranslations[userLanguage] || starterPhrasesTranslations['en-US'];
+    if (use_default_phrases) {
+        console.log("Chose this!")
+        starterPhrases = starterPhrasesTranslations[userLanguage] || starterPhrasesTranslations['en-US'];
+        console.log(starterPhrases)
+    } else { 
+      {% for starter_phrase in starter_phrases %}
+      starterPhrases.push("{{ starter_phrase }}".replace("&#39;", "'"))
+      {% endfor %}
+      console.log(starterPhrases)
+    }
 
     const chatBox = document.getElementById('chatBox');
     const starterButtonsDiv = document.createElement('div');
@@ -473,11 +486,11 @@
         const button = document.createElement('button');
         button.textContent = phrase;
         button.style.cssText = `
-            background: none;
+            background-color: #000000;
             border: 2px solid #333;
             border-radius: 20px;
             padding: 7px 14px;
-            color: #333;
+            color: #fff;
             font-size: 14px;
             cursor: pointer;
             white-space: normal;
@@ -490,8 +503,8 @@
             this.style.color = '#fff';
         };
         button.onmouseout = function() {
-            this.style.background = 'none';
-            this.style.color = '#333';
+            this.style.backgroundColor = '#000000';
+            this.style.color = '#fff';
         };
 
         // Handle button click event

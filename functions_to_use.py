@@ -3,6 +3,7 @@
 from flask import Flask, jsonify, session, request, url_for, flash, redirect
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
+from flask_talisman import Talisman
 from celery_folder.celery_config import make_celery
 from flask_mail import Mail, Message
 from flask_caching import Cache
@@ -659,7 +660,8 @@ def insert_restaurant(collection, name, unique_azz_id, email, password, website_
             "delivery_offered": False,
             "radius_delivery_value": 10,
             "notif_destin":[],
-            "reset_password_code": generate_random_string(10)
+            "reset_password_code": generate_random_string(10),
+            "use_default_starter_phrases": True
             # "stripe_secret_test_key": stripe_secret_test_key
         }
 

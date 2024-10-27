@@ -12,6 +12,7 @@ from flask_migrate import Migrate
 import os
 from bland.twilio_stuff import full_get_insert_twilio_number
 import threading
+from deep_translator import GoogleTranslator
 import glob
 from urllib.parse import urlparse
 # from google.cloud import speech
@@ -1813,6 +1814,19 @@ def customize_chat():
     canvas_on = restaurant.get("canvas_on", False)
     res_logo_canvas = restaurant.get("res_logo_canvas", DEFAULT_RESTAURANT_LOGO_CANVAS_ID)
 
+    use_default_starter_phrases = restaurant.get("use_default_starter_phrases", True)
+    starter_phrases = restaurant.get("starter_phrases", [])
+
+    if starter_phrases:
+        starter_phrases_1 = starter_phrases[0]
+        starter_phrases_2 = starter_phrases[1]
+        starter_phrases_3 = starter_phrases[2]
+        starter_phrases_4 = starter_phrases[3]
+    else:
+        starter_phrases_1 = starter_phrases_2 = starter_phrases_3 = starter_phrases_4 = ""
+
+    print(use_default_starter_phrases, starter_phrases)
+    
     if not res_logo_canvas:
         res_logo_canvas = DEFAULT_RESTAURANT_LOGO_CANVAS_ID
     
@@ -1823,7 +1837,12 @@ def customize_chat():
                            restaurant=restaurant, 
                            bg_color=bg_color, 
                            canvas_on=canvas_on,
-                           res_logo_canvas=res_logo_canvas)
+                           res_logo_canvas=res_logo_canvas,
+                           use_default_starter_phrases=use_default_starter_phrases,
+                           starter_phrases_1=starter_phrases_1,
+                           starter_phrases_2=starter_phrases_2,
+                           starter_phrases_3=starter_phrases_3,
+                           starter_phrases_4=starter_phrases_4)
             
 @app.route('/update_chat_style', methods=['POST'])
 def update_chat_style():
@@ -1835,6 +1854,24 @@ def update_chat_style():
     collection.update_one({"unique_azz_id": session.get("unique_azz_id")}, {'$set': {'chat_bg_color': chat_bg_color, 'canvas_on': canvas_on}})
 
     return jsonify({'success': True})
+
+
+@app.route('/update_starter_phrases', methods=['POST'])
+def update_starter_phrases():
+    data = request.get_json()
+    use_default = data.get('use_default_starter_phrases')
+    starter_phrases = data.get('starter_phrases', [])
+
+    print(f"Use default: {use_default}")
+
+    unique_azz_id = session.get("unique_azz_id")
+
+    if use_default:
+        collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"use_default_starter_phrases": use_default}})
+    else:
+        collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"use_default_starter_phrases": use_default, "starter_phrases": starter_phrases}})
+    return jsonify({'success': True}), 200
+
 
 @app.route('/setup_public_profile', methods=['GET', 'POST'])
 def setup_public_profile():
@@ -3264,15 +3301,11 @@ def post_create_pathway():
 
 @app.route('/post-phone-order', methods=['POST'])
 def post_voice_order():
-    raw_data = request.data
-    print("Raw Data: ", raw_data)
-    
-    #data = request.json
-    
-    
-    #print("JSON Data:", data)
+    #data = json.dumps(raw_data.decode('utf-8'))
 
-    data = json.loads(raw_data.decode('utf-8'))
+    data = request.get_json()
+
+    print(f"\n\nData: {data}\n\n")
 
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
@@ -3475,6 +3508,25 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
     bg_color = res_instance.get("chat_bg_color", "#FFFFFF")
     canvas_on = res_instance.get("canvas_on", False)
 
+    use_default_starter_phrases = res_instance.get("use_default_starter_phrases", True)
+    starter_phrases = res_instance.get("starter_phrases", [])
+
+    """
+    language_codes = ['en-US', 'uk-UA', 'is-IS', 'es-ES', 'zh-CN', 'hi-IN', 'ar-SA', 'fr-FR', 'ru-RU', 'ja-JP', 'de-DE', 'pt-BR', 'th-TH', 'yo']
+
+    for language_code in language_codes:
+        translator = GoogleTranslator(source='auto', target=language_code)
+        response_text = translator.translate(response_text)
+    """
+        
+    if starter_phrases:
+        starter_phrases_1 = starter_phrases[0]
+        starter_phrases_2 = starter_phrases[1]
+        starter_phrases_3 = starter_phrases[2]
+        starter_phrases_4 = starter_phrases[3]
+    else:
+        starter_phrases_1 = starter_phrases_2 = starter_phrases_3 = starter_phrases_4 = ""
+
     # id_of_intro = res_instance.get("intro_video_id", "default_later_here")
     # intro_video_link = get_talk_video(id_of_intro)['result_url']
 
@@ -3571,7 +3623,13 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
                            requires_action=requires_action,
                            suggest_new_order=suggest_new_order,
                            bg_color=bg_color,
-                           canvas_on=canvas_on)
+                           canvas_on=canvas_on,
+                           use_default_starter_phrases=use_default_starter_phrases,
+                           starter_phrases_1=starter_phrases_1,
+                           starter_phrases_2=starter_phrases_2,
+                           starter_phrases_3=starter_phrases_3,
+                           starter_phrases_4=starter_phrases_4,
+                           starter_phrases=starter_phrases)
 
 
 

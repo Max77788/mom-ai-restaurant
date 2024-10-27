@@ -15,7 +15,7 @@
     .right-panel {
       display: flex;
       flex-direction: column;
-      flex-basis: 70%;
+      flex-basis: 50%;
       text-align: center;
       align-items: center;
       justify-content: center;
@@ -52,6 +52,71 @@
         <input type="color" id="bgColor" value="{{ bg_color }}" {% if canvas_on %}disabled{% endif %} onchange="changeBackgroundColor()" />
         <button style="margin-top: 10px;" onclick="saveChatStyle()">Save</button>
       </div>
+      <hr>
+
+      <!-- New section for starter phrases -->
+      <h3>Starter Phrases</h3>
+      <label for="defaultPhrases">Use default phrases:</label>
+      <input type="checkbox" id="defaultPhrases" {% if use_default_starter_phrases %}checked{% endif %} onchange="togglePhraseInputs()" />
+
+      <div id="customPhrasesContainer" style="{% if use_default_starter_phrases %}display: none;{% endif %}">
+        <label for="customPhrase1">Phrase 1:</label>
+        <input type="text" id="customPhrase1" maxlength="60" value="{{ starter_phrases_1 }}" placeholder="Enter custom phrase 1" /><br>
+
+        <label for="customPhrase2">Phrase 2:</label>
+        <input type="text" id="customPhrase2" maxlength="60" value="{{ starter_phrases_2 }}" placeholder="Enter custom phrase 2" /><br>
+
+        <label for="customPhrase3">Phrase 3:</label>
+        <input type="text" id="customPhrase3" maxlength="60" value="{{ starter_phrases_3 }}" placeholder="Enter custom phrase 3" /><br>
+
+        <label for="customPhrase4">Phrase 4:</label>
+        <input type="text" id="customPhrase4" maxlength="60" value="{{ starter_phrases_4 }}" placeholder="Enter custom phrase 4" /><br>
+      </div>
+
+      <button style="margin-top: 10px;" onclick="saveStarterPhrases()">Save Phrases</button>
+    </div>
+
+    <script>
+      function togglePhraseInputs() {
+        const useDefault = document.getElementById('defaultPhrases').checked;
+        document.getElementById('customPhrasesContainer').style.display = useDefault ? 'none' : 'block';
+      }
+
+      function saveStarterPhrases() {
+        const useDefault = document.getElementById('defaultPhrases').checked;
+
+        console.log(`Use Default: ${useDefault}`);
+
+        const phrases = useDefault
+          ? ["What specials do you have?", "Help me with the recommendations based on my preferences.", "I'd like to know more about the menu.", "Can you assist me with today's offers?"]
+          : [
+              document.getElementById('customPhrase1').value,
+              document.getElementById('customPhrase2').value,
+              document.getElementById('customPhrase3').value,
+              document.getElementById('customPhrase4').value
+            ];
+
+        fetch('/update_starter_phrases', {
+          method: 'POST',
+          body: JSON.stringify({ use_default_starter_phrases: useDefault, starter_phrases: phrases }),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Starter phrases updated successfully!');
+            location.reload();
+          } else {
+            alert('Failed to update starter phrases.');
+          }
+        });
+      }
+
+      // Initialize phrase inputs visibility based on initial checkbox state
+      togglePhraseInputs();
+    </script>
     </div>
     
     <div class="right-panel">

@@ -115,7 +115,7 @@
         {
             "id": "74e3fdcc-7f38-4e2f-80d3-76618eff8967",
             "data": {
-                "url": "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/post-voice-order",
+                "url": "https://mom-ai-restaurant.pro/post-voice-order",
                 "body": "{\"unique_azz_id\": \"{{ unique_azz_id }}\", \"array_of_ordered_items\": {{ array_of_ordered_items }}, \"name\": {{  name }}, \"from_number\": \"{{ from }}\"}",
                 "name": "Send the order",
                 "active": false,
@@ -194,7 +194,7 @@
                 "kb": "Awaiting Time until the food is ready:\nfrom 15 to 30 minutes\n\nOpening Hours:\n{{ opening_hours }}\n\nStore Location:\n{{ store_location }}\n\nTimezone:\n{{ timezone }}\n\nMenu of the restaurant:\n{{ restaurant_menu }}\n\nPrices are in Euros.",
                 "name": "New Knowledge Base Node",
                 "active": false,
-                "prompt": "This is a phone call. Do not use exclamation marks. Keep your responses 80 words or less. DO NOT ask the customer: \"Would you like to pick up your order?\" DO NOT EVER include the total price of the order, simply state the price of the item on the menu.\n\nPronounce prices in Euros. Example: price - 22,90€ = You pronounce \"twenty-two euros and ninety cents.\"\n\nIf the customer asks whether we are open or not, simply check {{ now_utc }} against the working hours and provide the deducted answer.\n\nConvert 24HR format timings to 12 HR format - e.g 14:00 should be written as 2 PM.\n\nOFFER ONLY PICKUP. ALWAYS ASK FOR THE CUSTOMER'S NAME WHEN REGISTERING THE ORDER.\n\nALWAYS ASK FOR THE CUSTOMER'S NAME WHEN TAKING ORDER.\n\nYou work in the restaurant named {{ restaurant_name }}.",
+                "prompt": "This is a phone call. Do not use exclamation marks. Keep your responses 80 words or less. DO NOT ask the customer: \"Would you like to pick up your order?\" DO NOT EVER include the total price of the order, simply state the price of the item on the menu.\n\nPronounce prices in Euros. Example: price - 22,90ï¿½ = You pronounce \"twenty-two euros and ninety cents.\"\n\nIf the customer asks whether we are open or not, simply check {{ now_utc }} against the working hours and provide the deducted answer.\n\nConvert 24HR format timings to 12 HR format - e.g 14:00 should be written as 2 PM.\n\nOFFER ONLY PICKUP. ALWAYS ASK FOR THE CUSTOMER'S NAME WHEN REGISTERING THE ORDER.\n\nALWAYS ASK FOR THE CUSTOMER'S NAME WHEN TAKING ORDER.\n\nYou work in the restaurant named {{ restaurant_name }}.",
                 "isGlobal": true,
                 "globalLabel": "",
                 "globalPrompt": "You speak {{ restaurant_language }}. The language which you communicate in is {{ restaurant_language }}.",
