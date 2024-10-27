@@ -3310,7 +3310,7 @@ def post_voice_order():
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
 
-    restaurant = collection.find_one({"ai_phone_number": unique_azz_id})
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
     timezone = restaurant.get("timezone")
     if "+" in timezone:
         timezone = timezone.replace("+","-")
@@ -3333,10 +3333,27 @@ def post_voice_order():
 
     orderID = generate_code()
 
+    
+    # Get current UTC time and format it as dd.mm hh:mm
+    timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+    only_date = datetime.utcnow().strftime('%Y-%m-%d')
+
+    order_dashboard_id = unique_azz_id
+
+    order_collection = db_order_dashboard[order_dashboard_id]
+    
+    # look for all orders on that date
+    orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
+
+    # get the length 
+    num_of_orders_today = len(orders) + 1
+    
+
     order_to_insert = {"items":array_of_ordered_items,
                        "orderID":orderID,
                        "timestamp": formatted_time,
                        "total_paid": total_paid,
+                       "order_number":num_of_orders_today,
                        "name_of_customer": name_of_customer,
                        "from_number": from_number,
                        "mom_ai_restaurant_fee": 0,
@@ -3534,7 +3551,9 @@ def assistant_order_chat(unique_azz_id, current_thread_id=None, from_splash_page
     
     start_work = res_instance.get("start_work")
     end_work = res_instance.get("end_work")
+
     timezone = res_instance.get("timezone")
+
     if timezone.startswith("Etc/GMT-"):
         timezoneG = timezone.replace("-", "+", 1)
         print("Minus changed")
@@ -3873,18 +3892,42 @@ def generate_response_streaming(unique_azz_id):
                         cache.set("items_ordered", items_ordered)
                         # print(f"Setup the items ordered on assistant response! {parsed_formatted_json_order['items']}")
                     
+                        restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
+                        timezone = restaurant.get("timezone")
+                        if "+" in timezone:
+                            timezone = timezone.replace("+","-")
+                        elif "-" in timezone:
+                            timezone = timezone.replace("-","+")
+
+                        # Specify the desired time zone
+                        time_zone = pytz.timezone(timezone)  # Example: New York time zone
+
                         order_id = generate_code()
-                        current_utc_timestamp = time.time()
 
-                        # Convert the timestamp to a datetime object
-                        utc_datetime = datetime.utcfromtimestamp(current_utc_timestamp)
+                        # Get the current date and time in the specified time zone
+                        current_time = datetime.now(time_zone)
 
-                        # Format the datetime object to a human-readable string
-                        human_readable_time_format = utc_datetime.strftime('%Y-%m-%d %H:%M')
+                        # Get the current date and time in the specified time zone
+                        current_time_timestamp = datetime.now(time_zone).timestamp()
 
+                        # Format the date and time
+                        formatted_time = current_time.strftime('%Y-%m-%d %H:%M')
+
+                        only_date = current_time.strftime('%Y-%m-%d')
+
+                        order_dashboard_id = unique_azz_id
+
+                        order_collection = db_order_dashboard[order_dashboard_id]
+                        
+                        # look for all orders on that date
+                        orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
+
+                        # get the length 
+                        num_of_orders_today = len(orders) + 1
 
                         if items_ordered and payment_on:
-                            db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_utc_timestamp})
+                            db_items_cache[unique_azz_id].insert_one({"data": items_ordered, "id": order_id, "timestamp": current_time_timestamp})
 
                         if payment_on:
                             total_price = f"{sum(item['quantity'] * item['price'] for item in items_ordered):.2f}"
@@ -3922,24 +3965,10 @@ def generate_response_streaming(unique_azz_id):
 
                             cache.set("order_id", order_id)
                             cache.set("access_granted_no_payment_order", True)
-
-                            # Get current UTC time and format it as dd.mm hh:mm
-                            timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
-                            only_date = datetime.utcnow().strftime('%Y-%m-%d')
-
-                            order_dashboard_id = unique_azz_id
-
-                            order_collection = db_order_dashboard[order_dashboard_id]
-                            
-                            # look for all orders on that date
-                            orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
-
-                            # get the length 
-                            num_of_orders_today = len(orders) + 1
                             
                             order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items_ordered], 
                             "orderID":order_id,
-                            "timestamp": human_readable_time_format,
+                            "timestamp": formatted_time,
                             "order_number": num_of_orders_today,
                             "total_paid": total_price,
                             "total_paid_EUR": total_price_EUR,
@@ -5633,9 +5662,24 @@ def success_payment_backend(unique_azz_id):
     current_restaurant_instance = collection.find_one({"unique_azz_id": unique_azz_id})
     print(f"Restaurant with {unique_azz_id} found: {current_restaurant_instance}")
 
-    # Get current UTC time and format it as dd.mm hh:mm
-    timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
-    only_date = datetime.utcnow().strftime('%Y-%m-%d')
+    restaurant = collection.find_one({"unique_azz_id":unique_azz_id})
+
+    timezone = restaurant.get("timezone")
+    if "+" in timezone:
+        timezone = timezone.replace("+","-")
+    elif "-" in timezone:
+        timezone = timezone.replace("-","+")
+
+    # Specify the desired time zone
+    time_zone = pytz.timezone(timezone)  # Example: New York time zone
+
+    # Get the current date and time in the specified time zone
+    current_time = datetime.now(time_zone)
+
+    # Format the date and time
+    formatted_time = current_time.strftime('%Y-%m-%d %H:%M')
+
+    only_date = current_time.strftime('%Y-%m-%d')
 
     order_dashboard_id = unique_azz_id
 
@@ -5656,7 +5700,7 @@ def success_payment_backend(unique_azz_id):
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
                             "orderID":order_id,
                             "order_number": num_of_orders_today,
-                            "timestamp": timestamp_utc,
+                            "timestamp": formatted_time,
                             "total_paid": total_paid_native,
                             "total_paid_EUR": total_paid_EUR,
                             "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
@@ -5670,7 +5714,7 @@ def success_payment_backend(unique_azz_id):
         order_to_pass = {"items":[{'name':item['name'], 'quantity':item['quantity']} for item in items], 
                             "orderID":order_id,
                             "order_number": num_of_orders_today,
-                            "timestamp": timestamp_utc,
+                            "timestamp": formatted_time,
                             "total_paid": total_paid_native,
                             "total_paid_EUR": total_paid_EUR,
                             "mom_ai_restaurant_assistant_fee": float(round(MOM_AI_FEE, 2)),
