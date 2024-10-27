@@ -123,6 +123,8 @@
                                     Made at: ${order.timestamp} UTC<br><br>
                                     Status: ${order.paid}<br><br>
                                     Order Type : ${order.order_type}<br><br>
+                                    ${order.name_of_customer != null && order.name_of_customer != undefined ? `Customer's Name: ${order.text_address}<br><br>` : ""}
+                                    ${order.from_number != null && order.from_number != undefined ? `Customer's Phone Number: ${order.from_number}<br><br>` : ""}
                                     ${order.order_type === "delivery" ? `Customer Address Link: ${order.text_address} - <a href='${order.link_of_user_address}' target='_blank' style='color: #FFD700'>See Location</a><br><br>` : ""}
                                     Order ID: <b>${order.orderID}</b><br><br>
                                     <ul>`;

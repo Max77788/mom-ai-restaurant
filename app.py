@@ -3309,6 +3309,7 @@ def post_voice_order():
 
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
+    order_type = data.get("order_type")
 
     restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
     timezone = restaurant.get("timezone")
@@ -3325,6 +3326,7 @@ def post_voice_order():
 
     # Format the date and time
     formatted_time = current_time.strftime('%Y-%m-%d %H:%M')
+    only_date = current_time.strftime('%Y-%m-%d')
 
     array_of_ordered_items = data.get("array_of_ordered_items")
     name_of_customer = data.get("name")
@@ -3336,7 +3338,6 @@ def post_voice_order():
     
     # Get current UTC time and format it as dd.mm hh:mm
     timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
-    only_date = datetime.utcnow().strftime('%Y-%m-%d')
 
     order_dashboard_id = unique_azz_id
 
@@ -3356,6 +3357,7 @@ def post_voice_order():
                        "order_number":num_of_orders_today,
                        "name_of_customer": name_of_customer,
                        "from_number": from_number,
+                       "order_type": order_type,
                        "mom_ai_restaurant_fee": 0,
                        "paypal_fee": 0,
                        "paid": "NOT PAID",
@@ -5991,6 +5993,8 @@ def view_orders_ajax():
             'published': order['published'],
             'orderID':order.get('orderID', 'no ID provided'),
             'paid':order.get('paid'),
+            'from_number': order.get("from_number"),
+            'name_of_customer': order.get('name_of_customer'),
             'order_type': order.get('order_type'),
             'orderNumber': order.get('order_number'),
             'link_of_user_address': order.get('link_of_user_address'),
