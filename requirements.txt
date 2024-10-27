@@ -58,3 +58,4 @@ flask-cors
 google-cloud-storage
 google-cloud-vision
 squareup
+flask-talisman
