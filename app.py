@@ -5970,7 +5970,7 @@ def view_orders_ajax():
     #restaurant_email = session.get("restaurant_email")
     date = request.args.get("date")
 
-    print(f"Date: {date}")
+    # print(f"Date: {date}")
     
     unique_azz_id = session.get("unique_azz_id")
     
@@ -5981,7 +5981,7 @@ def view_orders_ajax():
     # Query all orders from the database
     orders = list(order_collection.find({"timestamp": {"$regex": date}}))
  
-    print(f"Orders: {orders}")
+    # print(f"Orders: {orders}")
 
 
     # Format orders for display
