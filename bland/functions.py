@@ -213,7 +213,7 @@ def get_conversational_pathway_data():
 
     return response_json
 
-def create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, restaurant_language_code="en-US"):
+def create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, res_currency, unique_azz_id, restaurant_language_code="en-US"):
     restaurant_language = language_codes[restaurant_language_code]
     
     # Define the replacement values
@@ -224,6 +224,7 @@ def create_the_suitable_pathway_script(restaurant_name, store_location, opening_
         "{{ timezone }}": timezone,
         "{{ restaurant_menu }}": restaurant_menu,
         "{{ unique_azz_id }}": unique_azz_id,
+        "{{ res_currency }}": res_currency,
         "{{ restaurant_language }}": restaurant_language
     }
 
@@ -301,9 +302,9 @@ def insert_the_nodes_and_edges_in_new_pathway(pathway_id, new_script):
         return False
 
 
-def pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id):
+def pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, res_currency, unique_azz_id):
     
-    new_script = create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id)
+    new_script = create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, res_currency, unique_azz_id)
 
     pathway_id = create_fully_new_pathway(restaurant_name)
     
@@ -362,7 +363,7 @@ def update_phone_number(phone_number, language, timezone, pathway_id):
         "language":language,
         "timezone":timezone,
         "interruption_threshold":70,
-        "webhook": "https://mom-ai-restaurant-stage-1709afd7171d.herokuapp.com/charge-for-call"
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-call"
     }
 
     headers = {
@@ -393,6 +394,8 @@ def get_data_for_pathway_change(restaurant):
     restaurant_name = restaurant.get("name")
     store_location = restaurant.get("location_name")
     timezone = restaurant.get("timezone")
+    res_currency = restaurant.get("res_currency")
+
     restaurant_menu = menu_string
     
     opening_hours_string = ""
@@ -429,7 +432,7 @@ def get_data_for_pathway_change(restaurant):
             opening_hours_line = f"{day_of_week}: from {start_time} until {end_time}" if end_time <= 24 else f"{day_of_week}: from {start_time} until {end_time-24} of the next day"
         opening_hours_string += opening_hours_line
     
-    return restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu
+    return restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, res_currency
     
 def update_phone_number_non_english(phone_number, restaurant_name, restaurant_menu, working_hours, store_location, language, timezone):
     url = BLAND_BASE_URL + f"/inbound/{phone_number}"
@@ -467,7 +470,7 @@ def update_phone_number_non_english(phone_number, restaurant_name, restaurant_me
         "language":language,
         "timezone":timezone,
         "interruption_threshold":70,
-        "webhook": "https://mom-ai-restaurant.pro/charge-for-phone-assistant"
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-call"
     }
 
     headers = {
@@ -510,7 +513,8 @@ def add_pathway_to_phone(phone_number, pathway_id, language, timezone):
         "pathway_id":pathway_id,
         "language":language,
         "timezone": timezone,
-        "interruption_threshold":70
+        "interruption_threshold":70,
+        "webhook": "https://mom-ai-restaurant.pro/charge-for-call"
     }
 
     headers = {
@@ -534,13 +538,10 @@ def buy_and_update_phone(pathway_id, language, timezone):
     # phone_number = purchase_phone_number()
     try:
         phone_number = full_get_insert_twilio_number("US")
+        update_phone_number()
     except Exception as e:
         raise Exception("Failed to provision and insert phone number")
 
     success = add_pathway_to_phone(phone_number, pathway_id, language, timezone)
 
     return {"success":success, "phone_number":phone_number}
-
-
-
-

@@ -38,7 +38,7 @@ from email.mime.application import MIMEApplication
 from email.mime.text import MIMEText
 #from pyrogram import filters
 #from utils.telegram import app_tg
-from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, create_the_suitable_pathway_script, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
+from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ResetPasswordForm, ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
 from functions_to_use import create_full_canvas_diagonal_pattern, generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
@@ -3281,9 +3281,9 @@ def post_create_pathway():
     unique_azz_id = session.get("unique_azz_id")
     restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
 
-    restaurant_name, store_location, timezone, restaurant_menu, opening_hours_string = get_data_for_pathway_change(restaurant)
+    restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, res_currency = get_data_for_pathway_change(restaurant)
     
-    result = pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id)
+    result = pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, res_currency, unique_azz_id)
 
     print("Success Creating Pathway??? ", result["success"])
 
@@ -3306,6 +3306,8 @@ def post_voice_order():
     data = request.get_json()
 
     print(f"\n\nData: {data}\n\n")
+
+    date = json.loads(data)
 
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
@@ -6192,18 +6194,17 @@ def show_restaurant_profile_public(unique_azz_id):
 @app.route('/google-callback', methods=['POST'])
 def google_callback():
     # Get the token from the request
-    
     token = request.json.get('token')
     type_ = request.args.get("type")
 
-    # print("Token: ", token)
-
     try:
-        print("Entered 'try'")
         # Verify the token using Google's API
-        id_info = id_token.verify_oauth2_token(token, google_requests.Request(), GOOGLE_OAUTH_CLIENT_ID)
+        id_info = id_token.verify_oauth2_token(token, 
+                                               google_requests.Request(), 
+                                               GOOGLE_OAUTH_CLIENT_ID, 
+                                               clock_skew_in_seconds=0)
 
-        # If the token is valid, id_info will contain user data
+        # Extract user data from the token
         user_data = {
             "user_id": id_info.get("sub"),
             "email": id_info.get("email"),
@@ -6212,19 +6213,17 @@ def google_callback():
         }
 
         restaurant = collection.find_one({"email": user_data["email"]})
- 
         send_to_dashboard = False
 
+        # Ensure email is a string before storing in session
         if restaurant:
-            session["res_email"] = restaurant.get("email")
+            session["res_email"] = str(restaurant.get("email", ""))  # Ensures email is stored as a string
             send_to_dashboard = True
-
-        print(user_data)
-
-        session["res_email"] = user_data["email"]
+        else:
+            session["res_email"] = str(user_data["email"])  # Also converted to a string
         session['access_granted_assistant_demo_chat'] = True
 
-        # Here you can process user data (e.g., log them in, create an account, etc.)
+        # Successfully return user data
         return jsonify({
             "success": True,
             "user_data": user_data,
@@ -6232,7 +6231,7 @@ def google_callback():
         }), 200
 
     except ValueError as e:
-        flash(e)
+        flash(str(e))  # Convert exception to string for flashing
 
         # Token is invalid, return an error response
         return jsonify({
@@ -6240,6 +6239,7 @@ def google_callback():
             "message": "Invalid token",
             "type": type_
         }), 400
+
 
 
 @app.route('/search_instance/<unique_azz_id>', methods=['POST', 'GET'])

@@ -4,7 +4,16 @@
 
 <!-- Include the PayPal JavaScript SDK -->
 <script src="https://www.paypal.com/sdk/js?client-id={{ PAYPAL_CLIENT_ID }}&currency=EUR"></script>
-        
+
+<head>
+<!-- CSS for intl-tel-input -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/css/intlTelInput.css" />
+
+<!-- JavaScript for intl-tel-input -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/intlTelInput.min.js"></script>
+</head>
+  
+
 <!-- Styles for the modal -->
 <style>
     .modal {
@@ -63,7 +72,6 @@
         <div class="form-group" style="text-align: center; align-items: start;">
             <label for="phone_number">Phone Number</label>
             <input type="tel" class="form-control" id="phone_number" name="phone_number" placeholder="Input Your Phone Number" required>
-            <small class="form-text text-muted">*Please include your country code (e.g., +1 for US).</small>
         </div>
         <div class="form-group">
             <label for="language">Select Language<br> 
@@ -355,7 +363,9 @@
     };
 
 
-    document.getElementById('activate-paypal-button').addEventListener('click', function() {
+    const paypalButton = document.getElementById('activate-paypal-button');
+    if (paypalButton) {
+    paypalButton.addEventListener('click', function() {
         console.log("Pressed the button")
         
         // Display the modal
@@ -430,14 +440,69 @@
                     // alert('Transaction '+ transaction.status + ': ' + transaction.id + '\n\nSee console for all available details');
                 });
             }
+    
         }).render('#paypal-button-container');
-    });
+    }
+    )};
+
+
+
+
 
     // Close the modal
     document.querySelector('.close').addEventListener('click', function() {
         document.getElementById('paypal-modal').style.display = 'none';
     });
 </script>
+
+<script>
+    // Initialize intl-tel-input
+    const input = document.getElementById("phone_number");
+    const iti = window.intlTelInput(input, {
+        initialCountry: "auto",  // Automatically set based on IP
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/17.0.8/js/utils.js",  // For formatting and validation
+        preferredCountries: ["us", "gb", "ua"],  // Optional preferred countries
+        geoIpLookup: function(callback) {
+        fetch('https://ipapi.co/json/')  // Using ipapi.co to get the country code
+            .then(response => response.json())
+            .then(data => callback(data.country_code.toLowerCase()))
+            .catch(() => callback('us'));  // Default to 'us' if IP lookup fails
+        }
+    });
+
+    // Set the input's initial value to include the country code
+    input.value = iti.getSelectedCountryData().dialCode ? `+${iti.getSelectedCountryData().dialCode} ` : '';
+
+    // Update the input field with the country code on country change
+    input.addEventListener("countrychange", function() {
+        const dialCode = iti.getSelectedCountryData().dialCode;
+        input.value = `+${dialCode} `;  // Update input to include the new country code
+        input.setSelectionRange(input.value.length, input.value.length);  // Place cursor at end
+    });
+
+    // Optional: Clear the initial country code on focus if needed
+    input.addEventListener("focus", function() {
+        if (input.value === `+${iti.getSelectedCountryData().dialCode} `) {
+        input.value = '';  // Clear to allow user entry
+        }
+    });
+    
+    // Re-add the country code on blur if input is empty
+    input.addEventListener("blur", function() {
+        if (!input.value.trim()) {
+        const dialCode = iti.getSelectedCountryData().dialCode;
+        input.value = `+${dialCode} `;  // Reset to default country code on blur
+        }
+    });
+  
+    // Optional: Validate the number on form submission
+    document.querySelector("form").addEventListener("submit", function (e) {
+      if (!iti.isValidNumber()) {
+        e.preventDefault();
+        alert("Please enter a valid phone number.");
+      }
+    });
+  </script>
 
 {% endblock %}
 
