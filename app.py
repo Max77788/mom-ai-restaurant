@@ -3307,7 +3307,7 @@ def post_voice_order():
 
     print(f"\n\nData: {data}\n\n")
 
-    date = json.loads(data)
+    data = json.loads(data)
 
     unique_azz_id = data.get("unique_azz_id")
     from_number = data.get("from_number")
