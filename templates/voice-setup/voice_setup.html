@@ -479,13 +479,6 @@
         input.value = `+${dialCode} `;  // Update input to include the new country code
         input.setSelectionRange(input.value.length, input.value.length);  // Place cursor at end
     });
-
-    // Optional: Clear the initial country code on focus if needed
-    input.addEventListener("focus", function() {
-        if (input.value === `+${iti.getSelectedCountryData().dialCode} `) {
-        input.value = '';  // Clear to allow user entry
-        }
-    });
     
     // Re-add the country code on blur if input is empty
     input.addEventListener("blur", function() {
