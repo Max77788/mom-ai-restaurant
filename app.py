@@ -1407,7 +1407,7 @@ def market_dashboard():
 
 def get_restaurants(page, per_page, search_query='', user_lat=None, user_lng=None, radius=None):
     skip = (page - 1) * per_page
-    cursor = collection.find()
+    cursor = collection.find({"profile_visible": True})
     restaurants = list(cursor)
 
     if search_query:
@@ -1429,8 +1429,6 @@ def get_restaurants(page, per_page, search_query='', user_lat=None, user_lng=Non
             r for r in filtered_restaurants 
             if geodesic(user_coords, (json.loads(r['location_coord'])['lat'], json.loads(r['location_coord'])['lng'])).km <= radius_km
         ]
-
-        print()
 
         # Sort restaurants by distance
         filtered_restaurants.sort(
