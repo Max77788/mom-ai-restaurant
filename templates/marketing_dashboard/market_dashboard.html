@@ -123,7 +123,7 @@
         {% if page > 1 %}
         <a href="{{ url_for('market_dashboard', page=page-1, location=search_query) }}" style="margin-right: 10px; text-decoration: none; color: #007bff; font-weight: bold;">Previous</a>
         {% endif %}
-        <span style="padding: 0 10px; font-weight: bold;">Page {{ page }} of {{ (total // per_page) + 1 }}</span>
+        <span style="padding: 0 10px; font-weight: bold;">Page {{ page }} of {{ (total // per_page) }}</span>
         {% if (page * per_page) < total %}
         <a href="{{ url_for('market_dashboard', page=page+1, location=search_query) }}" style="margin-left: 10px; text-decoration: none; color: #007bff; font-weight: bold;">Next</a>
         {% endif %}
