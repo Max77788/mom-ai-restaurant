@@ -20,6 +20,7 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         transition: transform 0.2s ease-in-out;
         text-align: center; /* Align text to the left */
+        cursor: pointer;
     }
     .post-container:hover {
         transform: scale(1.02);
@@ -77,11 +78,11 @@
 </style>
 
 <div class="posts-wrapper">
-    <h1>AI-Restaurants Articles Hub</h1>
+    <h1>AI-Restaurants Articles</h1>
     <hr>
     <ul>
         {% for post in posts %}
-            <li class="post-container">
+            <li class="post-container" onclick="window.location.href='{{ post.link }}'">
                 <h2 class="post-title">{{ post.title }}</h2>
                 <img src="{{ post.image_url }}" alt="Descriptive Alt Text" width="300" height="auto">
                 <p class="post-meta"><em>Posted on {{ post.created_at }} UTC</em></p>
