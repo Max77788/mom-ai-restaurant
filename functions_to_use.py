@@ -2856,6 +2856,14 @@ class Dish(BaseModel):
 class Menu(BaseModel):
     menu: list[Dish]
 
+class Item(BaseModel):
+    name: str
+    quantity: int
+    price: float
+
+class ArrayOfItems(BaseModel):
+    steps: list[Item]
+
 def extract_items_from_text(raw_text):
     client = CLIENT_OPENAI
 

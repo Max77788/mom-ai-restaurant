@@ -40,7 +40,7 @@ from email.mime.text import MIMEText
 #from utils.telegram import app_tg
 from bland.functions import get_data_for_pathway_change, get_call_length_and_phone_number, update_phone_number_non_english, update_phone_number, insert_the_nodes_and_edges_in_new_pathway, buy_and_update_phone, pathway_serving_a_to_z_initial, pathway_proper_update, send_the_call_on_number_demo, create_the_suitable_pathway_script
 from utils.forms import ResetPasswordForm, ChangeCredentialsForm, RestaurantForm, UpdateMenuForm, ConfirmationForm, LoginForm, RestaurantFormUpdate, ProfileForm 
-from functions_to_use import create_full_canvas_diagonal_pattern, generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
+from functions_to_use import Item, ArrayOfItems, create_full_canvas_diagonal_pattern, generate_short_voice_output_streaming, update_menu_on_openai, delete_file_from_s3, upload_file_to_s3, get_assistants_response_celery_VOICE_ONLY_streaming, generate_short_voice_output_VOICE_ONLY, fully_extract_menu_from_image_celery, s3, generate_ai_item_description, generate_ai_menu_item_image, generate_ai_menu_item_image_celery, create_talk_video, get_talk_video, create_and_get_talk_video, full_intro_in_momai_google, FROM_EMAIL, app, socketio, cache, mail, turn_assistant_off_low_balance, send_email_raw, mint_and_send_tokens, convert_and_transcribe_audio_azure, convert_and_transcribe_audio_openai, send_confirmation_email_quick_registered, generate_random_string, generate_short_voice_output, get_post_filenames, get_post_content_and_headline, InvalidMenuFormatError, CONTRACT_ABI, generate_qr_code_and_upload, remove_formatted_lines, convert_hours_to_time, setup_working_hours, hash_password, check_password, clear_collection, upload_new_menu, convert_xlsx_to_txt_and_menu_html, create_assistant, insert_restaurant, get_assistants_response, send_confirmation_email, generate_code, check_credentials, send_telegram_notification, send_confirmation_email_request_withdrawal, send_waitlist_email, send_confirmation_email_registered, convert_webm_to_wav, MOM_AI_EXEMPLARY_MENU_HTML, MOM_AI_EXEMPLARY_MENU_FILE_ID, MOM_AI_EXEMPLARY_MENU_VECTOR_ID, get_assistants_response_celery, celery 
 from pymongo import MongoClient
 from flask_mail import Mail, Message
 from utils.web3_functionality import create_web3_wallet, completion_on_binance_web3_wallet_withdraw
@@ -3307,75 +3307,94 @@ def post_voice_order():
 
     print(f"\n\nData: {data}\n\n")
 
-    data = json.loads(data)
+    # data = json.loads(data)
+    try:
+        unique_azz_id = data.get("unique_azz_id")
+        from_number = data.get("from_number")
+        order_type = data.get("order_type")
 
-    unique_azz_id = data.get("unique_azz_id")
-    from_number = data.get("from_number")
-    order_type = data.get("order_type")
+        restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+        timezone = restaurant.get("timezone")
+        if "+" in timezone:
+            timezone = timezone.replace("+","-")
+        elif "-" in timezone:
+            timezone = timezone.replace("-","+")
 
-    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
-    timezone = restaurant.get("timezone")
-    if "+" in timezone:
-        timezone = timezone.replace("+","-")
-    elif "-" in timezone:
-        timezone = timezone.replace("-","+")
+        # Specify the desired time zone
+        time_zone = pytz.timezone(timezone)  # Example: New York time zone
 
-    # Specify the desired time zone
-    time_zone = pytz.timezone(timezone)  # Example: New York time zone
+        # Get the current date and time in the specified time zone
+        current_time = datetime.now(time_zone)
 
-    # Get the current date and time in the specified time zone
-    current_time = datetime.now(time_zone)
+        # Format the date and time
+        formatted_time = current_time.strftime('%Y-%m-%d %H:%M')
+        only_date = current_time.strftime('%Y-%m-%d')
 
-    # Format the date and time
-    formatted_time = current_time.strftime('%Y-%m-%d %H:%M')
-    only_date = current_time.strftime('%Y-%m-%d')
+        sentence_of_ordered_items = data.get("sentence_of_ordered_items")
+        name_of_customer = data.get("name")
 
-    array_of_ordered_items = data.get("array_of_ordered_items")
-    name_of_customer = data.get("name")
+        client = CLIENT_OPENAI
 
-    total_paid = sum(item["price"]*item["quantity"] for item in array_of_ordered_items)
+        completion = client.beta.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[
+                {"role": "system", "content": "Extract the details of the order."},
+                {"role": "user", "content": f"Structure this order: {sentence_of_ordered_items}"},
+            ],
+            response_format=ArrayOfItems,
+        )
 
-    orderID = generate_code()
+        array_of_ordered_items = list(completion.choices[0].message.parsed.steps)
+        array_of_ordered_items = [{'name': item.name, 'quantity': item.quantity, 'price': item.price} for item in array_of_ordered_items]        
+        
+        print(f"\n\n\nArray of Ordered Items: {array_of_ordered_items}\n\n\n")
+        
+        total_paid = round(sum(item["price"]*item["quantity"] for item in array_of_ordered_items), 2)
 
+        print(total_paid)
+
+        orderID = generate_code()
+
+        
+        # Get current UTC time and format it as dd.mm hh:mm
+        #timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+
+        order_dashboard_id = unique_azz_id
+
+        order_collection = db_order_dashboard[order_dashboard_id]
+        
+        # look for all orders on that date
+        orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
+
+        # get the length 
+        num_of_orders_today = len(orders) + 1
+        
+
+        order_to_insert = {"items":array_of_ordered_items,
+                        "orderID":orderID,
+                        "timestamp": formatted_time,
+                        "total_paid": total_paid,
+                        "order_number":num_of_orders_today,
+                        "name_of_customer": name_of_customer,
+                        "from_number": from_number,
+                        "order_type": order_type,
+                        "mom_ai_restaurant_fee": 0,
+                        "paypal_fee": 0,
+                        "paid": "NOT PAID",
+                        "published": True
+                        }
+        
+        db_order_dashboard[unique_azz_id].insert_one(order_to_insert)
     
-    # Get current UTC time and format it as dd.mm hh:mm
-    timestamp_utc = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+        chat_ids = restaurant.get("notif_destin")
 
-    order_dashboard_id = unique_azz_id
+        if chat_ids:
+            for chat_id in chat_ids:
+                send_telegram_notification(chat_id)
 
-    order_collection = db_order_dashboard[order_dashboard_id]
-    
-    # look for all orders on that date
-    orders = list(order_collection.find({"timestamp": {"$regex": only_date}}))
-
-    # get the length 
-    num_of_orders_today = len(orders) + 1
-    
-
-    order_to_insert = {"items":array_of_ordered_items,
-                       "orderID":orderID,
-                       "timestamp": formatted_time,
-                       "total_paid": total_paid,
-                       "order_number":num_of_orders_today,
-                       "name_of_customer": name_of_customer,
-                       "from_number": from_number,
-                       "order_type": order_type,
-                       "mom_ai_restaurant_fee": 0,
-                       "paypal_fee": 0,
-                       "paid": "NOT PAID",
-                       "published": True
-                       }
-    
-    db_order_dashboard[unique_azz_id].insert_one(order_to_insert)
- 
-    chat_ids = restaurant.get("notif_destin")
-
-    if chat_ids:
-        for chat_id in chat_ids:
-            send_telegram_notification(chat_id)
-
-    return jsonify({"success":True, "message":"Successful Posting of Voice Order!"})
-
+        return jsonify({"success":True, "message":"Successful Posting of Voice Order!"})
+    except Exception as e:
+        return jsonify({"success":False, "error": str(e)})
 @app.route('/voice-setup', methods=['GET', 'POST'])
 def voice_setup_page():
     restaurant_name = session.get("restaurant_name")
