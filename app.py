@@ -6289,6 +6289,24 @@ def search_instance(unique_azz_id):
         delivery_offered = restaurant.get("delivery_offered")
         discovery_mode_is_on = restaurant.get("discovery_mode")
 
+        timezone = restaurant.get("timezone")
+        working_hours_list = restaurant.get("working_schedule")
+
+        _, _, working_hours_string, _, _, _ = get_data_for_pathway_change(restaurant)
+
+        res_currency = restaurant.get("res_currency")
+        
+        '''
+        "{{ restaurant_name }}": restaurant_name,
+        "{{ store_location }}": store_location,
+        "{{ opening_hours }}": opening_hours,
+        "{{ timezone }}": timezone,
+        "{{ restaurant_menu }}": restaurant_menu,
+        "{{ unique_azz_id }}": unique_azz_id,
+        "{{ res_currency }}": res_currency,
+        "{{ restaurant_language }}": restaurant_language
+        '''
+
         object_to_send = {"unique_azz_id": unique_azz_id,
                           "name": name, 
                           "menu_string": menu_string,
@@ -6296,7 +6314,10 @@ def search_instance(unique_azz_id):
                           "is_open": is_open,
                           "address": address,
                           "delivery_available": delivery_offered,
-                          "discovery_mode_is_on": discovery_mode_is_on}
+                          "discovery_mode_is_on": discovery_mode_is_on,
+                          "timezone": timezone,
+                          "working_hours": working_hours_string,
+                          "res_currency": res_currency}
 
         if restaurant:
             return jsonify({"success": True, "restaurant": object_to_send}), 200

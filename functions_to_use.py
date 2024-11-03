@@ -60,6 +60,7 @@ load_dotenv(find_dotenv())
 
 
 app = Flask(__name__)
+#Talisman(app)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
