@@ -6291,6 +6291,7 @@ def search_instance(unique_azz_id):
 
         timezone = restaurant.get("timezone")
         working_hours_list = restaurant.get("working_schedule")
+        restaurant_name = restaurant.get("name")
 
         _, _, working_hours_string, _, _, _ = get_data_for_pathway_change(restaurant)
 
@@ -6312,12 +6313,13 @@ def search_instance(unique_azz_id):
                           "menu_string": menu_string,
                           "assistant_turned_on": assistant_turned_on, 
                           "is_open": is_open,
-                          "address": address,
+                          "restaurant_location": address,
                           "delivery_available": delivery_offered,
                           "discovery_mode_is_on": discovery_mode_is_on,
                           "timezone": timezone,
                           "working_hours": working_hours_string,
-                          "res_currency": res_currency}
+                          "res_currency": res_currency,
+                          "restaurant_name": restaurant_name}
 
         if restaurant:
             return jsonify({"success": True, "restaurant": object_to_send}), 200
