@@ -3166,6 +3166,7 @@ def purchase_phone_number():
     try:
         dict_response = buy_and_update_phone(pathway_id, language, timezone)
     except Exception as e:
+        print(str(e))
         flash("There is an error on our side. Try again later!", "danger")
         return redirect("/voice-setup")
     
@@ -3212,7 +3213,7 @@ def update_phone_number_endpoint():
     
     restaurant_name = restaurant.get("restaurant_name")
 
-    restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu = get_data_for_pathway_change(restaurant)
+    restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, res_currency = get_data_for_pathway_change(restaurant)
     
     success_update = pathway_proper_update(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id, pathway_id, language)
 

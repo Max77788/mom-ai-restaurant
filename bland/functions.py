@@ -12,6 +12,8 @@ from bland.twilio_stuff import full_get_insert_twilio_number
 
 load_dotenv(find_dotenv())
 
+MOM_AI_BLAND_RESTAURANT_GENIE_ID = "82c1a525-0de5-4436-ae12-c68b2be884c0"
+
 # Find your Account SID and Auth Token at twilio.com/console
 # and set the environment variables. See http://twil.io/secure
 account_sid = os.environ["TWILIO_ACCOUNT_SID"]
@@ -197,7 +199,7 @@ def send_the_call_on_number_demo(where_to_call, restaurant_name, language, store
         return False
     
 def get_conversational_pathway_data():
-    url = BLAND_BASE_URL + f"/convo_pathway/e9d3bda5-2c57-484f-8443-bd0ed3e26435"
+    url = BLAND_BASE_URL + f"/convo_pathway/{MOM_AI_BLAND_RESTAURANT_GENIE_ID}"
     headers = {
         "authorization": BLAND_AI_API_KEY
     }
@@ -208,23 +210,19 @@ def get_conversational_pathway_data():
 
     response_json = response.json()
 
+    print(f"Template stuff: {response_json}")
+
     # with open("bland/pathway_nodes.txt", "w") as file:
         # json.dump(response_json, file, ensure_ascii=False, indent=4)
 
     return response_json
 
-def create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, res_currency, unique_azz_id, restaurant_language_code="en-US"):
+def create_the_suitable_pathway_script(unique_azz_id, restaurant_language_code="en-US"):
     restaurant_language = language_codes[restaurant_language_code]
     
     # Define the replacement values
     replacements = {
-        "{{ restaurant_name }}": restaurant_name,
-        "{{ store_location }}": store_location,
-        "{{ opening_hours }}": opening_hours,
-        "{{ timezone }}": timezone,
-        "{{ restaurant_menu }}": restaurant_menu,
         "{{ unique_azz_id }}": unique_azz_id,
-        "{{ res_currency }}": res_currency,
         "{{ restaurant_language }}": restaurant_language
     }
 
@@ -304,7 +302,7 @@ def insert_the_nodes_and_edges_in_new_pathway(pathway_id, new_script):
 
 def pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, res_currency, unique_azz_id):
     
-    new_script = create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, res_currency, unique_azz_id)
+    new_script = create_the_suitable_pathway_script(unique_azz_id)
 
     pathway_id = create_fully_new_pathway(restaurant_name)
     
@@ -321,7 +319,7 @@ def pathway_serving_a_to_z_initial(restaurant_name, store_location, opening_hour
         return {"success":False, "pathway_id": None}
 
 def pathway_proper_update(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, pathway_id, language_code):
-    new_script = create_the_suitable_pathway_script(restaurant_name, store_location, opening_hours, timezone, restaurant_menu, unique_azz_id, language_code)
+    new_script = create_the_suitable_pathway_script(unique_azz_id, language_code)
 
     new_script["name"] = '{}\'s Voice Agent'.format(restaurant_name),
     new_script["description"] = f"Designed to take orders and loyally serve customers of {restaurant_name} restaurant"
@@ -538,9 +536,10 @@ def buy_and_update_phone(pathway_id, language, timezone):
     # phone_number = purchase_phone_number()
     try:
         phone_number = full_get_insert_twilio_number("US")
-        update_phone_number()
+        update_phone_number(phone_number, language, timezone, pathway_id)
     except Exception as e:
-        raise Exception("Failed to provision and insert phone number")
+        print(str(e))
+        raise (e)
 
     success = add_pathway_to_phone(phone_number, pathway_id, language, timezone)
 
