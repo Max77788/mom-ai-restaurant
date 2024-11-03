@@ -3165,6 +3165,7 @@ def purchase_phone_number():
     
     try:
         dict_response = buy_and_update_phone(pathway_id, language, timezone)
+    
     except Exception as e:
         print(str(e))
         flash("There is an error on our side. Try again later!", "danger")
@@ -3185,9 +3186,25 @@ def purchase_phone_number():
     # Format the date as 'YYYY-MM-DD'
     formatted_date = today.strftime('%Y-%m-%d')
 
-    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"ai_phone_number": phone_number, "ai_phone_subscription_date": formatted_date, "voice_pathway_lang":"en"} ,"$inc":{"balance": -20}})
-
+    result = collection.update_one({"unique_azz_id": unique_azz_id}, {"$set":{"ai_phone_number": phone_number, "ai_phone_subscription_date": formatted_date, "voice_pathway_lang": language} ,"$inc":{"balance": -20}})
     
+    restaurant = collection.find_one({"unique_azz_id": unique_azz_id})
+
+    phone_number = restaurant.get("ai_phone_number")
+    pathway_id = restaurant.get("voice_pathway_id")
+    timezone = restaurant.get("timezone")
+
+    print("Language we passed: ", language)
+    
+    restaurant_name = restaurant.get("restaurant_name")
+
+    restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, res_currency = get_data_for_pathway_change(restaurant)
+    
+    success_update = pathway_proper_update(restaurant_name, store_location, opening_hours_string, timezone, restaurant_menu, unique_azz_id, pathway_id, language)
+
+    assert success_update
+    
+    success = update_phone_number(phone_number, language, timezone, pathway_id)
     
     if result.matched_count > 0:
         flash(f"Congratulations! You have successfully setup {restaurant_name}'s Voice Assistant", "success")

@@ -183,7 +183,7 @@
         <option value="cs">Czech</option>
         <option value="ro">Romanian</option>
         <option value="sk">Slovak</option>
-    </select>
+    </select> 
     <button type="submit" class="btn btn-success" {% if restaurant["balance"] < 22.95 %} style='cursor: not-allowed; opacity: 0.5;' disabled{% endif %}>Obtain Phone Number for {{ restaurant_name }}'s AI Voice Agent</button>
 </form>
 </div>
@@ -199,7 +199,7 @@
 
 {% else %}
 
-<h2>Here is the phone number your customers can call and place the order in {{ restaurant_name }}<br>you will receive notification within the app*</h2>
+<h2>Here is the phone number your customers can call and place the order in {{ restaurant_name }}<br>you will receive notification within the app upon order coming in*</h2>
 <div style="text-align: center; font-size: 24px; margin: 20px 0;">
     <strong style="background-color: #f0f0f0; padding: 10px; border-radius: 4px;">{{ ai_phone_number }}</strong>
 </div>
