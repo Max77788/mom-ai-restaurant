@@ -225,11 +225,6 @@ print("Contract loaded")
 
 POSTS_DIR = "posts"
 
-
-
-
-
-
 ### Video Creation Section ###
 
 def create_and_get_talk_video(script_text):

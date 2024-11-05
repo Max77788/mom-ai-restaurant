@@ -843,7 +843,14 @@ def register():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-
+    test_credentials = False
+    if request.args.get("test") == "True":
+        user = collection.find_one({'email': "expoexample@example.com"})
+        session["res_email"] = user.get('email')
+        session["password"] = user.get('password')
+        print('You have been successfully logged in!')
+        flash('You have been successfully logged into the test account!', "success")
+        return redirect(url_for('dashboard_display'))
     if os.environ.get("ALLOW_LOGIN", "False") != "True":
         abort(403)    
     form = LoginForm()
@@ -860,7 +867,7 @@ def login():
             print('Login failed. Check your email and password.')
             flash('Login failed. Check your email and password.')
             return redirect(url_for('login'))
-    return render_template('start/login.html', form=form, title="Login", 
+    return render_template('start/login.html', form=form, title="Login",
                            GOOGLE_MAPS_API_KEY=GOOGLE_MAPS_API_KEY,
                            GOOGLE_OAUTH_CLIENT_ID=GOOGLE_OAUTH_CLIENT_ID)
 
