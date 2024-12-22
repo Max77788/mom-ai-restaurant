@@ -2509,7 +2509,7 @@ def update_menu_manual():
 
     # Save the text to a .txt file
     file_name = 'uploads/new_menu.txt'
-    with open(file_name, 'w') as file:
+    with open(file_name, 'w', encoding="utf-8") as file:
         file.write(menu_text)
 
     with open(str(file_name), "rb") as menu:    
@@ -3832,13 +3832,12 @@ def generate_response_streaming(unique_azz_id):
             # print(chunk)
             
             if chunk.event == "thread.message.delta":
-                print(f"\n\nYielding message delta content: {chunk.data.delta.content[0].text.value}\n\n")
+                
                 yield(chunk.data.delta.content[0].text.value)
             if chunk.event == "thread.run.completed":
                 tokens_used = chunk.data.usage.total_tokens
                 
                 charge_for_message = PRICE_PER_1_TOKEN * tokens_used
-                print(f"\n\nCharge for message in generate(): {charge_for_message} USD\n\n")
 
                 result_charge_for_message = collection.update_one({"unique_azz_id": unique_azz_id}, {"$inc": {"balance": -charge_for_message, "assistant_fund": charge_for_message}})
                 if result_charge_for_message.matched_count > 0:
@@ -3853,7 +3852,7 @@ def generate_response_streaming(unique_azz_id):
                         run_id=run.id
                         )
                     no_action_response = "Please, type in the other message as I can't proceed with the placement of the order. I am not entitled to do that."
-                    print("Yielding discovery mode no order message: discovery_mode_no_order")
+                    
                     yield "discovery_mode_no_order"
                 print("Action in progress...")
 

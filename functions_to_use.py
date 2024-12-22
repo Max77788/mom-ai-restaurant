@@ -2585,7 +2585,7 @@ def convert_xlsx_to_txt_and_menu_html(input_file_path, output_file_path, currenc
  
     html_menu_tuples = []
     # Open the output TXT file
-    with open(output_file_path, 'w') as file:
+    with open(output_file_path, 'w', encoding="utf-8") as file:
         # Iterate through each row in the DataFrame
         for index, row in df.iterrows():
             if len(row) > 3:
