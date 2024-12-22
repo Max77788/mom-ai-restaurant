@@ -16,7 +16,7 @@ html, body {
 }
 
 /* Header and Footer Styles */
-header, footer {
+footer {
     background-color: #000;
     color: #fff;
     text-align: center;
@@ -42,6 +42,11 @@ header .slogan {
     color: #000;
 }
 
+.body-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Make container at least the full height of viewport */
+}
 
 /* Main Content Area Styles */
 main {

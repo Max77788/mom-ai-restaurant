@@ -607,7 +607,7 @@ def landing_page():
     """
     
             
-    return render_template('start/bestLanding.html', title="AI Restaurant")
+    return render_template('start/landing.html', title="AI Restaurant")
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

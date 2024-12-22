@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'layout_marketing_dashboard.html' %}
 
 {% block content %}
 
@@ -85,6 +85,57 @@
     {% endif %}
 {% endwith %}
 
+<div class="responsive-container" style="display: flex; justify-content: center; align-items: flex-start; flex-direction: row; padding-top: 10px; gap: 15px">
+    <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px">
+        <img src="/static/logos/restaurantAndTakeawayLogo.jpg" width="auto" height="50">
+        <h3 style="text-align: center;"><b>Exhibitor of<br><a href="https://www.takeawayexpo.co.uk/exhibitors/mom-ai-restaurant/" target="_blank"><u>Restaurant & Takeaway Expo 2024</u></a></b></h3>
+    </div>
+    <div style="width: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px">
+        <img src="/static/images/bulls_logos/OpenAI_Logo.png" width="auto" height="50">
+        <h3><b>Approved funding by OpenAI</b></h3>
+    </div>
+</div>
+
+<style>
+/* Default style for larger screens */
+.responsive-container {
+    display: flex;
+    flex-direction: row;
+}
+
+/* Media query for screens smaller than 768px (tablets, phones) */
+@media (max-width: 768px) {
+    .responsive-container {
+        flex-direction: column;
+        gap: 10px; /* Adjust spacing if needed */
+    }
+}
+</style>
+
+    
+<div style="display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; flex-wrap: wrap; gap: 40px">
+    <!-- Left Column -->
+    <div style="text-align: center; max-width: 400px; margin-right: 20px;">
+      <h1 style="font-size: 2.7rem; margin-bottom: 15px; line-height: 1.2; font-weight: bold;">
+        Hey, Restaurant Owners & Managers!
+      </h1>
+      <button style="margin-top: 10px; margin-bottom: 10px; padding: 10px 20px; border: none; color: white; font-size: 1rem; cursor: pointer; border-radius: 5px;">
+        <a href="/login?test=True" style="text-decoration: none; color: inherit;">Test Now!</a>
+      </button>
+    </div>
+  
+    <!-- Right Column -->
+    <div style="text-align: center;">
+      <video controls autoplay muted style="max-width: 300px; height: auto; border-radius: 10px;">
+        <source src="/static/videos/MOM_AI_Restaurant_Promo_Video_Vertical.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+  
+  
+  
+
 <!-- Hero Section -->
 <div class="image-container">
     <img src="/static/images/landing_gipsy_banner.png" alt="Restaurant of the Future">
@@ -95,7 +146,7 @@
     -->
 </div>
 
-<h1 style="text-align: center;">Designed with the support and the best practices of</h1>
+<h1 style="text-align: center; margin-top: 5px; margin-bottom: 5px">Designed with the support and the best practices of</h1>
         <div class="image-container">
             <img src="/static/images/bulls_logos/mom_ai_bull_logos.png" alt="MOM AI Ambassadors">
 </div>
@@ -103,11 +154,6 @@
     <div class="link">
         <a href="https://www.producthunt.com/posts/mom-ai-restaurant-assistant?embed=true&utm_source=badge-featured&utm_medium=badge&utm_souce=badge-mom&#0045;ai&#0045;restaurant&#0045;assistant" target="_blank">
             <img src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=467194&theme=dark" alt="MOM&#0032;AI&#0032;Restaurant&#0032;Assistant - Restaurant&#0032;Assistant | Product Hunt" style="width: 250px; height: 54px;" width="250" height="54" />
-        </a>
-    </div>
-    <div class="link">
-        <a href="https://aitoolhub.tech/product/mom-ai-restaurant-assistant" target="_blank" style="text-align: center; align-items: center;">
-            <img src="https://aitoolhub.tech/assets/logo.svg" alt="Featured Embed | aitoolhub.tech" style="width: 400px; height: 100px;" width="400" height="100"/>
         </a>
     </div>
 </div>

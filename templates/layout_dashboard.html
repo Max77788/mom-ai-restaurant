@@ -50,9 +50,12 @@
         <div class="header-content">
             <div class="logo-section">
                 <img src="{{ url_for('static', filename='logos/logo_trans.png') }}" alt="{{ restaurant_name }} Logo" class="logo">
-                <p class="slogan">Restaurant of the Future Today!</p>
-                <p class="sub-slogan">Simple. Innovative. Classy.</p>
+                <div class="text-container">
+                    <p class="slogan">Restaurant of the Future Today!</p>
+                    <p class="sub-slogan">Simple. Innovative. Classy.</p>
+                </div>
             </div>
+            
         </div>
     </header>
 
@@ -116,7 +119,7 @@
         }
 
         header {
-            padding: 20px;
+            padding: 0px;
             background-color: #f9f9f9;
             text-align: center;
         }
@@ -126,17 +129,28 @@
             align-items: center;
         }
         .logo-section {
-            text-align: center;
-            margin-bottom: 5px;
+            display: flex;
+            align-items: center; /* Aligns items vertically in the center */
+            gap: 15px; /* Space between logo and text */
+            transform: scale(0.7); /* Scales everything to 80% of its original size */
+            transform-origin: center; /* Centers the scale effect */
         }
+
         .logo {
-            max-width: 150px;
+            max-width: 100px;
             height: auto;
             display: block;
             margin: 0 auto;
+            
         }
+
+        .text-container {
+            display: flex;
+            flex-direction: column; /* Stacks slogan and sub-slogan vertically */
+        }
+
         .slogan {
-            font-size: 1.2em;
+            font-size: 1em;
             margin: 0;
         }
         .sub-slogan {
