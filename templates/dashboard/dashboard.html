@@ -305,6 +305,20 @@ function downloadImage() {
                 </form>
             </div>
             <hr>
+       <!-- Start of assistant toggles list -->
+   
+       <!-- Toggle Button -->
+       <div style="text-align: center; margin-bottom: 15px;"> 
+        <button class="toggle-button" id="toggleButton">
+            <span>Show Toggles</span>
+            <span>&#9660;</span> <!-- Down arrow -->
+        </button>
+        </div>
+
+       <div id="toggleContainer" style="display: none;">
+        <!-- Toggle Button -->
+        
+
             <div class="switch-container">
                 {% if restaurant.menu_vector_id != "vector_is_not_yet" %}
                 <span id="assistantStatus">
@@ -459,8 +473,21 @@ function downloadImage() {
                 
             </div>
         </div>
+            <!-- End of assistant toggles list -->
+        </div>
     </div>
-    
+    <script>
+        // JavaScript to handle toggling
+        document.getElementById('toggleButton').addEventListener('click', function () {
+            const toggleContainer = document.getElementById('toggleContainer');
+            const isOpen = toggleContainer.classList.toggle('open');
+            toggleContainer.style.display = isOpen ? 'block' : 'none';
+            this.classList.toggle('open'); // Update button arrow state
+            const buttonText = isOpen ? 'Hide Toggles' : 'Show Toggles';
+            const arrow = isOpen ? '&#9650;' : '&#9660;'; // Up and down arrow
+            this.innerHTML = `<span>${buttonText}</span><span>${arrow}</span>`;
+        });
+        </script>
     
 
     <nav class="dashboard-nav">
@@ -625,6 +652,7 @@ function downloadImage() {
             .switch-container {
                 flex-direction: column;
                 align-items: flex-start;
+                transition: ease;
             }
 
             .switch {
