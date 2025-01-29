@@ -16,3 +16,4 @@ exec_pp_payment.py
 get_sub_id.py
 test_send_token.py
 /static/secret
+credentials.json
